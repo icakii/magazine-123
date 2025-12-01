@@ -8,14 +8,17 @@ const crypto = require('crypto')
 const db = require('./db') // Изисква db.js да е в същата папка
 
 const app = express()
-const PORT = process.env.PORT || 8080
+const PORT = process.env.PORT || 5000;
 const JWT_SECRET = process.env.JWT_SECRET || 'super-secret-key-change-this'
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173'
 
 // Middleware
 app.use(express.json())
 app.use(cookieParser())
-app.use(cors({ origin: FRONTEND_URL, credentials: true }))
+app.use(cors({
+  origin: process.env.FRONTEND_URL,
+  credentials: true,
+}));
 
 // Auth Middleware
 function authMiddleware(req, res, next) {

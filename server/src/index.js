@@ -5,12 +5,12 @@ const jwt = require('jsonwebtoken')
 const bcrypt = require('bcrypt')
 const nodemailer = require('nodemailer')
 const crypto = require('crypto')
-const db = require('./db') // Importirame vruskata s bazata
+const db = require('./db') // Изисква db.js да е в същата папка
 
 const app = express()
 const PORT = process.env.PORT || 8080
 const JWT_SECRET = process.env.JWT_SECRET || 'super-secret-key-change-this'
-const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173' 
+const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173'
 
 // Middleware
 app.use(express.json())
@@ -81,12 +81,10 @@ app.get("/api/magazine/status", async (req, res) => {
 
 app.post("/api/magazine/toggle", adminMiddleware, async (req, res) => {
   try {
-    // Vzimame tekushtoto
     const { rows } = await db.query("SELECT value FROM settings WHERE key = 'magazine'")
     let current = rows[0]?.value || { isPublic: false }
     current.isPublic = !current.isPublic
     
-    // Obnovyavame (UPSERT logic - PostgreSQL specifichno)
     await db.query(
       "INSERT INTO settings (key, value) VALUES ('magazine', $1) ON CONFLICT (key) DO UPDATE SET value = $1",
       [JSON.stringify(current)]
@@ -101,7 +99,6 @@ const transporter = nodemailer.createTransport({
   auth: { user: 'icaki2k@gmail.com', pass: 'gbkm afqn ymsl rqhz' }
 })
 
-// Register
 app.post("/api/auth/register", async (req, res) => {
   const { email, password, displayName } = req.body
   try {
@@ -110,13 +107,11 @@ app.post("/api/auth/register", async (req, res) => {
     
     const hash = await bcrypt.hash(password, 10)
     
-    // Zapazvame user
     await db.query(
       'INSERT INTO users (email, display_name, password_hash, created_at) VALUES ($1, $2, $3, NOW())',
       [email, displayName, hash]
     )
     
-    // Zapazvame free subscription
     await db.query('INSERT INTO subscriptions (email, plan) VALUES ($1, $2)', [email, 'free'])
     
     res.json({ ok: true })
@@ -126,7 +121,6 @@ app.post("/api/auth/register", async (req, res) => {
   }
 })
 
-// Login
 app.post('/api/auth/login', async (req, res) => {
   const { email, password } = req.body
   try {
@@ -138,7 +132,6 @@ app.post('/api/auth/login', async (req, res) => {
     }
     
     const token = signToken({ email: user.email })
-    // secure: false za localhost, true za production (Render)
     const isProduction = process.env.NODE_ENV === 'production'
     res.cookie('auth', token, { httpOnly: true, sameSite: isProduction ? 'none' : 'lax', secure: isProduction })
     
@@ -157,7 +150,6 @@ app.get('/api/user/me', authMiddleware, async (req, res) => {
     const { rows } = await db.query('SELECT email, display_name, last_username_change FROM users WHERE email = $1', [req.user.email])
     if (rows.length === 0) return res.status(404).json({ error: 'User not found' })
     
-    // Postgres vrushta 'display_name', frontend-ut iska 'displayName'
     const user = rows[0]
     res.json({ 
         email: user.email, 
@@ -170,7 +162,7 @@ app.get('/api/user/me', authMiddleware, async (req, res) => {
 // Subscriptions
 app.get('/api/subscriptions', authMiddleware, async (req, res) => {
   try {
-    const { rows } = await db.query('SELECT plan FROM subscriptions WHERE email = $1 ORDER BY id DESC LIMIT 1', [req.user.email])
+    const { rows } = await db.query('SELECT plan FROM subscriptions WHERE email = $1 ORDER BY id DESC', [req.user.email])
     res.json(rows)
   } catch (err) { res.status(500).json({ error: err.message }) }
 })

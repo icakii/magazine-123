@@ -86,7 +86,7 @@ app.post("/api/magazine/toggle", adminMiddleware, async (req, res) => {
     let current = rows[0]?.value || { isPublic: false }
     current.isPublic = !current.isPublic
     
-    // Obnovyavame (UPSERT logic)
+    // Obnovyavame (UPSERT logic - PostgreSQL specifichno)
     await db.query(
       "INSERT INTO settings (key, value) VALUES ('magazine', $1) ON CONFLICT (key) DO UPDATE SET value = $1",
       [JSON.stringify(current)]
@@ -98,7 +98,7 @@ app.post("/api/magazine/toggle", adminMiddleware, async (req, res) => {
 // 3. AUTH & USER
 const transporter = nodemailer.createTransport({
   service: 'gmail',
-  auth: { user: 'icaki2k@gmail.com', pass: 'gbkm afqn ymsl rqhz' } // *Preporychitelno e tova da e v .env*
+  auth: { user: 'icaki2k@gmail.com', pass: 'gbkm afqn ymsl rqhz' }
 })
 
 // Register
@@ -118,9 +118,6 @@ app.post("/api/auth/register", async (req, res) => {
     
     // Zapazvame free subscription
     await db.query('INSERT INTO subscriptions (email, plan) VALUES ($1, $2)', [email, 'free'])
-
-    // Send confirmation email (Mock for now or real if SMTP is set)
-    // ... tuk mojesh da vkarash logikata s tokeni ako iskash
     
     res.json({ ok: true })
   } catch (err) { 
@@ -140,17 +137,18 @@ app.post('/api/auth/login', async (req, res) => {
         return res.status(401).json({ error: 'Invalid credentials' })
     }
     
-    // Ako iskash 2FA:
-    // res.json({ requires2fa: true }) 
-    // Za sega direktno login:
     const token = signToken({ email: user.email })
-    res.cookie('auth', token, { httpOnly: true, sameSite: 'none', secure: true }) // secure: true za Render
+    // secure: false za localhost, true za production (Render)
+    const isProduction = process.env.NODE_ENV === 'production'
+    res.cookie('auth', token, { httpOnly: true, sameSite: isProduction ? 'none' : 'lax', secure: isProduction })
+    
     res.json({ ok: true, user: { email: user.email, displayName: user.display_name } })
   } catch (err) { res.status(500).json({ error: err.message }) }
 })
 
 app.post('/api/auth/logout', (req, res) => { 
-    res.clearCookie('auth', { httpOnly: true, sameSite: 'none', secure: true })
+    const isProduction = process.env.NODE_ENV === 'production'
+    res.clearCookie('auth', { httpOnly: true, sameSite: isProduction ? 'none' : 'lax', secure: isProduction })
     res.json({ ok: true }) 
 })
 
@@ -159,7 +157,7 @@ app.get('/api/user/me', authMiddleware, async (req, res) => {
     const { rows } = await db.query('SELECT email, display_name, last_username_change FROM users WHERE email = $1', [req.user.email])
     if (rows.length === 0) return res.status(404).json({ error: 'User not found' })
     
-    // Mapvame snake_case kum camelCase za frontenda
+    // Postgres vrushta 'display_name', frontend-ut iska 'displayName'
     const user = rows[0]
     res.json({ 
         email: user.email, 

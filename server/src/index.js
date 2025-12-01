@@ -15,7 +15,20 @@ const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173'
 // Middleware
 app.use(express.json())
 app.use(cookieParser())
-app.use(cors({ origin: FRONTEND_URL, credentials: true }))
+app.use(express.json())
+app.use(cookieParser())
+
+// --- FIX: CORS CONFIGURATION ---
+const corsOptions = {
+    // Позволява достъп от Render frontend URL
+    origin: FRONTEND_URL, 
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+    allowedHeaders: ['Content-Type', 'Authorization']
+};
+
+app.use(cors(corsOptions))
+// --- END FIX ---
 
 // Auth Middleware
 function authMiddleware(req, res, next) {

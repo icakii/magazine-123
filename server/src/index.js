@@ -15,20 +15,7 @@ const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173'
 // Middleware
 app.use(express.json())
 app.use(cookieParser())
-app.use(express.json())
-app.use(cookieParser())
-
-// --- FIX: CORS CONFIGURATION ---
-const corsOptions = {
-    // Позволява достъп от Render frontend URL
-    origin: FRONTEND_URL, 
-    credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE'],
-    allowedHeaders: ['Content-Type', 'Authorization']
-};
-
-app.use(cors(corsOptions))
-// --- END FIX ---
+app.use(cors({ origin: FRONTEND_URL, credentials: true }))
 
 // Auth Middleware
 function authMiddleware(req, res, next) {
@@ -175,7 +162,7 @@ app.get('/api/user/me', authMiddleware, async (req, res) => {
 // Subscriptions
 app.get('/api/subscriptions', authMiddleware, async (req, res) => {
   try {
-    const { rows } = await db.query('SELECT plan FROM subscriptions WHERE email = $1 ORDER BY id DESC', [req.user.email])
+    const { rows } = await db.query('SELECT plan FROM subscriptions WHERE email = $1 ORDER BY id DESC LIMIT 1', [req.user.email])
     res.json(rows)
   } catch (err) { res.status(500).json({ error: err.message }) }
 })

@@ -1,0 +1,21 @@
+{
+  "icaki06@gmail.com": {
+    "email": "icaki06@gmail.com",
+    "displayName": "icaki2k",
+    "passwordHash": "$2b$10$Q6EYrJFbxHCcoWWsEO/Ozep7fMJT32TK6BkCjESzs3b0rUiRI4bwW",
+    "twofa": true
+  },
+  "icaki2k@gmail.com": {
+    "email": "icaki2k@gmail.com",
+    "displayName": "icakiii",
+    "passwordHash": "$2b$10$3pAwfo80//od.MTGkGKzb.oLSUjHQLMqabq/5Mzz.jW5KcpNsMO7O",
+    "twofa": true
+  },
+  "icakibusiness@gmail.com": {
+    "email": "icakibusiness@gmail.com",
+    "displayName": "icakiiii",
+    "passwordHash": "$2b$10$U3gb5LNriR.Zx0WTc2Grlei62S3XBGSMzmLGuaTD6dSQbBQPTyUZ6",
+    "twofa": true,
+    "emailConfirmed": false
+  }
+}

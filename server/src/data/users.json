@@ -1,0 +1,39 @@
+{
+  "icaki2k@gmail.com": {
+    "email": "icaki2k@gmail.com",
+    "displayName": "icakiii",
+    "passwordHash": "$2b$10$WKCIxEfMBfnNxAsmZPjBdu1GoCbfPzIoplIO4SpFVtnyX8vSBwfQy",
+    "twofa": true,
+    "emailConfirmed": true
+  },
+  "venelinbalev30@gmail.com": {
+    "email": "venelinbalev30@gmail.com",
+    "displayName": "vnln4o",
+    "passwordHash": "$2b$10$R7jgPQVOitaLoMLac0aFSOjQ3jFx8j/Cds.Qp7LqYXD2.bE63Veb6",
+    "twofa": true,
+    "emailConfirmed": false
+  },
+  "icaki06@gmail.com": {
+    "email": "icaki06@gmail.com",
+    "displayName": "ickoo",
+    "passwordHash": "$2b$10$eijSbp0chm8xKaO57WpIgerZxm6/FQgMSa3Zo3BSs7i1y2.FRHg.G",
+    "twofa": true,
+    "emailConfirmed": true,
+    "wordleStreak": 1,
+    "lastUsernameChange": "2025-12-01T12:39:32.402Z"
+  },
+  "gulsumhsn35@gmail.com": {
+    "email": "gulsumhsn35@gmail.com",
+    "displayName": "gigi",
+    "passwordHash": "$2b$10$4T1VgyBLvEESQPXlJL11guR.PaY/L5Azlkjza6pnLKVbta1ypQCkW",
+    "twofa": true,
+    "emailConfirmed": false
+  },
+  "icakibusiness@gmail.com": {
+    "email": "icakibusiness@gmail.com",
+    "displayName": "icaki123",
+    "passwordHash": "$2b$10$eCebT3nkwHzCm2zJ5LOmFOtOxrL/vY5MpPAj37IHZ4KVYC4zzFf0G",
+    "twofa": true,
+    "emailConfirmed": true
+  }
+}

@@ -108,6 +108,91 @@ const transporter = nodemailer.createTransport({
   auth: { user: 'icaki2k@gmail.com', pass: 'gbkm afqn ymsl rqhz' } // Увери се, че това е App Password
 });
 
+// DOBAVI TOVA v server/index.js
+
+// Izprashta 2FA kod na imeila
+app.post('/api/auth/send-2fa', async (req, res) => {
+  const { email } = req.body;
+  if (!email) return res.status(400).json({ error: "Email is required" });
+
+  try {
+    // 1. Proverka dali userut sushtestvuva
+    const userCheck = await db.query('SELECT * FROM users WHERE email = $1', [email]);
+    if (userCheck.rows.length === 0) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    // 2. Generirane na kod i vreme na iztichane (10 minuti)
+    const code = crypto.randomInt(100000, 999999).toString();
+    const expiry = new Date(Date.now() + 10 * 60 * 1000); // 10 minuti
+
+    // 3. Zapazvane v bazata danni
+    await db.query(
+      'UPDATE users SET two_fa_code = $1, two_fa_expiry = $2 WHERE email = $3',
+      [code, expiry, email]
+    );
+
+    // 4. Izprashtane na imeila
+    await transporter.sendMail({
+      from: '"MIREN" <icaki2k@gmail.com>',
+      to: email,
+      subject: 'Your MIREN Verification Code',
+      html: `
+        <p>Here is your two-factor authentication code:</p>
+        <h2 style="font-size: 28px; letter-spacing: 2px;">${code}</h2>
+        <p>This code will expire in 10 minutes.</p>
+      `
+    });
+
+    res.json({ ok: true, message: "Code sent" });
+  } catch (err) {
+    console.error("Send 2FA error:", err);
+    res.status(500).json({ error: "Error sending code" });
+  }
+});
+
+// DOBAVI TOVA v server/index.js
+
+// Proverqva 2FA koda i logva potrebitelq
+app.post('/api/auth/verify-2fa', async (req, res) => {
+  const { email, code } = req.body;
+  if (!email || !code) return res.status(400).json({ error: "Email and code are required" });
+
+  try {
+    // 1. Namirame usera
+    const { rows } = await db.query('SELECT * FROM users WHERE email = $1', [email]);
+    const user = rows[0];
+
+    // 2. Proverki za validnost
+    if (!user) return res.status(404).json({ error: "User not found" });
+    if (user.two_fa_code !== code) return res.status(401).json({ error: "Invalid code" });
+    if (new Date() > new Date(user.two_fa_expiry)) return res.status(401).json({ error: "Code expired" });
+
+    // 3. Vsichko e nared. Logvame potrebitelq.
+    
+    // Izchistvame koda ot bazata
+    await db.query(
+      'UPDATE users SET two_fa_enabled = true, two_fa_code = NULL, two_fa_expiry = NULL WHERE email = $1',
+      [email]
+    );
+
+    // Izdavame "biskvitka" za avtentikaciq
+    const authToken = signToken({ email: user.email });
+    const isProduction = process.env.NODE_ENV === 'production';
+    res.cookie('auth', authToken, { 
+      httpOnly: true, 
+      sameSite: isProduction ? 'none' : 'lax', 
+      secure: isProduction 
+    });
+    
+    // Tova shte zavurshi i Setup-a i Login-a
+    res.json({ ok: true, message: "Verification successful!" });
+
+  } catch (err) {
+    console.error("Verify 2FA error:", err);
+    res.status(500).json({ error: "Error verifying code" });
+  }
+});
 
 // ======== НОВА ПОПРАВКА 1: /api/auth/check (Поправя 404) ========
 app.get("/api/auth/check", async (req, res) => {
@@ -227,23 +312,31 @@ app.post('/api/auth/confirm', async (req, res) => {
 });
 
 
-// /api/auth/login (Модифициран да проверява дали имейлът е потвърден)
 app.post('/api/auth/login', async (req, res) => {
   const { email, password } = req.body;
   try {
     const { rows } = await db.query('SELECT * FROM users WHERE email = $1', [email]);
     const user = rows[0];
     
+    // 1. Proverka za parola
     if (!user || !(await bcrypt.compare(password, user.password_hash))) {
         return res.status(401).json({ error: 'Invalid credentials' });
     }
     
-    // ======== ПРОВЕРКА ЗА ПОТВЪРЖДЕНИЕ ========
+    // 2. Proverka za potvurden imeim
     if (!user.is_confirmed) {
         return res.status(403).json({ error: 'Please confirm your email address first.' });
     }
+
+    // 3. ======== NOVA 2FA PROVERKA ========
+    if (user.two_fa_enabled) {
+        // Ako ima 2FA, NE davame "biskvitka".
+        // Vrushtame 'requires2fa', koeto Login.jsx ochakva
+        return res.json({ ok: true, requires2fa: true });
+    }
     // ======================================
     
+    // Ako nqma 2FA, logvame go normalno
     const token = signToken({ email: user.email });
     const isProduction = process.env.NODE_ENV === 'production';
     res.cookie('auth', token, { httpOnly: true, sameSite: isProduction ? 'none' : 'lax', secure: isProduction });

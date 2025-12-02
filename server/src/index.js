@@ -102,6 +102,38 @@ const transporter = nodemailer.createTransport({
   auth: { user: 'icaki2k@gmail.com', pass: 'gbkm afqn ymsl rqhz' }
 })
 
+app.get("/api/auth/check", async (req, res) => {
+  const { email, displayName } = req.query;
+
+  try {
+    let query = "SELECT 1 FROM users WHERE";
+    let params = [];
+
+    if (email) {
+      query += " email = $1";
+      params.push(email);
+    } else if (displayName) {
+      query += " display_name = $1";
+      params.push(displayName);
+    } else {
+      // Ако заявката е празна, не връщай грешка, а просто кажи, че не е заето
+      return res.json({ taken: false });
+    }
+
+    const { rows } = await db.query(query, params);
+    
+    if (rows.length > 0) {
+      res.json({ taken: true });
+    } else {
+      res.json({ taken: false });
+    }
+  } catch (err) {
+    console.error("Auth check error:", err.message);
+    // Дори при грешка, просто връщаме "taken: false", за да не блокираме формата
+    res.json({ taken: false });
+  }
+});
+
 app.post("/api/auth/register", async (req, res) => {
   const { email, password, displayName } = req.body
   try {

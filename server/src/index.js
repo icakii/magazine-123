@@ -156,9 +156,11 @@ app.post("/api/magazine/toggle", adminMiddleware, async (req, res) => {
 // 3. AUTH & USER
 const transporter = nodemailer.createTransport({
   service: 'gmail',
-  auth: { user: 'icaki2k@gmail.com', pass: 'gbkm afqn ymsl rqhz' } 
+  auth: { 
+    user: process.env.EMAIL_USER, // <-- Сега ще чете от Render
+    pass: process.env.EMAIL_PASS  // <-- Сега ще чете от Render
+  } 
 });
-
 // Send 2FA
 app.post('/api/auth/send-2fa', async (req, res) => {
   const { email } = req.body;

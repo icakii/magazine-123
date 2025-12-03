@@ -8,6 +8,7 @@ import TwoFASetup from './pages/TwoFASetup'
 import TwoFAVerify from './pages/TwoFAVerify'
 import Profile from './pages/Profile'
 import AdminPanel from './pages/AdminPanel'
+import ResetPassword from './pages/ResetPassword'
 import Games from './pages/Games'
 import EMagazine from './pages/EMagazine'
 import Leaderboards from './pages/Leaderboards'
@@ -47,6 +48,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(
         <Route path="/admin" element={<AdminPanel />} />
         <Route path='/about' element={<About />} />
         <Route path='/gallery' element={<Gallery />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
         <Route path='/contact' element={<Contact />} />
         <Route path='/help' element={<Help />} />
         <Route path='/register' element={<Register />} />

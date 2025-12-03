@@ -171,6 +171,45 @@ app.post('/api/auth/reset-password-request', async (req, res) => {
     res.json({ ok: true, message: "Reset link sent!" });
   } catch (err) { console.error("Reset error:", err); res.status(500).json({ error: "Error sending email" }); }
 });
+
+// ФИНАЛНА СТЪПКА: Смяна на паролата с валиден токен
+app.post('/api/auth/reset-password', async (req, res) => {
+  const { token, newPassword } = req.body;
+  
+  if (!token || !newPassword) {
+    return res.status(400).json({ error: "Token and new password are required" });
+  }
+
+  try {
+    // 1. Намираме потребителя с този токен И проверяваме дали не е изтекъл
+    const { rows } = await db.query(
+      'SELECT * FROM users WHERE reset_password_token = $1 AND reset_password_expires > NOW()', 
+      [token]
+    );
+
+    const user = rows[0];
+
+    if (!user) {
+      return res.status(400).json({ error: "Invalid or expired token" });
+    }
+
+    // 2. Хешираме новата парола
+    const hash = await bcrypt.hash(newPassword, 10);
+
+    // 3. Записваме новата парола и изчистваме токена
+    await db.query(
+      'UPDATE users SET password_hash = $1, reset_password_token = NULL, reset_password_expires = NULL WHERE email = $2',
+      [hash, user.email]
+    );
+
+    res.json({ ok: true, message: "Password has been reset successfully! You can now login." });
+
+  } catch (err) {
+    console.error("Reset password error:", err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 // ---------------------------------------
 
 // Send 2FA

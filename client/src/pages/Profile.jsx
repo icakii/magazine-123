@@ -1,5 +1,5 @@
-// src/pages/Profile.jsx
 import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom' // <-- ВАЖНО: Импортваме Link
 import { useAuth } from '../hooks/useAuth'
 import { api } from '../lib/api'
 import { t } from '../lib/i18n'
@@ -21,7 +21,6 @@ export default function Profile() {
   const currentPlan = subs[0]?.plan || 'Free'
   const isPremium = ['Monthly', 'Yearly', 'monthly', 'yearly'].includes(currentPlan)
 
-  // Визуална проверка само
   const canChangeNameVisual = () => {
       if (!isPremium) return false
       if (!user.lastUsernameChange) return true 
@@ -44,14 +43,11 @@ export default function Profile() {
           return
       }
       try {
-          // ИЗПРАЩАМЕ РЕАЛНА ЗАЯВКА - НЯМА СИМУЛАЦИЯ!
           await api.post('/user/update-username', { newUsername: newName })
-          
           setMsg({ type: 'success', text: 'Успешно обновихте името си!' })
           setIsEditingName(false)
           setTimeout(() => location.reload(), 1000) 
       } catch (err) {
-          // Ако сървърът върне грешка (напр. 403 Wait X days), я показваме тук
           setMsg({ type: 'error', text: err?.response?.data?.error || 'Грешка при обновяване.' })
       }
   }
@@ -116,8 +112,31 @@ export default function Profile() {
 
         <div>
             <strong>Security</strong>
-            <div style={{marginTop: '10px'}}>
-                <button onClick={handlePasswordReset} className="btn outline" style={{fontSize: '0.9rem', width:'100%'}}>Send Password Reset Email</button>
+            <div style={{marginTop: '10px', display: 'flex', flexDirection: 'column', gap: '10px'}}>
+                
+                {/* БУТОН ЗА ПАРОЛА */}
+                <button onClick={handlePasswordReset} className="btn outline" style={{fontSize: '0.9rem', width:'100%'}}>
+                    Send Password Reset Email
+                </button>
+
+                {/* --- НОВИЯТ БУТОН ЗА 2FA --- */}
+                <Link 
+                    to="/2fa/setup" 
+                    className="btn outline" 
+                    style={{
+                        fontSize: '0.9rem', 
+                        width:'100%', 
+                        textDecoration: 'none', 
+                        textAlign: 'center', 
+                        border: '2px solid #e63946', 
+                        color: '#e63946', 
+                        fontWeight: 'bold',
+                        display: 'block' // Прави бутона да заема цялата ширина
+                    }}
+                >
+                    🛡️ Configure Two-Factor Auth (2FA)
+                </Link>
+
             </div>
         </div>
 

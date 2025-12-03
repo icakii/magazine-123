@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom' // <-- ВАЖНО: Импортваме Link
+import { Link } from 'react-router-dom' // <-- ВАЖНО
 import { useAuth } from '../hooks/useAuth'
 import { api } from '../lib/api'
 import { t } from '../lib/i18n'
@@ -28,41 +28,32 @@ export default function Profile() {
       return diffDays >= 14
   }
 
-  const daysUntilChange = user?.lastUsernameChange 
-      ? 14 - Math.ceil(Math.abs(new Date() - new Date(user.lastUsernameChange)) / (1000 * 60 * 60 * 24)) 
-      : 0
-
   async function handleLogout() {
     try { await api.post('/auth/logout') } catch {}
     location.href = '/'
   }
 
   async function handleUpdateUsername() {
-      if (newName.length < 3) {
-          setMsg({ type: 'error', text: 'Името е твърде кратко.' })
-          return
-      }
+      if (newName.length < 3) { setMsg({ type: 'error', text: 'Name too short' }); return }
       try {
           await api.post('/user/update-username', { newUsername: newName })
-          setMsg({ type: 'success', text: 'Успешно обновихте името си!' })
+          setMsg({ type: 'success', text: 'Username updated!' })
           setIsEditingName(false)
           setTimeout(() => location.reload(), 1000) 
       } catch (err) {
-          setMsg({ type: 'error', text: err?.response?.data?.error || 'Грешка при обновяване.' })
+          setMsg({ type: 'error', text: err?.response?.data?.error || 'Error updating' })
       }
   }
 
   async function handlePasswordReset() {
       try {
           await api.post('/auth/reset-password-request', { email: user.email })
-          setMsg({ type: 'success', text: 'Линк за ресет е изпратен!' })
-      } catch (err) {
-          setMsg({ type: 'error', text: 'Грешка при изпращане.' })
-      }
+          setMsg({ type: 'success', text: 'Reset link sent!' })
+      } catch (err) { setMsg({ type: 'error', text: 'Error sending link.' }) }
   }
 
   if (loading) return <div className="page"><p className="text-muted">{t('loading')}</p></div>
-  if (!user) return <div className="page"><p>{t('not_logged_in')} <a href="/login" className="btn outline">{t('go_login')}</a></p></div>
+  if (!user) return <div className="page"><p>{t('not_logged_in')}</p></div>
 
   return (
     <div className="page">
@@ -88,24 +79,20 @@ export default function Profile() {
                         onClick={() => setIsEditingName(true)} 
                         disabled={!canChangeNameVisual()}
                         className="btn ghost" 
-                        style={{padding: '5px 10px', fontSize: '0.8rem', opacity: canChangeNameVisual() ? 1 : 0.5, cursor: canChangeNameVisual() ? 'pointer' : 'not-allowed'}}
+                        style={{padding: '5px 10px', fontSize: '0.8rem', opacity: canChangeNameVisual() ? 1 : 0.5}}
                     >
-                        {canChangeNameVisual() ? 'Edit' : (isPremium ? `Wait ${daysUntilChange} days` : 'Premium Only 🔒')}
+                        {canChangeNameVisual() ? 'Edit' : (isPremium ? 'Premium Only 🔒' : 'Wait')}
                     </button>
                 )}
             </div>
-
             {!isEditingName ? (
                 <span>{user.displayName}</span>
             ) : (
                 <div style={{display:'flex', gap:'10px'}}>
                     <input className="input" value={newName} onChange={(e) => setNewName(e.target.value)} style={{flex:1}} />
-                    <button onClick={handleUpdateUsername} className="btn primary" style={{padding:'5px 10px'}}>Save</button>
-                    <button onClick={() => { setIsEditingName(false); setNewName(user.displayName); }} className="btn ghost" style={{padding:'5px 10px'}}>Cancel</button>
+                    <button onClick={handleUpdateUsername} className="btn primary">Save</button>
                 </div>
             )}
-            
-            {!isPremium && <div style={{fontSize:'0.8rem', color:'#999', marginTop:'5px'}}>* Upgrade to Premium to change username every 14 days.</div>}
         </div>
 
         <hr style={{margin: '15px 0', border: '0', borderTop: '1px solid #eee'}} />
@@ -113,13 +100,11 @@ export default function Profile() {
         <div>
             <strong>Security</strong>
             <div style={{marginTop: '10px', display: 'flex', flexDirection: 'column', gap: '10px'}}>
-                
-                {/* БУТОН ЗА ПАРОЛА */}
                 <button onClick={handlePasswordReset} className="btn outline" style={{fontSize: '0.9rem', width:'100%'}}>
                     Send Password Reset Email
                 </button>
 
-                {/* --- НОВИЯТ БУТОН ЗА 2FA --- */}
+                {/* ЕТО ГО БУТОНА ЗА 2FA */}
                 <Link 
                     to="/2fa/setup" 
                     className="btn outline" 
@@ -131,24 +116,15 @@ export default function Profile() {
                         border: '2px solid #e63946', 
                         color: '#e63946', 
                         fontWeight: 'bold',
-                        display: 'block' // Прави бутона да заема цялата ширина
+                        display: 'block'
                     }}
                 >
                     🛡️ Configure Two-Factor Auth (2FA)
                 </Link>
-
             </div>
         </div>
 
-        {msg.text && (
-            <p style={{
-                color: msg.type === 'error' ? 'red' : 'green', 
-                marginTop:'15px', textAlign:'center', fontWeight:'bold', padding: '10px',
-                backgroundColor: msg.type === 'error' ? '#ffeeee' : '#eeffee', borderRadius: '4px'
-            }}>
-                {msg.text}
-            </p>
-        )}
+        {msg.text && <p className={`msg ${msg.type === 'error' ? 'danger' : 'success'}`}>{msg.text}</p>}
       </div>
 
       <div className="mt-3">

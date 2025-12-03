@@ -1,4 +1,4 @@
-// ------------ server/index.js (ФИНАЛЕН КОД С РАБОТЕЩИ ИМЕЙЛИ) ------------
+// ------------ server/index.js (ВСИЧКО ВКЛЮЧЕНО) ------------
 
 require('dotenv').config(); 
 const express = require('express');
@@ -25,25 +25,21 @@ app.use(cors({
 }));
 
 // =========================================================================
-// !!! 1. WEBHOOK ENDPOINT (ТРЯБВА ДА Е ПРЕДИ express.json) !!!
+// 1. WEBHOOK ENDPOINT
 // =========================================================================
-
 app.post('/api/stripe-webhook', express.raw({ type: 'application/json' }), async (req, res) => {
   const sig = req.headers['stripe-signature'];
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
-
   let event;
 
   try {
     event = stripe.webhooks.constructEvent(req.body, sig, webhookSecret);
   } catch (err) {
-    console.log(`❌ Webhook Signature Error: ${err.message}`);
+    console.log(`❌ Webhook Error: ${err.message}`);
     return res.status(400).send(`Webhook Error: ${err.message}`);
   }
 
-  // Обработка на събитието
-  switch (event.type) {
-    case 'checkout.session.completed':
+  if (event.type === 'checkout.session.completed') {
       const session = event.data.object;
       const customerEmail = session.customer_details.email; 
       
@@ -53,26 +49,18 @@ app.post('/api/stripe-webhook', express.raw({ type: 'application/json' }), async
         if (session.amount_total === 4999) plan = 'yearly';
 
         try {
-            await db.query(
-                'UPDATE subscriptions SET plan = $1 WHERE email = $2', 
-                [plan, customerEmail]
-            );
+            await db.query('UPDATE subscriptions SET plan = $1 WHERE email = $2', [plan, customerEmail]);
             console.log(`✅ Subscription activated for ${customerEmail} to ${plan}`);
         } catch (dbErr) {
             console.error('DB UPDATE ERROR:', dbErr);
-            return res.status(500).json({ received: true, error: 'Database update failed' });
         }
       }
-      break;
-    default:
-      console.log(`Unhandled event type ${event.type}`);
   }
-
   res.json({ received: true }); 
 });
 
 // =========================================================================
-// !!! 2. BODY PARSERS ЗА ВСИЧКИ ДРУГИ (СЛЕД Webhook-а) !!!
+// 2. BODY PARSERS
 // =========================================================================
 app.use(express.json()); 
 app.use(express.urlencoded({ extended: true }));
@@ -94,7 +82,9 @@ function adminMiddleware(req, res, next) {
 
 function signToken(payload) { return jwt.sign(payload, JWT_SECRET, { expiresIn: '7d' }); }
 
-// --- ROUTES ---
+// =========================================================================
+// ROUTES
+// =========================================================================
 
 // 1. ARTICLES
 app.get("/api/articles", async (req, res) => {
@@ -102,10 +92,7 @@ app.get("/api/articles", async (req, res) => {
     const { category } = req.query;
     let query = 'SELECT * FROM articles';
     let params = [];
-    if (category) {
-        query += ' WHERE category = $1';
-        params.push(category);
-    }
+    if (category) { query += ' WHERE category = $1'; params.push(category); }
     query += ' ORDER BY date DESC';
     const { rows } = await db.query(query, params);
     res.json(rows);
@@ -124,10 +111,8 @@ app.post("/api/articles", adminMiddleware, async (req, res) => {
 });
 
 app.delete("/api/articles/:id", adminMiddleware, async (req, res) => {
-  try {
-    await db.query('DELETE FROM articles WHERE id = $1', [req.params.id]);
-    res.json({ ok: true });
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  try { await db.query('DELETE FROM articles WHERE id = $1', [req.params.id]); res.json({ ok: true }); } 
+  catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 // 2. MAGAZINE SETTINGS
@@ -143,37 +128,61 @@ app.post("/api/magazine/toggle", adminMiddleware, async (req, res) => {
     const { rows } = await db.query("SELECT value FROM settings WHERE key = 'magazine'");
     let current = rows[0]?.value || { isPublic: false };
     current.isPublic = !current.isPublic;
-    
-    await db.query(
-      "INSERT INTO settings (key, value) VALUES ('magazine', $1) ON CONFLICT (key) DO UPDATE SET value = $1",
-      [JSON.stringify(current)]
-    );
+    await db.query("INSERT INTO settings (key, value) VALUES ('magazine', $1) ON CONFLICT (key) DO UPDATE SET value = $1", [JSON.stringify(current)]);
     res.json({ ok: true, isPublic: current.isPublic });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// 3. AUTH & USER (EMAIL SETUP)
+// 3. AUTH & USER
 const transporter = nodemailer.createTransport({
   service: 'gmail',
-  auth: { 
-    user: process.env.EMAIL_USER, 
-    pass: process.env.EMAIL_PASS 
-  } 
+  auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS } 
 });
 
-// Send 2FA
-app.post('/api/auth/send-2fa', async (req, res) => {
+// --- Password Reset (ТОВА ЛИПСВАШЕ!) ---
+app.post('/api/auth/reset-password-request', async (req, res) => {
   const { email } = req.body;
   if (!email) return res.status(400).json({ error: "Email is required" });
 
   try {
     const userCheck = await db.query('SELECT * FROM users WHERE email = $1', [email]);
-    if (userCheck.rows.length === 0) {
-      return res.status(404).json({ error: "User not found" });
-    }
+    if (userCheck.rows.length === 0) return res.status(404).json({ error: "User not found" });
+
+    const token = crypto.randomBytes(32).toString('hex');
+    const expiry = new Date(Date.now() + 3600000); // 1 час
+
+    // Записваме токена в базата (увери се, че си изпълнил SQL за reset_password_token)
+    await db.query('UPDATE users SET reset_password_token = $1, reset_password_expires = $2 WHERE email = $3', [token, expiry, email]);
+
+    const resetUrl = `${APP_URL}/reset-password?token=${token}`;
+
+    await transporter.sendMail({
+      from: '"MIREN Security" <icaki2k@gmail.com>',
+      to: email,
+      subject: 'Reset Your Password',
+      html: `
+        <p>You requested a password reset.</p>
+        <p>Click the link below to reset it:</p>
+        <a href="${resetUrl}" style="padding: 10px; background: #e63946; color: white; text-decoration: none;">Reset Password</a>
+        <p>Link expires in 1 hour.</p>
+      `
+    });
+
+    res.json({ ok: true, message: "Reset link sent!" });
+  } catch (err) { console.error("Reset error:", err); res.status(500).json({ error: "Error sending email" }); }
+});
+// ---------------------------------------
+
+// Send 2FA
+app.post('/api/auth/send-2fa', async (req, res) => {
+  const { email } = req.body;
+  if (!email) return res.status(400).json({ error: "Email is required" });
+  try {
+    const userCheck = await db.query('SELECT * FROM users WHERE email = $1', [email]);
+    if (userCheck.rows.length === 0) return res.status(404).json({ error: "User not found" });
+    
     const code = crypto.randomInt(100000, 999999).toString();
     const expiry = new Date(Date.now() + 10 * 60 * 1000); 
-
     await db.query('UPDATE users SET two_fa_code = $1, two_fa_expiry = $2 WHERE email = $3', [code, expiry, email]);
 
     await transporter.sendMail({
@@ -182,7 +191,6 @@ app.post('/api/auth/send-2fa', async (req, res) => {
       subject: 'Your MIREN Verification Code',
       html: `<p>Your code: <h2>${code}</h2></p>`
     });
-
     res.json({ ok: true, message: "Code sent" });
   } catch (err) { console.error("Send 2FA error:", err); res.status(500).json({ error: "Error sending code" }); }
 });
@@ -190,27 +198,23 @@ app.post('/api/auth/send-2fa', async (req, res) => {
 // Verify 2FA
 app.post('/api/auth/verify-2fa', async (req, res) => {
   const { email, code } = req.body;
-  if (!email || !code) return res.status(400).json({ error: "Email and code are required" });
-
+  if (!email || !code) return res.status(400).json({ error: "Email/code required" });
   try {
     const { rows } = await db.query('SELECT * FROM users WHERE email = $1', [email]);
     const user = rows[0];
-
     if (!user) return res.status(404).json({ error: "User not found" });
     if (user.two_fa_code !== code) return res.status(401).json({ error: "Invalid code" });
     if (new Date() > new Date(user.two_fa_expiry)) return res.status(401).json({ error: "Code expired" });
 
     await db.query('UPDATE users SET two_fa_enabled = true, two_fa_code = NULL, two_fa_expiry = NULL WHERE email = $1', [email]);
-
     const authToken = signToken({ email: user.email });
     const isProduction = process.env.NODE_ENV === 'production';
     res.cookie('auth', authToken, { httpOnly: true, sameSite: isProduction ? 'none' : 'lax', secure: isProduction });
-    
     res.json({ ok: true, message: "Verification successful!" });
-  } catch (err) { console.error("Verify 2FA error:", err); res.status(500).json({ error: "Error verifying code" }); }
+  } catch (err) { console.error("Verify 2FA error:", err); res.status(500).json({ error: "Error verifying" }); }
 });
 
-// Check Auth Availability
+// Auth Check
 app.get("/api/auth/check", async (req, res) => {
   const { email, displayName } = req.query;
   try {
@@ -221,18 +225,17 @@ app.get("/api/auth/check", async (req, res) => {
     else { return res.json({ taken: false }); }
     const { rows } = await db.query(query, params);
     res.json({ taken: rows.length > 0 });
-  } catch (err) { console.error("Auth check error:", err.message); res.json({ taken: false }); }
+  } catch (err) { console.error("Check error:", err.message); res.json({ taken: false }); }
 });
 
 // Register
 app.post("/api/auth/register", async (req, res) => {
   const { email, password, displayName } = req.body;
-  if (!email || !password || !displayName) return res.status(400).json({ error: "All fields are required" });
+  if (!email || !password || !displayName) return res.status(400).json({ error: "All fields required" });
 
   try {
     const userCheck = await db.query('SELECT * FROM users WHERE email = $1', [email]);
     if (userCheck.rows.length > 0) return res.status(409).json({ error: "Email taken" });
-    
     const nameCheck = await db.query('SELECT * FROM users WHERE display_name = $1', [displayName]);
     if (nameCheck.rows.length > 0) return res.status(409).json({ error: "Display name taken" });
 
@@ -243,51 +246,34 @@ app.post("/api/auth/register", async (req, res) => {
     await db.query('INSERT INTO subscriptions (email, plan) VALUES ($1, $2)', [email, 'free']);
     
     const confirmationUrl = `${APP_URL}/confirm?token=${token}`;
-    
-    console.log("Attempting to send email to:", email); // LOG за дебъгване
+    console.log("Sending email to:", email); 
 
     await transporter.sendMail({
       from: '"MIREN" <icaki2k@gmail.com>',
       to: email,
-      subject: 'Confirm your account for MIREN',
-      html: `
-        <p>Welcome to MIREN!</p>
-        <p>Please click the link below to confirm your email address:</p>
-        <a href="${confirmationUrl}" style="padding: 10px 15px; background-color: #e63946; color: white; text-decoration: none; border-radius: 5px;">
-          Confirm Email
-        </a>
-        <br>
-        <p>Or copy this link: ${confirmationUrl}</p>
-      `
+      subject: 'Confirm your account',
+      html: `<p>Welcome!</p><p>Click below to confirm:</p><a href="${confirmationUrl}" style="padding: 10px; background: #e63946; color: white;">Confirm Email</a>`
     });
-
-    console.log("Email sent successfully!"); 
     
-    res.status(201).json({ ok: true, message: "Registration successful! Please check your email to confirm." });
-  } catch (err) { 
-    console.error("REGISTRATION ERROR:", err); 
-    res.status(500).json({ error: "Registration failed: " + err.message }); 
-  }
+    res.status(201).json({ ok: true, message: "Registration successful! Check email." });
+  } catch (err) { console.error("Register Error:", err); res.status(500).json({ error: "Registration failed" }); }
 });
 
-// Confirm Email
+// Confirm
 app.post('/api/auth/confirm', async (req, res) => {
   const { token } = req.body;
   if (!token) return res.status(400).json({ error: "Missing token" });
-
   try {
     const { rows } = await db.query('SELECT * FROM users WHERE confirmation_token = $1', [token]);
     const user = rows[0];
     if (!user) return res.status(404).json({ error: "Invalid token" });
 
     await db.query('UPDATE users SET is_confirmed = true, confirmation_token = NULL WHERE email = $1', [user.email]);
-
     const authToken = signToken({ email: user.email });
     const isProduction = process.env.NODE_ENV === 'production';
     res.cookie('auth', authToken, { httpOnly: true, sameSite: isProduction ? 'none' : 'lax', secure: isProduction });
-    
     res.json({ ok: true, message: "Confirmed!" });
-  } catch (err) { console.error(err); res.status(500).json({ error: "Error confirming" }); }
+  } catch (err) { console.error(err); res.status(500).json({ error: "Confirm error" }); }
 });
 
 // Login
@@ -297,56 +283,15 @@ app.post('/api/auth/login', async (req, res) => {
     const { rows } = await db.query('SELECT * FROM users WHERE email = $1', [email]);
     const user = rows[0];
     
-    if (!user || !(await bcrypt.compare(password, user.password_hash))) {
-        return res.status(401).json({ error: 'Invalid credentials' });
-    }
-    if (!user.is_confirmed) {
-        return res.status(403).json({ error: 'Please confirm your email address first.' });
-    }
-    if (user.two_fa_enabled) {
-        return res.json({ ok: true, requires2fa: true });
-    }
+    if (!user || !(await bcrypt.compare(password, user.password_hash))) return res.status(401).json({ error: 'Invalid credentials' });
+    if (!user.is_confirmed) return res.status(403).json({ error: 'Please confirm email first.' });
+    if (user.two_fa_enabled) return res.json({ ok: true, requires2fa: true });
     
     const token = signToken({ email: user.email });
     const isProduction = process.env.NODE_ENV === 'production';
     res.cookie('auth', token, { httpOnly: true, sameSite: isProduction ? 'none' : 'lax', secure: isProduction });
-    
     res.json({ ok: true, user: { email: user.email, displayName: user.display_name } });
   } catch (err) { res.status(500).json({ error: err.message }); }
-});
-
-// NOV Endpoint: Zaqvka za smqna na parola
-app.post('/api/auth/reset-password-request', async (req, res) => {
-  const { email } = req.body;
-  if (!email) return res.status(400).json({ error: "Email is required" });
-
-  try {
-    const userCheck = await db.query('SELECT * FROM users WHERE email = $1', [email]);
-    if (userCheck.rows.length === 0) return res.status(404).json({ error: "User not found" });
-
-    // Generirame token za 1 chas
-    const token = crypto.randomBytes(32).toString('hex');
-    const expiry = new Date(Date.now() + 3600000); // 1 chas
-
-    await db.query('UPDATE users SET reset_password_token = $1, reset_password_expires = $2 WHERE email = $3', [token, expiry, email]);
-
-    // Izprashtame email (Shte trqbva da napravish i stranica /reset-password vyv frontend-a po-kysno)
-    const resetUrl = `${process.env.APP_URL}/reset-password?token=${token}`;
-
-    await transporter.sendMail({
-      from: '"MIREN Security" <icaki2k@gmail.com>',
-      to: email,
-      subject: 'Reset Your Password',
-      html: `
-        <p>You requested a password reset.</p>
-        <p>Click the link below to reset it:</p>
-        <a href="${resetUrl}" style="padding: 10px; background: #e63946; color: white;">Reset Password</a>
-        <p>Link expires in 1 hour.</p>
-      `
-    });
-
-    res.json({ ok: true, message: "Reset link sent!" });
-  } catch (err) { console.error("Reset error:", err); res.status(500).json({ error: "Error sending email" }); }
 });
 
 // Logout
@@ -356,8 +301,7 @@ app.post('/api/auth/logout', (req, res) => {
     res.json({ ok: true }); 
 });
 
-// User Me
-// PROMENEN /api/user/me
+// User Me (Включва two_fa_enabled)
 app.get('/api/user/me', authMiddleware, async (req, res) => {
   try {
     const { rows } = await db.query('SELECT email, display_name, last_username_change, two_fa_enabled FROM users WHERE email = $1', [req.user.email]);
@@ -367,7 +311,7 @@ app.get('/api/user/me', authMiddleware, async (req, res) => {
         email: rows[0].email, 
         displayName: rows[0].display_name, 
         lastUsernameChange: rows[0].last_username_change,
-        twoFaEnabled: rows[0].two_fa_enabled // <-- ВАЖНО: Изпращаме статуса на 2FA
+        twoFaEnabled: rows[0].two_fa_enabled // <-- Връщаме статуса на 2FA
     });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
@@ -388,7 +332,6 @@ app.post('/api/user/update-username', authMiddleware, async (req, res) => {
         const subRes = await db.query('SELECT plan FROM subscriptions WHERE email = $1 ORDER BY id DESC LIMIT 1', [email]);
         const plan = subRes.rows[0]?.plan?.toLowerCase() || 'free';
         if (plan !== 'monthly' && plan !== 'yearly') return res.status(403).json({ error: "Premium only feature" });
-
         await db.query('UPDATE users SET display_name = $1, last_username_change = NOW() WHERE email = $2', [newUsername, email]);
         res.json({ ok: true });
     } catch (err) { res.status(500).json({ error: err.message }); }
@@ -396,37 +339,20 @@ app.post('/api/user/update-username', authMiddleware, async (req, res) => {
 
 // Streak
 app.post('/api/user/streak', authMiddleware, async (req, res) => {
-    try {
-        await db.query('UPDATE users SET wordle_streak = $1 WHERE email = $2', [req.body.streak, req.user.email]);
-        res.json({ ok: true });
-    } catch (err) { res.status(500).json({ error: err.message }); }
+    try { await db.query('UPDATE users SET wordle_streak = $1 WHERE email = $2', [req.body.streak, req.user.email]); res.json({ ok: true }); } 
+    catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// ======== STRIPE PAYMENT ROUTES ========
-
+// Stripe Checkout
 app.post('/api/create-checkout-session', authMiddleware, async (req, res) => {
   const { plan } = req.body;
   const userEmail = req.user.email;
-  const frontendUrl = process.env.APP_URL;
+  const frontendUrl = process.env.APP_URL; 
 
   let priceData;
-  if (plan === 'monthly') {
-    priceData = {
-      product_data: { name: 'MIREN Monthly Subscription' },
-      unit_amount: 499,
-      currency: 'eur',
-      recurring: { interval: 'month' },
-    };
-  } else if (plan === 'yearly') {
-    priceData = {
-      product_data: { name: 'MIREN Yearly Subscription' },
-      unit_amount: 4999,
-      currency: 'eur',
-      recurring: { interval: 'year' },
-    };
-  } else {
-    return res.status(400).json({ error: 'Invalid plan' });
-  }
+  if (plan === 'monthly') priceData = { product_data: { name: 'MIREN Monthly' }, unit_amount: 499, currency: 'eur', recurring: { interval: 'month' } };
+  else if (plan === 'yearly') priceData = { product_data: { name: 'MIREN Yearly' }, unit_amount: 4999, currency: 'eur', recurring: { interval: 'year' } };
+  else return res.status(400).json({ error: 'Invalid plan' });
 
   try {
     const session = await stripe.checkout.sessions.create({
@@ -438,10 +364,7 @@ app.post('/api/create-checkout-session', authMiddleware, async (req, res) => {
       cancel_url: `${frontendUrl}/subscriptions`,
     });
     res.json({ url: session.url });
-  } catch (e) {
-    console.error("Stripe Error:", e.message);
-    res.status(500).json({ error: e.message });
-  }
+  } catch (e) { console.error("Stripe Error:", e.message); res.status(500).json({ error: e.message }); }
 });
 
 // Start Server

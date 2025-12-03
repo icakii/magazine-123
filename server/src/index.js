@@ -240,12 +240,12 @@ app.post("/api/auth/register", async (req, res) => {
     const confirmationUrl = `${APP_URL}/confirm?token=${token}`;
     
     // Uncomment for email sending
-    /* await transporter.sendMail({
+     await transporter.sendMail({
       from: '"MIREN" <icaki2k@gmail.com>',
       to: email,
       subject: 'Confirm your account',
       html: `<a href="${confirmationUrl}">Confirm Email</a>`
-    }); */
+    }); 
     
     res.status(201).json({ ok: true, message: "Registration successful!" });
   } catch (err) { console.error(err); res.status(500).json({ error: "Registration failed" }); }

@@ -2,7 +2,6 @@ import React from 'react'
 import ReactDOM from 'react-dom/client'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 
-// Страници
 import Home from './pages/Home'
 import Register from './pages/Register'
 import Login from './pages/Login'
@@ -24,12 +23,10 @@ import Events from './pages/Events'
 import WordGameArchive from './pages/WGArchive'
 import ResetPassword from './pages/ResetPassword'
 
-// Компоненти
 import NavBar from './components/NavBar'
 import Footer from './components/Footer'
-import AuthGuard from './components/AuthGuard'
+import AuthGuard from './components/AuthGuard' // <-- Използваме новото име
 
-// Стилове
 import './styles/global.css'
 import './styles/layout.css'
 import './styles/animations.css'
@@ -39,7 +36,6 @@ ReactDOM.createRoot(document.getElementById('root')).render(
     <NavBar />
     <main className="app-main">
       <Routes>
-        {/* Публични страници */}
         <Route path='/' element={<Home />} />
         <Route path="/news" element={<News />} />
         <Route path="/events" element={<Events />} />
@@ -48,23 +44,19 @@ ReactDOM.createRoot(document.getElementById('root')).render(
         <Route path='/gallery' element={<Gallery />} />
         <Route path='/contact' element={<Contact />} />
         <Route path='/help' element={<Help />} />
-        
-        {/* Auth страници */}
         <Route path='/register' element={<Register />} />
         <Route path='/login' element={<Login />} />
         <Route path="/confirm" element={<Confirm />} />
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route path='/2fa/verify' element={<TwoFAVerify />} />
 
-        {/* Защитени страници (с AuthGuard) */}
+        {/* Защитени страници */}
         <Route path='/profile' element={<AuthGuard><Profile /></AuthGuard>} />
         <Route path='/2fa/setup' element={<AuthGuard><TwoFASetup /></AuthGuard>} />
         <Route path='/subscriptions' element={<AuthGuard><Subscriptions /></AuthGuard>} />
         <Route path="/games" element={<AuthGuard><Games /></AuthGuard>} />
         <Route path="/word-game-archive" element={<AuthGuard><WordGameArchive /></AuthGuard>} />
         <Route path="/e-magazine" element={<AuthGuard><EMagazine /></AuthGuard>} />
-        
-        {/* Admin */}
         <Route path="/admin" element={<AuthGuard><AdminPanel /></AuthGuard>} />
       </Routes>
     </main>

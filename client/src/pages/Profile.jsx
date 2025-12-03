@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom' // <-- ВАЖНО
+import { Link } from 'react-router-dom' // <-- ВАЖНО!
 import { useAuth } from '../hooks/useAuth'
 import { api } from '../lib/api'
 import { t } from '../lib/i18n'
@@ -104,7 +104,7 @@ export default function Profile() {
                     Send Password Reset Email
                 </button>
 
-                {/* ЕТО ГО БУТОНА ЗА 2FA */}
+                {/* ЕТО ГО БУТОНА! ТОЙ ЩЕ СЕ ПОЯВИ */}
                 <Link 
                     to="/2fa/setup" 
                     className="btn outline" 

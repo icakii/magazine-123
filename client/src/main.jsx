@@ -29,7 +29,7 @@ import ResetPassword from './pages/ResetPassword' // <-- НОВИЯТ ИМПОР
 // Компоненти
 import NavBar from './components/NavBar'
 import Footer from './components/Footer'
-import ProtectedRoute from './components/ProtectedRoute'
+import AuthGuard from './components/AuthGuard'
 
 // Стилове
 import './styles/global.css'
@@ -59,15 +59,13 @@ ReactDOM.createRoot(document.getElementById('root')).render(
         <Route path='/2fa/verify' element={<TwoFAVerify />} />
 
         {/* Защитени страници (изискват логин) */}
-        <Route path='/profile' element={<ProtectedRoute><Profile /></ProtectedRoute>} />
-        <Route path='/2fa/setup' element={<ProtectedRoute><TwoFASetup /></ProtectedRoute>} />
-        <Route path='/subscriptions' element={<ProtectedRoute><Subscriptions /></ProtectedRoute>} />
-        <Route path="/games" element={<ProtectedRoute><Games /></ProtectedRoute>} />
-        <Route path="/word-game-archive" element={<ProtectedRoute><WordGameArchive /></ProtectedRoute>} />
-        <Route path="/e-magazine" element={<ProtectedRoute><EMagazine /></ProtectedRoute>} />
-        
-        {/* Admin */}
-        <Route path="/admin" element={<ProtectedRoute><AdminPanel /></ProtectedRoute>} />
+        <Route path='/profile' element={<AuthGuard><Profile /></AuthGuard>} />
+        <Route path='/2fa/setup' element={<AuthGuard><TwoFASetup /></AuthGuard>} />
+        <Route path='/subscriptions' element={<AuthGuard><Subscriptions /></AuthGuard>} />
+        <Route path="/games" element={<AuthGuard><Games /></AuthGuard>} />
+        <Route path="/word-game-archive" element={<AuthGuard><WordGameArchive /></AuthGuard>} />
+        <Route path="/e-magazine" element={<AuthGuard><EMagazine /></AuthGuard>} />
+        <Route path="/admin" element={<AuthGuard><AdminPanel /></AuthGuard>} />
       </Routes>
     </main>
     <Footer />

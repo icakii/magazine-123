@@ -1,4 +1,4 @@
-// ------------ server/index.js (ФИНАЛЕН КОД) ------------
+// ------------ server/index.js (ФИНАЛЕН КОД С РАБОТЕЩИ ИМЕЙЛИ) ------------
 
 require('dotenv').config(); 
 const express = require('express');
@@ -9,8 +9,7 @@ const bcrypt = require('bcrypt');
 const nodemailer = require('nodemailer');
 const crypto = require('crypto');
 const db = require('./db'); 
-// Увери се, че имаш този ключ в .env файла!
-const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY); 
+const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 
 const app = express();
 const PORT = process.env.PORT || 8080; 
@@ -153,14 +152,15 @@ app.post("/api/magazine/toggle", adminMiddleware, async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// 3. AUTH & USER
+// 3. AUTH & USER (EMAIL SETUP)
 const transporter = nodemailer.createTransport({
   service: 'gmail',
   auth: { 
-    user: process.env.EMAIL_USER, // <-- Сега ще чете от Render
-    pass: process.env.EMAIL_PASS  // <-- Сега ще чете от Render
+    user: process.env.EMAIL_USER, 
+    pass: process.env.EMAIL_PASS 
   } 
 });
+
 // Send 2FA
 app.post('/api/auth/send-2fa', async (req, res) => {
   const { email } = req.body;
@@ -233,6 +233,9 @@ app.post("/api/auth/register", async (req, res) => {
     const userCheck = await db.query('SELECT * FROM users WHERE email = $1', [email]);
     if (userCheck.rows.length > 0) return res.status(409).json({ error: "Email taken" });
     
+    const nameCheck = await db.query('SELECT * FROM users WHERE display_name = $1', [displayName]);
+    if (nameCheck.rows.length > 0) return res.status(409).json({ error: "Display name taken" });
+
     const hash = await bcrypt.hash(password, 10);
     const token = crypto.randomBytes(32).toString('hex');
     
@@ -241,16 +244,30 @@ app.post("/api/auth/register", async (req, res) => {
     
     const confirmationUrl = `${APP_URL}/confirm?token=${token}`;
     
-    // Uncomment for email sending
-     await transporter.sendMail({
+    console.log("Attempting to send email to:", email); // LOG за дебъгване
+
+    await transporter.sendMail({
       from: '"MIREN" <icaki2k@gmail.com>',
       to: email,
-      subject: 'Confirm your account',
-      html: `<a href="${confirmationUrl}">Confirm Email</a>`
-    }); 
+      subject: 'Confirm your account for MIREN',
+      html: `
+        <p>Welcome to MIREN!</p>
+        <p>Please click the link below to confirm your email address:</p>
+        <a href="${confirmationUrl}" style="padding: 10px 15px; background-color: #e63946; color: white; text-decoration: none; border-radius: 5px;">
+          Confirm Email
+        </a>
+        <br>
+        <p>Or copy this link: ${confirmationUrl}</p>
+      `
+    });
+
+    console.log("Email sent successfully!"); 
     
-    res.status(201).json({ ok: true, message: "Registration successful!" });
-  } catch (err) { console.error(err); res.status(500).json({ error: "Registration failed" }); }
+    res.status(201).json({ ok: true, message: "Registration successful! Please check your email to confirm." });
+  } catch (err) { 
+    console.error("REGISTRATION ERROR:", err); 
+    res.status(500).json({ error: "Registration failed: " + err.message }); 
+  }
 });
 
 // Confirm Email
@@ -324,7 +341,6 @@ app.get('/api/subscriptions', authMiddleware, async (req, res) => {
 
 // Update Username
 app.post('/api/user/update-username', authMiddleware, async (req, res) => {
-    // ... (Твоят код за username)
     const { newUsername } = req.body;
     const email = req.user.email;
     try {
@@ -347,11 +363,10 @@ app.post('/api/user/streak', authMiddleware, async (req, res) => {
 
 // ======== STRIPE PAYMENT ROUTES ========
 
-// Този Endpoint ЛИПСВАШЕ при теб:
 app.post('/api/create-checkout-session', authMiddleware, async (req, res) => {
   const { plan } = req.body;
   const userEmail = req.user.email;
-  const frontendUrl = process.env.APP_URL; //
+  const frontendUrl = process.env.APP_URL;
 
   let priceData;
   if (plan === 'monthly') {

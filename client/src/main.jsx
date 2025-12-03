@@ -1,5 +1,3 @@
-// client/src/main.jsx
-
 import React from 'react'
 import ReactDOM from 'react-dom/client'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
@@ -24,7 +22,7 @@ import Confirm from './pages/Confirm'
 import News from './pages/News'
 import Events from './pages/Events'
 import WordGameArchive from './pages/WGArchive'
-import ResetPassword from './pages/ResetPassword' // <-- НОВИЯТ ИМПОРТ
+import ResetPassword from './pages/ResetPassword'
 
 // Компоненти
 import NavBar from './components/NavBar'
@@ -55,16 +53,18 @@ ReactDOM.createRoot(document.getElementById('root')).render(
         <Route path='/register' element={<Register />} />
         <Route path='/login' element={<Login />} />
         <Route path="/confirm" element={<Confirm />} />
-        <Route path="/reset-password" element={<ResetPassword />} /> {/* <-- НОВИЯТ ROUTE */}
+        <Route path="/reset-password" element={<ResetPassword />} />
         <Route path='/2fa/verify' element={<TwoFAVerify />} />
 
-        {/* Защитени страници (изискват логин) */}
+        {/* Защитени страници (с AuthGuard) */}
         <Route path='/profile' element={<AuthGuard><Profile /></AuthGuard>} />
         <Route path='/2fa/setup' element={<AuthGuard><TwoFASetup /></AuthGuard>} />
         <Route path='/subscriptions' element={<AuthGuard><Subscriptions /></AuthGuard>} />
         <Route path="/games" element={<AuthGuard><Games /></AuthGuard>} />
         <Route path="/word-game-archive" element={<AuthGuard><WordGameArchive /></AuthGuard>} />
         <Route path="/e-magazine" element={<AuthGuard><EMagazine /></AuthGuard>} />
+        
+        {/* Admin */}
         <Route path="/admin" element={<AuthGuard><AdminPanel /></AuthGuard>} />
       </Routes>
     </main>

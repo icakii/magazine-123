@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom' // <-- ВАЖНО!
+import { Link } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { api } from '../lib/api'
 import { t } from '../lib/i18n'
@@ -11,10 +11,14 @@ export default function Profile() {
   const [isEditingName, setIsEditingName] = useState(false)
   const [msg, setMsg] = useState({ type: '', text: '' })
 
+  // Local state za 2FA status, za da reagira vednaga
+  const [is2FA, setIs2FA] = useState(false)
+
   useEffect(() => {
     if (!loading && user) {
       api.get('/subscriptions').then(res => setSubs(res.data || [])).catch(() => setSubs([]))
       setNewName(user.displayName || '')
+      setIs2FA(user.twoFaEnabled) // <-- Vzimame statusa ot user obekta (koito opravihme v servera)
     }
   }, [loading, user])
 
@@ -48,7 +52,7 @@ export default function Profile() {
   async function handlePasswordReset() {
       try {
           await api.post('/auth/reset-password-request', { email: user.email })
-          setMsg({ type: 'success', text: 'Reset link sent!' })
+          setMsg({ type: 'success', text: 'Reset link sent to your email!' })
       } catch (err) { setMsg({ type: 'error', text: 'Error sending link.' }) }
   }
 
@@ -100,27 +104,44 @@ export default function Profile() {
         <div>
             <strong>Security</strong>
             <div style={{marginTop: '10px', display: 'flex', flexDirection: 'column', gap: '10px'}}>
+                
+                {/* 1. PROMENEN TEKST NA BUTONA */}
                 <button onClick={handlePasswordReset} className="btn outline" style={{fontSize: '0.9rem', width:'100%'}}>
-                    Send Password Reset Email
+                    Send Email to Reset Password
                 </button>
 
-                {/* ЕТО ГО БУТОНА! ТОЙ ЩЕ СЕ ПОЯВИ */}
-                <Link 
-                    to="/2fa/setup" 
-                    className="btn outline" 
-                    style={{
-                        fontSize: '0.9rem', 
-                        width:'100%', 
-                        textDecoration: 'none', 
+                {/* 2. LOGIKA: Pokazvame butona SAMO ako 2FA NE e aktivirano */}
+                {!is2FA ? (
+                    <Link 
+                        to="/2fa/setup" 
+                        className="btn outline" 
+                        style={{
+                            fontSize: '0.9rem', 
+                            width:'100%', 
+                            textDecoration: 'none', 
+                            textAlign: 'center', 
+                            border: '2px solid #e63946', 
+                            color: '#e63946', 
+                            fontWeight: 'bold',
+                            display: 'block'
+                        }}
+                    >
+                        🛡️ Configure Two-Factor Auth (2FA)
+                    </Link>
+                ) : (
+                    <div style={{
+                        padding: '10px', 
                         textAlign: 'center', 
-                        border: '2px solid #e63946', 
-                        color: '#e63946', 
+                        backgroundColor: '#e6ffe6', 
+                        color: '#006400', 
+                        border: '1px solid #b3ffb3',
+                        borderRadius: '8px',
                         fontWeight: 'bold',
-                        display: 'block'
-                    }}
-                >
-                    🛡️ Configure Two-Factor Auth (2FA)
-                </Link>
+                        fontSize: '0.9rem'
+                    }}>
+                        ✅ Two-Factor Authentication is Active
+                    </div>
+                )}
             </div>
         </div>
 

@@ -315,6 +315,40 @@ app.post('/api/auth/login', async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+// NOV Endpoint: Zaqvka za smqna na parola
+app.post('/api/auth/reset-password-request', async (req, res) => {
+  const { email } = req.body;
+  if (!email) return res.status(400).json({ error: "Email is required" });
+
+  try {
+    const userCheck = await db.query('SELECT * FROM users WHERE email = $1', [email]);
+    if (userCheck.rows.length === 0) return res.status(404).json({ error: "User not found" });
+
+    // Generirame token za 1 chas
+    const token = crypto.randomBytes(32).toString('hex');
+    const expiry = new Date(Date.now() + 3600000); // 1 chas
+
+    await db.query('UPDATE users SET reset_password_token = $1, reset_password_expires = $2 WHERE email = $3', [token, expiry, email]);
+
+    // Izprashtame email (Shte trqbva da napravish i stranica /reset-password vyv frontend-a po-kysno)
+    const resetUrl = `${process.env.APP_URL}/reset-password?token=${token}`;
+
+    await transporter.sendMail({
+      from: '"MIREN Security" <icaki2k@gmail.com>',
+      to: email,
+      subject: 'Reset Your Password',
+      html: `
+        <p>You requested a password reset.</p>
+        <p>Click the link below to reset it:</p>
+        <a href="${resetUrl}" style="padding: 10px; background: #e63946; color: white;">Reset Password</a>
+        <p>Link expires in 1 hour.</p>
+      `
+    });
+
+    res.json({ ok: true, message: "Reset link sent!" });
+  } catch (err) { console.error("Reset error:", err); res.status(500).json({ error: "Error sending email" }); }
+});
+
 // Logout
 app.post('/api/auth/logout', (req, res) => { 
     const isProduction = process.env.NODE_ENV === 'production';
@@ -323,11 +357,18 @@ app.post('/api/auth/logout', (req, res) => {
 });
 
 // User Me
+// PROMENEN /api/user/me
 app.get('/api/user/me', authMiddleware, async (req, res) => {
   try {
-    const { rows } = await db.query('SELECT email, display_name, last_username_change FROM users WHERE email = $1', [req.user.email]);
+    const { rows } = await db.query('SELECT email, display_name, last_username_change, two_fa_enabled FROM users WHERE email = $1', [req.user.email]);
     if (rows.length === 0) return res.status(404).json({ error: 'User not found' });
-    res.json({ email: rows[0].email, displayName: rows[0].display_name, lastUsernameChange: rows[0].last_username_change });
+    
+    res.json({ 
+        email: rows[0].email, 
+        displayName: rows[0].display_name, 
+        lastUsernameChange: rows[0].last_username_change,
+        twoFaEnabled: rows[0].two_fa_enabled // <-- ВАЖНО: Изпращаме статуса на 2FA
+    });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 

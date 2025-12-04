@@ -1,5 +1,3 @@
-// client/src/components/NavBar.jsx
-
 "use client"
 
 import { Link, useNavigate } from "react-router-dom"
@@ -36,7 +34,7 @@ export default function NavBar() {
     if (e) e.preventDefault()
     try { await api.post("/auth/logout") } catch {}
     
-    // ВАЖНО: Изтриваме токена от паметта!
+    // ВАЖНО: Изтриваме токена от паметта, за да не ни логне пак автоматично!
     localStorage.removeItem('auth_token')
     
     location.href = "/"
@@ -115,6 +113,7 @@ export default function NavBar() {
           <Link className="drawer-item" to="/gallery" onClick={handleProtectedClick}>Gallery</Link>
           <Link className="drawer-item" to="/games" onClick={handleProtectedClick}>Games</Link>
           <Link className="drawer-item" to="/e-magazine" onClick={handleProtectedClick}>E-Magazine</Link>
+          
           <Link className="drawer-item" to="/about" onClick={closeDrawer}>{t("about")}</Link>
           <Link className="drawer-item" to="/contact" onClick={closeDrawer}>{t("contact")}</Link>
           <Link className="drawer-item" to="/subscriptions" onClick={closeDrawer}>{t("subscriptions")}</Link>

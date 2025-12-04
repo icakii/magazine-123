@@ -10,8 +10,6 @@ export default function Profile() {
   const [newName, setNewName] = useState('')
   const [isEditingName, setIsEditingName] = useState(false)
   const [msg, setMsg] = useState({ type: '', text: '' })
-
-  // Local state za 2FA status
   const [is2FA, setIs2FA] = useState(false)
 
   useEffect(() => {
@@ -36,7 +34,7 @@ export default function Profile() {
   async function handleLogout() {
     try { await api.post('/auth/logout') } catch {}
     
-    // ВАЖНО: Изтриваме токена!
+    // ВАЖНО: Изтриваме токена и оттук!
     localStorage.removeItem('auth_token')
     
     location.href = '/'

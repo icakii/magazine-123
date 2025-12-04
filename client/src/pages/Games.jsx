@@ -1,18 +1,13 @@
+// client/src/pages/Games.jsx
+
 "use client"
 
 import { useState, useEffect } from "react"
-// import { api } from "../lib/api"
-
-// --- MOCK API (Za da raboti vednaga) ---
-const api = {
-  post: async (url, data) => {
-    console.log("API POST:", url, data)
-    return { data: { success: true } }
-  }
-}
-// ---------------------------------------
+import { api } from "../lib/api"
+import { useAuth } from "../hooks/useAuth" // 1. Импортваме useAuth
 
 export default function Games() {
+  const { user } = useAuth() // 2. Взимаме текущия потребител
   const [word, setWord] = useState("")
   const [guesses, setGuesses] = useState([])
   const [currentGuess, setCurrentGuess] = useState("")
@@ -25,7 +20,13 @@ export default function Games() {
   const [validWords, setValidWords] = useState([]) 
   const [loading, setLoading] = useState(true)
 
+  // Помощна функция за ключа в LocalStorage
+  // Сега ключът е уникален за всеки имейл!
+  const getStorageKey = () => `gameData_${user?.email || 'guest'}`
+
   useEffect(() => {
+    if (!user) return; // Чакаме да се зареди потребителят
+
     async function initGame() {
       try {
         const response = await fetch('https://raw.githubusercontent.com/tabatkins/wordle-list/main/words');
@@ -35,7 +36,9 @@ export default function Games() {
         setValidWords(allWords);
 
         const today = new Date().toDateString()
-        const savedData = localStorage.getItem("gameData")
+        
+        // 3. Четем от уникалния ключ на потребителя
+        const savedData = localStorage.getItem(getStorageKey())
         const parsedData = savedData ? JSON.parse(savedData) : {}
 
         if (parsedData.date === today && parsedData.word) {
@@ -49,11 +52,12 @@ export default function Games() {
           if(parsedData.gameOver) setMessage(`Game over! Word: ${parsedData.word}`)
           if(parsedData.won) setMessage("Already solved today!")
         } else {
-            const currentStreak = localStorage.getItem("streak") ? parseInt(localStorage.getItem("streak")) : 0;
+            // Зареждаме streak-а от локалния ключ също
+            const currentStreak = localStorage.getItem(`streak_${user.email}`) ? parseInt(localStorage.getItem(`streak_${user.email}`)) : 0;
+            
             const dateStr = new Date().toISOString().slice(0, 10);
             let seed = 0;
             for (let i = 0; i < dateStr.length; i++) seed += dateStr.charCodeAt(i);
-            // POPRAVKA: .length vmesto .lengt
             const dailyIndex = (seed * 9301 + 49297) % allWords.length;
             
             setWord(allWords[dailyIndex])
@@ -68,24 +72,27 @@ export default function Games() {
       }
     }
     initGame();
-  }, [])
+  }, [user]) // Рестартира играта, ако се смени потребителят
 
   useEffect(() => {
-    if (word) {
+    if (word && user) {
       const today = new Date().toDateString()
       const gameData = { date: today, word, guesses, won, gameOver, usedLetters: Array.from(usedLetters), streak }
-      localStorage.setItem("gameData", JSON.stringify(gameData))
+      // 4. Записваме в уникалния ключ
+      localStorage.setItem(getStorageKey(), JSON.stringify(gameData))
     }
-  }, [word, guesses, won, gameOver, usedLetters, streak])
+  }, [word, guesses, won, gameOver, usedLetters, streak, user])
 
   useEffect(() => {
-      if (won) {
-          localStorage.setItem("streak", streak);
+      if (won && user) {
+          // Записваме streak-а също уникално
+          localStorage.setItem(`streak_${user.email}`, streak);
+          
           api.post('/user/streak', { streak })
              .then(() => console.log('Streak synced with DB!'))
              .catch(err => console.error('Failed to sync streak:', err))
       }
-  }, [won, streak])
+  }, [won, streak, user])
 
   function handleKeyDown(e) {
     if (gameOver || loading) return
@@ -111,7 +118,7 @@ export default function Games() {
       if (newGuesses.length >= 5) {
         setGameOver(true)
         setStreak(0)
-        localStorage.setItem("streak", 0)
+        localStorage.setItem(`streak_${user?.email}`, 0) // Reset streak unique
         setMessage(`Game over! The word was: ${word}`)
         return
       }
@@ -155,7 +162,6 @@ export default function Games() {
     <div className="page" style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
       <h2 className="headline">Daily Word Game</h2>
       
-      {/* --- ARCHIVE BUTTON (Izpolzvame 'a' tag za da izbegnem greshki s Router-a pri preview) --- */}
       <a 
         href="/word-game-archive" 
         className="btn ghost" 
@@ -172,7 +178,6 @@ export default function Games() {
       >
         📜 Play Past Games (Archive)
       </a>
-      {/* -------------------------------------- */}
 
       <p className="subhead">Attempts remaining: {attempts}</p>
 

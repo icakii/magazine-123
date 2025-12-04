@@ -252,20 +252,37 @@ app.post('/api/auth/confirm', async (req, res) => {
   } catch (err) { console.error(err); res.status(500).json({ error: "Confirm error" }); }
 });
 
+// Login (Updated for specific errors)
 app.post('/api/auth/login', async (req, res) => {
   const { email, password } = req.body;
   try {
     const { rows } = await db.query('SELECT * FROM users WHERE email = $1', [email]);
     const user = rows[0];
-    if (!user || !(await bcrypt.compare(password, user.password_hash))) return res.status(401).json({ error: 'Invalid credentials' });
-    if (!user.is_confirmed) return res.status(403).json({ error: 'Please confirm email first.' });
-    if (user.two_fa_enabled) return res.json({ ok: true, requires2fa: true });
+    
+    // 1. Ако няма такъв потребител
+    if (!user) {
+        return res.status(404).json({ error: 'User not found (Wrong Email)' });
+    }
+
+    // 2. Ако паролата е грешна
+    if (!(await bcrypt.compare(password, user.password_hash))) {
+        return res.status(401).json({ error: 'Wrong password' });
+    }
+    
+    // 3. Ако не е потвърден
+    if (!user.is_confirmed) {
+        return res.status(403).json({ error: 'Please confirm your email first.' });
+    }
+
+    // 4. 2FA Проверка
+    if (user.two_fa_enabled) {
+        return res.json({ ok: true, requires2fa: true });
+    }
     
     const token = signToken({ email: user.email });
     const isProduction = process.env.NODE_ENV === 'production';
     res.cookie('auth', token, { httpOnly: true, sameSite: isProduction ? 'none' : 'lax', secure: isProduction });
     
-    // SAFARI FIX: Връщаме токена
     res.json({ ok: true, user: { email: user.email, displayName: user.display_name }, token });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
@@ -323,6 +340,32 @@ app.post('/api/create-checkout-session', authMiddleware, async (req, res) => {
     });
     res.json({ url: session.url });
   } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Contact Form Endpoint
+app.post("/api/contact", async (req, res) => {
+  const { email, message } = req.body;
+  
+  if (!email || !message) {
+    return res.status(400).json({ error: "Email and message are required" });
+  }
+
+  try {
+    // Изпращаме имейла до ТЕБ (Админа)
+    await transporter.sendMail({
+      from: `"Contact Form" <${process.env.EMAIL_USER}>`, // От твоя служебен мейл
+      replyTo: email, // За да можеш да върнеш отговор на потребителя
+      to: process.env.EMAIL_USER, // Получател си ти
+      subject: `New Message from ${email}`,
+      text: message,
+      html: `<p><strong>From:</strong> ${email}</p><p>${message}</p>`
+    });
+
+    res.json({ ok: true, message: "Message sent!" });
+  } catch (err) {
+    console.error("Contact error:", err);
+    res.status(500).json({ error: "Failed to send message" });
+  }
 });
 
 app.listen(PORT, () => console.log(`API running on http://localhost:${PORT}`));

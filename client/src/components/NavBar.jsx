@@ -1,5 +1,3 @@
-// client/src/components/NavBar.jsx
-
 "use client"
 
 import { Link, useNavigate } from "react-router-dom"
@@ -8,7 +6,6 @@ import { api } from "../lib/api"
 import { t, getLang, setLang } from "../lib/i18n"
 import { useEffect, useState } from "react"
 
-// Списък с админи (същия като в server/index.js)
 const ADMIN_EMAILS = ["icaki06@gmail.com", "icaki2k@gmail.com"]
 
 function toggleTheme() {
@@ -22,11 +19,8 @@ export default function NavBar() {
   const navigate = useNavigate()
   const [open, setOpen] = useState(false)
   const [lang, setLangState] = useState(getLang())
-  
-  // State за Pop-up прозореца
   const [showLoginModal, setShowLoginModal] = useState(false)
 
-  // Проверка за админ
   const isAdmin = user && ADMIN_EMAILS.includes(user.email)
 
   useEffect(() => {
@@ -49,15 +43,12 @@ export default function NavBar() {
   function toggleDrawer() { setOpen((o) => !o) }
   function closeDrawer() { setOpen(false) }
 
-  // --- ЛОГИКА ЗА ЗАЩИТА НА ЛИНКОВЕТЕ ---
-  // Ако не си логнат, спира клика и показва модала
-  const handleProtectedClick = (e, path) => {
+  const handleProtectedClick = (e) => {
     if (!user) {
-      e.preventDefault() // Спираме навигацията
-      setShowLoginModal(true) // Показваме Pop-up
-      closeDrawer() // Затваряме мобилното меню ако е отворено
+      e.preventDefault()
+      setShowLoginModal(true)
+      closeDrawer()
     } else {
-      // Ако си логнат, просто продължаваме (Link-ът си върши работата)
       closeDrawer()
     }
   }
@@ -106,19 +97,18 @@ export default function NavBar() {
 
       <div className={`drawer-backdrop ${open ? "open" : ""}`} onClick={closeDrawer} />
 
-      {/* DRAWER MENU */}
       <aside className={`drawer ${open ? "open" : ""}`} aria-hidden={!open}>
         <div className="drawer-header">{t("brand")}</div>
         
         <nav className="drawer-list">
           <Link className="drawer-item" to="/" onClick={closeDrawer}>Home</Link>
           
-          {/* ЗАЩИТЕНИ ЛИНКОВЕ (с handleProtectedClick) */}
-          <Link className="drawer-item" to="/news" onClick={(e) => handleProtectedClick(e)}>News 🔒</Link>
-          <Link className="drawer-item" to="/events" onClick={(e) => handleProtectedClick(e)}>Events 🔒</Link>
-          <Link className="drawer-item" to="/gallery" onClick={(e) => handleProtectedClick(e)}>Gallery 🔒</Link>
-          <Link className="drawer-item" to="/games" onClick={(e) => handleProtectedClick(e)}>Games 🔒</Link>
-          <Link className="drawer-item" to="/e-magazine" onClick={(e) => handleProtectedClick(e)}>E-Magazine 🔒</Link>
+          {/* ИЗЧИСТЕНИ ЛИНКОВЕ (Без емоджита) */}
+          <Link className="drawer-item" to="/news" onClick={handleProtectedClick}>News</Link>
+          <Link className="drawer-item" to="/events" onClick={handleProtectedClick}>Events</Link>
+          <Link className="drawer-item" to="/gallery" onClick={handleProtectedClick}>Gallery</Link>
+          <Link className="drawer-item" to="/games" onClick={handleProtectedClick}>Games</Link>
+          <Link className="drawer-item" to="/e-magazine" onClick={handleProtectedClick}>E-Magazine</Link>
           
           <Link className="drawer-item" to="/about" onClick={closeDrawer}>{t("about")}</Link>
           <Link className="drawer-item" to="/contact" onClick={closeDrawer}>{t("contact")}</Link>
@@ -130,7 +120,6 @@ export default function NavBar() {
 
           <Link className="drawer-item" to="/profile" onClick={closeDrawer}>{t("profile")}</Link>
           
-          {/* САМО ЗА АДМИНИ */}
           {isAdmin && (
             <Link className="drawer-item" to="/admin" onClick={closeDrawer} style={{ color: 'var(--primary)', fontWeight:'bold' }}>
               ⚙️ Admin Panel
@@ -139,7 +128,6 @@ export default function NavBar() {
         </nav>
       </aside>
 
-      {/* --- POP-UP ЗА РЕГИСТРАЦИЯ --- */}
       {showLoginModal && (
         <div className="modal-backdrop" onClick={() => setShowLoginModal(false)}>
           <div className="modal-content" onClick={e => e.stopPropagation()} style={{textAlign: 'center', maxWidth: '400px'}}>
@@ -153,23 +141,8 @@ export default function NavBar() {
             </p>
             
             <div style={{display: 'flex', flexDirection: 'column', gap: '10px'}}>
-              <Link 
-                to="/register" 
-                className="btn primary" 
-                onClick={() => setShowLoginModal(false)}
-                style={{textDecoration:'none'}}
-              >
-                Create Account
-              </Link>
-              
-              <Link 
-                to="/login" 
-                className="btn ghost" 
-                onClick={() => setShowLoginModal(false)}
-                style={{textDecoration:'none'}}
-              >
-                Login
-              </Link>
+              <Link to="/register" className="btn primary" onClick={() => setShowLoginModal(false)} style={{textDecoration:'none'}}>Create Account</Link>
+              <Link to="/login" className="btn ghost" onClick={() => setShowLoginModal(false)} style={{textDecoration:'none'}}>Login</Link>
             </div>
           </div>
         </div>

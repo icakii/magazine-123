@@ -68,10 +68,26 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Auth Middleware
+// Променена middleware функция: Чете и от Cookie, и от Header
 function authMiddleware(req, res, next) {
-  const token = req.cookies['auth'];
+  let token = req.cookies['auth'];
+  
+  // Ако няма бисквитка, търсим в Header-а (за Safari/Mobile)
+  if (!token && req.headers.authorization) {
+    const parts = req.headers.authorization.split(' ');
+    if (parts.length === 2 && parts[0] === 'Bearer') {
+      token = parts[1];
+    }
+  }
+
   if (!token) return res.status(401).json({ error: 'Unauthorized' });
-  try { req.user = jwt.verify(token, JWT_SECRET); next(); } catch { return res.status(401).json({ error: 'Unauthorized' }); }
+  
+  try { 
+    req.user = jwt.verify(token, JWT_SECRET); 
+    next(); 
+  } catch { 
+    return res.status(401).json({ error: 'Unauthorized' }); 
+  }
 }
 
 function adminMiddleware(req, res, next) {
@@ -251,7 +267,8 @@ app.post('/api/auth/verify-2fa', async (req, res) => {
     const authToken = signToken({ email: user.email });
     const isProduction = process.env.NODE_ENV === 'production';
     res.cookie('auth', authToken, { httpOnly: true, sameSite: isProduction ? 'none' : 'lax', secure: isProduction });
-    res.json({ ok: true, message: "Verification successful!" });
+    // ...
+res.json({ ok: true, message: "Verification successful!", token: authToken }); // <-- Добавено token
   } catch (err) { console.error("Verify 2FA error:", err); res.status(500).json({ error: "Error verifying" }); }
 });
 
@@ -313,7 +330,8 @@ app.post('/api/auth/confirm', async (req, res) => {
     const authToken = signToken({ email: user.email });
     const isProduction = process.env.NODE_ENV === 'production';
     res.cookie('auth', authToken, { httpOnly: true, sameSite: isProduction ? 'none' : 'lax', secure: isProduction });
-    res.json({ ok: true, message: "Confirmed!" });
+    // ...
+res.json({ ok: true, message: "Confirmed!", token: authToken }); // <-- Добавено token
   } catch (err) { console.error(err); res.status(500).json({ error: "Confirm error" }); }
 });
 
@@ -331,7 +349,7 @@ app.post('/api/auth/login', async (req, res) => {
     const token = signToken({ email: user.email });
     const isProduction = process.env.NODE_ENV === 'production';
     res.cookie('auth', token, { httpOnly: true, sameSite: isProduction ? 'none' : 'lax', secure: isProduction });
-    res.json({ ok: true, user: { email: user.email, displayName: user.display_name } });
+    res.json({ ok: true, user: { email: user.email, displayName: user.display_name }, token });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 

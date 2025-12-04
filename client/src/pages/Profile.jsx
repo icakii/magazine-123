@@ -1,3 +1,4 @@
+// client/src/pages/Profile.jsx
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
@@ -11,14 +12,14 @@ export default function Profile() {
   const [isEditingName, setIsEditingName] = useState(false)
   const [msg, setMsg] = useState({ type: '', text: '' })
 
-  // Local state za 2FA status, za da reagira vednaga
+  // Local state za 2FA status
   const [is2FA, setIs2FA] = useState(false)
 
   useEffect(() => {
     if (!loading && user) {
       api.get('/subscriptions').then(res => setSubs(res.data || [])).catch(() => setSubs([]))
       setNewName(user.displayName || '')
-      setIs2FA(user.twoFaEnabled) // <-- Vzimame statusa ot user obekta (koito opravihme v servera)
+      setIs2FA(user.twoFaEnabled)
     }
   }, [loading, user])
 
@@ -34,6 +35,10 @@ export default function Profile() {
 
   async function handleLogout() {
     try { await api.post('/auth/logout') } catch {}
+    
+    // ВАЖНО: ИЗТРИВАМЕ ТОКЕНА
+    localStorage.removeItem('auth_token')
+    
     location.href = '/'
   }
 
@@ -104,41 +109,23 @@ export default function Profile() {
         <div>
             <strong>Security</strong>
             <div style={{marginTop: '10px', display: 'flex', flexDirection: 'column', gap: '10px'}}>
-                
-                {/* 1. PROMENEN TEKST NA BUTONA */}
                 <button onClick={handlePasswordReset} className="btn outline" style={{fontSize: '0.9rem', width:'100%'}}>
                     Send Email to Reset Password
                 </button>
 
-                {/* 2. LOGIKA: Pokazvame butona SAMO ako 2FA NE e aktivirano */}
                 {!is2FA ? (
                     <Link 
                         to="/2fa/setup" 
                         className="btn outline" 
                         style={{
-                            fontSize: '0.9rem', 
-                            width:'100%', 
-                            textDecoration: 'none', 
-                            textAlign: 'center', 
-                            border: '2px solid #e63946', 
-                            color: '#e63946', 
-                            fontWeight: 'bold',
-                            display: 'block'
+                            fontSize: '0.9rem', width:'100%', textDecoration: 'none', textAlign: 'center', 
+                            border: '2px solid #e63946', color: '#e63946', fontWeight: 'bold', display: 'block'
                         }}
                     >
                         🛡️ Configure Two-Factor Auth (2FA)
                     </Link>
                 ) : (
-                    <div style={{
-                        padding: '10px', 
-                        textAlign: 'center', 
-                        backgroundColor: '#e6ffe6', 
-                        color: '#006400', 
-                        border: '1px solid #b3ffb3',
-                        borderRadius: '8px',
-                        fontWeight: 'bold',
-                        fontSize: '0.9rem'
-                    }}>
+                    <div style={{padding: '10px', textAlign: 'center', backgroundColor: '#e6ffe6', color: '#006400', border: '1px solid #b3ffb3', borderRadius: '8px', fontWeight: 'bold', fontSize: '0.9rem'}}>
                         ✅ Two-Factor Authentication is Active
                     </div>
                 )}

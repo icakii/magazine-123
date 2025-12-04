@@ -21,14 +21,16 @@ export default function Login() {
       
       // 1. ПРОВЕРКА ЗА 2FA
       if (res.data && res.data.requires2fa) {
-        // ВАЖНО: Запазваме имейла, за да може следващата страница да знае кой си!
         sessionStorage.setItem('twofa_email', form.email) 
-        
         location.href = '/2fa/verify' 
         return
       }
       
-      // 2. УСПЕШЕН ВХОД (Ако няма 2FA)
+      // 2. УСПЕШЕН ВХОД (ЗАПАЗВАМЕ ТОКЕНА ЗА SAFARI)
+      if (res.data.token) {
+        localStorage.setItem('auth_token', res.data.token)
+      }
+
       location.href = '/profile' 
     } catch (err) {
       setMsg({ type: 'error', text: err?.response?.data?.error || 'Login failed' })

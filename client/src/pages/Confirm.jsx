@@ -1,37 +1,66 @@
-// src/pages/Confirm.jsx
+// client/src/pages/Confirm.jsx
 import { useEffect, useState } from 'react'
-import { useLocation } from 'react-router-dom'
+import { useSearchParams, useNavigate } from 'react-router-dom'
 import { api } from '../lib/api'
-import { t } from '../lib/i18n'
-
-function useQuery() {
-  return new URLSearchParams(useLocation().search)
-}
 
 export default function Confirm() {
-  const query = useQuery()
-  const token = query.get('token')
-  const [msg, setMsg] = useState(t('confirm_email_progress'))
+  const [searchParams] = useSearchParams()
+  const navigate = useNavigate()
+  const token = searchParams.get('token')
+  
+  const [status, setStatus] = useState('loading')
+  const [msg, setMsg] = useState('Processing confirmation...')
 
   useEffect(() => {
     if (!token) {
-      setMsg('Липсва токен.')
+      setStatus('error')
+      setMsg('No token provided in the link.')
       return
     }
+
     api.post('/auth/confirm', { token })
-      .then(() => {
-        setMsg('Имейлът е потвърден. Пренасочваме...')
-        setTimeout(() => { location.href = '/' }, 900)
+      .then((res) => {
+        setStatus('success')
+        setMsg('Email confirmed successfully! Redirecting...')
+        
+        // ЗАПАЗВАМЕ ТОКЕНА ЗА SAFARI
+        if (res.data.token) {
+            localStorage.setItem('auth_token', res.data.token)
+        }
+        
+        setTimeout(() => { 
+          navigate('/profile') 
+        }, 2000)
       })
-      .catch(err => {
-        setMsg(err?.response?.data?.error || 'Грешка при потвърждение')
+      .catch((err) => {
+        console.error("Confirmation Error:", err)
+        setStatus('error')
+        setMsg(err?.response?.data?.error || 'Confirmation failed. The link might be expired.')
       })
-  }, [token])
+  }, [token, navigate])
 
   return (
-    <div className="page">
-      <h2 className="headline">{t('confirm_email_title')}</h2>
-      <p className="subhead">{msg}</p>
+    <div className="page" style={{textAlign: 'center', padding: '50px'}}>
+      <h2 className="headline">Email Confirmation</h2>
+      
+      {status === 'loading' && (
+        <p style={{fontSize: '1.2rem', color: 'gray'}}>⏳ {msg}</p>
+      )}
+
+      {status === 'success' && (
+        <div style={{color: 'green'}}>
+          <h1 style={{fontSize: '3rem'}}>✅</h1>
+          <p style={{fontSize: '1.2rem', fontWeight: 'bold'}}>{msg}</p>
+        </div>
+      )}
+
+      {status === 'error' && (
+        <div style={{color: 'red'}}>
+          <h1 style={{fontSize: '3rem'}}>❌</h1>
+          <p style={{fontSize: '1.2rem', fontWeight: 'bold'}}>{msg}</p>
+          <button onClick={() => navigate('/')} className="btn outline" style={{marginTop: '20px'}}>Go Home</button>
+        </div>
+      )}
     </div>
   )
 }

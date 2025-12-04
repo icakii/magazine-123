@@ -1,4 +1,4 @@
-// src/pages/TwoFAVerify.jsx
+// client/src/pages/TwoFAVerify.jsx
 import { useState, useEffect } from 'react'
 import { api } from '../lib/api'
 import { t } from '../lib/i18n'
@@ -34,7 +34,13 @@ export default function TwoFAVerify() {
   async function verify() {
     if (!email) { setMsg('Липсва имейл.'); return }
     try {
-      await api.post('/auth/verify-2fa', { email, code })
+      const res = await api.post('/auth/verify-2fa', { email, code })
+      
+      // ЗАПАЗВАМЕ ТОКЕНА ЗА SAFARI
+      if (res.data.token) {
+        localStorage.setItem('auth_token', res.data.token)
+      }
+
       location.href = '/profile'
     } catch (err) {
       setMsg(err?.response?.data?.error || 'Невалиден код')

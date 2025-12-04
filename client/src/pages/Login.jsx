@@ -1,5 +1,6 @@
-// src/pages/Login.jsx
+// client/src/pages/Login.jsx
 import { useState } from 'react'
+import { Link } from 'react-router-dom' // Импортираме Link
 import { api } from '../lib/api'
 import { t } from '../lib/i18n'
 
@@ -18,11 +19,10 @@ export default function Login() {
     try {
       const res = await api.post('/auth/login', form)
       if (res.data && res.data.requires2fa) {
-        sessionStorage.setItem('twofa_email', form.email)
-        location.href = '/2fa/verify'
+        location.href = '/2fa/verify' // Ако има 2FA
         return
       }
-      location.href = '/profile'
+      location.href = '/profile' // Успешен вход
     } catch (err) {
       setMsg({ type: 'error', text: err?.response?.data?.error || 'Login failed' })
     } finally {
@@ -60,8 +60,17 @@ export default function Login() {
                 <input className="input xl" type="password" name="password" value={form.password} onChange={update} placeholder={t('password')} required />
               </label>
               
-              <div style={{textAlign: 'right', marginTop: '-10px', marginBottom: '15px'}}>
-                  <button type="button" onClick={() => { setIsForgotPass(true); setMsg({type:'', text:''}) }} style={{background:'none', border:'none', color:'#e63946', cursor:'pointer', fontSize:'0.9rem'}}>Forgot Password?</button>
+              {/* ТУК Е НОВАТА СЕКЦИЯ С ДВАТА БУТОНА */}
+              <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '-5px', marginBottom: '15px'}}>
+                  {/* ЛЯВО: No Account? */}
+                  <Link to="/register" style={{fontSize: '0.9rem', color: '#e63946', textDecoration: 'none', fontWeight: '500'}}>
+                    No account?
+                  </Link>
+
+                  {/* ДЯСНО: Forgot Password? */}
+                  <button type="button" onClick={() => { setIsForgotPass(true); setMsg({type:'', text:''}) }} style={{background:'none', border:'none', color:'#666', cursor:'pointer', fontSize:'0.9rem', textDecoration:'underline'}}>
+                    Forgot Password?
+                  </button>
               </div>
 
               <div className="form-footer">

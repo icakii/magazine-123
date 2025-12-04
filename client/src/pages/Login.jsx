@@ -1,6 +1,6 @@
 // client/src/pages/Login.jsx
 import { useState } from 'react'
-import { Link } from 'react-router-dom' // Импортираме Link
+import { Link } from 'react-router-dom'
 import { api } from '../lib/api'
 import { t } from '../lib/i18n'
 
@@ -18,11 +18,18 @@ export default function Login() {
     setLoading(true)
     try {
       const res = await api.post('/auth/login', form)
+      
+      // 1. ПРОВЕРКА ЗА 2FA
       if (res.data && res.data.requires2fa) {
-        location.href = '/2fa/verify' // Ако има 2FA
+        // ВАЖНО: Запазваме имейла, за да може следващата страница да знае кой си!
+        sessionStorage.setItem('twofa_email', form.email) 
+        
+        location.href = '/2fa/verify' 
         return
       }
-      location.href = '/profile' // Успешен вход
+      
+      // 2. УСПЕШЕН ВХОД (Ако няма 2FA)
+      location.href = '/profile' 
     } catch (err) {
       setMsg({ type: 'error', text: err?.response?.data?.error || 'Login failed' })
     } finally {
@@ -60,14 +67,10 @@ export default function Login() {
                 <input className="input xl" type="password" name="password" value={form.password} onChange={update} placeholder={t('password')} required />
               </label>
               
-              {/* ТУК Е НОВАТА СЕКЦИЯ С ДВАТА БУТОНА */}
               <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '-5px', marginBottom: '15px'}}>
-                  {/* ЛЯВО: No Account? */}
                   <Link to="/register" style={{fontSize: '0.9rem', color: '#e63946', textDecoration: 'none', fontWeight: '500'}}>
                     No account?
                   </Link>
-
-                  {/* ДЯСНО: Forgot Password? */}
                   <button type="button" onClick={() => { setIsForgotPass(true); setMsg({type:'', text:''}) }} style={{background:'none', border:'none', color:'#666', cursor:'pointer', fontSize:'0.9rem', textDecoration:'underline'}}>
                     Forgot Password?
                   </button>

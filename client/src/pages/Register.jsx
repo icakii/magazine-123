@@ -1,5 +1,6 @@
+// src/pages/Register.jsx
 import { useState, useRef } from 'react'
-import { Link } from 'react-router-dom' // Импортираме Link
+import { Link } from 'react-router-dom' // <-- Добавих Link
 import { api } from '../lib/api'
 import { t } from '../lib/i18n'
 
@@ -22,29 +23,44 @@ export default function Register() {
       const res = await api.get(`/auth/check${q}`)
       if (res.data && res.data.taken) {
         setErrors(prev => ({ ...prev, [field]: field === 'email' ? 'Имейлът вече е регистриран' : 'Потребителското име е заето' }))
+        setTimeout(() => {
+          const el = document.querySelector('.input.is-error') || msgRef.current
+          if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        }, 50)
       }
     } catch {}
   }
 
   async function submit(e) {
     e.preventDefault()
+    // --- ПЪРВО ИЗЧИСТВАНЕ НА ВСИЧКИ СЪОБЩЕНИЯ/ГРЕШКИ ---
     setMsg('')
     setErrors({ email: '', displayName: '' })
+    // ----------------------------------------------------
+    
     if (!form.email || !form.password || !form.displayName) {
       setMsg('Попълни всички полета')
+      if (msgRef.current) msgRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' })
       return
     }
     try {
       const res = await api.post('/auth/register', form)
       setMsg(res.data?.message || 'Регистрацията е успешна. Провери имейла за потвърждение.')
+      if (msgRef.current) msgRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' })
     } catch (err) {
       const status = err?.response?.status
+      // ИЗПОЛЗВАМЕ СПЕЦИФИЧНАТА ГРЕШКА, КОЯТО СЪРВЪРЪТ ВРЪЩА
       const error = err?.response?.data?.error || 'Грешка при регистрация'
       if (status === 409) {
         if (error.toLowerCase().includes('email')) setErrors(prev => ({ ...prev, email: 'Имейлът вече е регистриран' }))
         else if (error.toLowerCase().includes('display')) setErrors(prev => ({ ...prev, displayName: 'Потребителското име е заето' }))
+        setTimeout(() => {
+          const el = document.querySelector('.input.is-error') || msgRef.current
+          if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        }, 50)
       } else {
         setMsg(error)
+        if (msgRef.current) msgRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' })
       }
     }
   }
@@ -90,8 +106,8 @@ export default function Register() {
             {errors.displayName && <div className="msg" style={{ background: 'rgba(239,68,68,0.08)', color: '#ef4444', marginTop: 8 }}>{errors.displayName}</div>}
           </label>
 
-          {/* ТУК Е НОВИЯТ ЛИНК */}
-          <div style={{textAlign: 'right', marginTop: '-5px', marginBottom: '15px'}}>
+          {/* --- НОВИЯТ ЛИНК КЪМ LOGIN --- */}
+          <div style={{textAlign: 'left', marginTop: '-5px', marginBottom: '15px'}}>
               <Link to="/login" style={{fontSize: '0.9rem', color: '#e63946', textDecoration: 'none', fontWeight: '500'}}>
                 Already have an account?
               </Link>

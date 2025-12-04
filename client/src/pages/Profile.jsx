@@ -1,4 +1,3 @@
-// client/src/pages/Profile.jsx
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
@@ -33,14 +32,16 @@ export default function Profile() {
       return diffDays >= 14
   }
 
+  // --- ТУК Е ПОПРАВКАТА ---
   async function handleLogout() {
     try { await api.post('/auth/logout') } catch {}
     
-    // ВАЖНО: ИЗТРИВАМЕ ТОКЕНА
+    // ВАЖНО: Изтриваме токена!
     localStorage.removeItem('auth_token')
     
     location.href = '/'
   }
+  // ------------------------
 
   async function handleUpdateUsername() {
       if (newName.length < 3) { setMsg({ type: 'error', text: 'Name too short' }); return }

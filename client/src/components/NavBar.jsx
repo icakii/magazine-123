@@ -1,3 +1,5 @@
+// client/src/components/NavBar.jsx
+
 "use client"
 
 import { Link, useNavigate } from "react-router-dom"
@@ -29,11 +31,17 @@ export default function NavBar() {
     return () => window.removeEventListener("lang:change", onLangChange)
   }, [])
 
+  // --- ТУК Е ПОПРАВКАТА ---
   async function handleLogout(e) {
-    e.preventDefault()
+    if (e) e.preventDefault()
     try { await api.post("/auth/logout") } catch {}
+    
+    // ВАЖНО: Изтриваме токена от паметта!
+    localStorage.removeItem('auth_token')
+    
     location.href = "/"
   }
+  // ------------------------
 
   function changeLang() {
     const next = lang === "bg" ? "en" : "bg"
@@ -102,14 +110,11 @@ export default function NavBar() {
         
         <nav className="drawer-list">
           <Link className="drawer-item" to="/" onClick={closeDrawer}>Home</Link>
-          
-          {/* ИЗЧИСТЕНИ ЛИНКОВЕ (Без емоджита) */}
           <Link className="drawer-item" to="/news" onClick={handleProtectedClick}>News</Link>
           <Link className="drawer-item" to="/events" onClick={handleProtectedClick}>Events</Link>
           <Link className="drawer-item" to="/gallery" onClick={handleProtectedClick}>Gallery</Link>
           <Link className="drawer-item" to="/games" onClick={handleProtectedClick}>Games</Link>
           <Link className="drawer-item" to="/e-magazine" onClick={handleProtectedClick}>E-Magazine</Link>
-          
           <Link className="drawer-item" to="/about" onClick={closeDrawer}>{t("about")}</Link>
           <Link className="drawer-item" to="/contact" onClick={closeDrawer}>{t("contact")}</Link>
           <Link className="drawer-item" to="/subscriptions" onClick={closeDrawer}>{t("subscriptions")}</Link>
@@ -132,14 +137,12 @@ export default function NavBar() {
         <div className="modal-backdrop" onClick={() => setShowLoginModal(false)}>
           <div className="modal-content" onClick={e => e.stopPropagation()} style={{textAlign: 'center', maxWidth: '400px'}}>
             <button className="modal-close" onClick={() => setShowLoginModal(false)}>×</button>
-            
             <div style={{fontSize: '3rem', marginBottom: '10px'}}>🔒</div>
             <h2 className="headline" style={{fontSize: '1.8rem'}}>Access Restricted</h2>
             <p style={{marginBottom: '20px', color: 'gray'}}>
               You must be a registered member to access this content. <br/>
               Join MIREN today!
             </p>
-            
             <div style={{display: 'flex', flexDirection: 'column', gap: '10px'}}>
               <Link to="/register" className="btn primary" onClick={() => setShowLoginModal(false)} style={{textDecoration:'none'}}>Create Account</Link>
               <Link to="/login" className="btn ghost" onClick={() => setShowLoginModal(false)} style={{textDecoration:'none'}}>Login</Link>

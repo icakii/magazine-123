@@ -80,7 +80,7 @@ function authMiddleware(req, res, next) {
 
 function adminMiddleware(req, res, next) {
   authMiddleware(req, res, () => {
-    const adminEmails = ["icaki06@gmail.com", "icaki2k@gmail.com"];
+    const adminEmails = ["icaki06@gmail.com", "icaki2k@gmail.com", "mirenmagazine@gmail.com"];
     if (!adminEmails.includes(req.user.email)) return res.status(403).json({ error: "Admin access required" });
     next();
   });
@@ -153,7 +153,7 @@ app.post('/api/auth/reset-password-request', async (req, res) => {
     const expiry = new Date(Date.now() + 3600000); 
     await db.query('UPDATE users SET reset_password_token = $1, reset_password_expires = $2 WHERE email = $3', [token, expiry, email]);
     const resetUrl = `${APP_URL}/reset-password?token=${token}`;
-    await transporter.sendMail({ from: '"MIREN Security" <icaki2k@gmail.com>', to: email, subject: 'Reset Your Password', html: `<p>Click to reset:</p><a href="${resetUrl}">Reset Password</a>` });
+    await transporter.sendMail({ from: '"MIREN Security" <mirenmagazine@gmail.com>', to: email, subject: 'Reset Your Password', html: `<p>Click to reset:</p><a href="${resetUrl}">Reset Password</a>` });
     res.json({ ok: true, message: "Reset link sent!" });
   } catch (err) { console.error("Reset error:", err); res.status(500).json({ error: "Error sending email" }); }
 });
@@ -178,7 +178,7 @@ app.post('/api/auth/send-2fa', async (req, res) => {
     const code = crypto.randomInt(100000, 999999).toString();
     const expiry = new Date(Date.now() + 10 * 60 * 1000); 
     await db.query('UPDATE users SET two_fa_code = $1, two_fa_expiry = $2 WHERE email = $3', [code, expiry, email]);
-    await transporter.sendMail({ from: '"MIREN" <icaki2k@gmail.com>', to: email, subject: 'Your MIREN Verification Code', html: `<p>Your code: <h2>${code}</h2></p>` });
+    await transporter.sendMail({ from: '"MIREN" <mirenmagazine@gmail.com>', to: email, subject: 'Your MIREN Verification Code', html: `<p>Your code: <h2>${code}</h2></p>` });
     res.json({ ok: true, message: "Code sent" });
   } catch (err) { console.error(err); res.status(500).json({ error: "Error sending code" }); }
 });
@@ -230,7 +230,7 @@ app.post("/api/auth/register", async (req, res) => {
     await db.query('INSERT INTO subscriptions (email, plan) VALUES ($1, $2)', [email, 'free']);
     const confirmationUrl = `${APP_URL}/confirm?token=${token}`;
     console.log("Sending email to:", email); 
-    await transporter.sendMail({ from: '"MIREN" <icaki2k@gmail.com>', to: email, subject: 'Confirm your account', html: `<p>Welcome!</p><p>Click below to confirm:</p><a href="${confirmationUrl}" style="padding: 10px; background: #e63946; color: white;">Confirm Email</a>` });
+    await transporter.sendMail({ from: '"MIREN" <mirenmagazine@gmail.com>', to: email, subject: 'Confirm your account', html: `<p>Welcome!</p><p>Click below to confirm:</p><a href="${confirmationUrl}" style="padding: 10px; background: #e63946; color: white;">Confirm Email</a>` });
     res.status(201).json({ ok: true, message: "Registration successful! Check email." });
   } catch (err) { console.error(err); res.status(500).json({ error: "Registration failed" }); }
 });

@@ -6,7 +6,7 @@ import { api } from "../lib/api"
 import { t, getLang, setLang } from "../lib/i18n"
 import { useEffect, useState } from "react"
 
-const ADMIN_EMAILS = ["icaki06@gmail.com", "icaki2k@gmail.com"]
+const ADMIN_EMAILS = ["icaki06@gmail.com", "icaki2k@gmail.com", "mirenmagazine@gmail.com"]
 
 function toggleTheme() {
   const html = document.documentElement

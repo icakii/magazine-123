@@ -5,7 +5,7 @@ import { api } from "../lib/api"
 import { useAuth } from "../hooks/useAuth"
 
 // Добави тук своя имейл
-const ADMIN_EMAILS = ["icaki06@gmail.com", "icaki2k@gmail.com"]
+const ADMIN_EMAILS = ["icaki06@gmail.com", "icaki2k@gmail.com", "mirenmagazine@gmail.com"]
 
 export default function AdminPanel() {
   const { user, loading } = useAuth()

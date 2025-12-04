@@ -351,20 +351,24 @@ app.post("/api/contact", async (req, res) => {
   }
 
   try {
+    console.log(`Attempting to send contact email from ${email}...`); // LOG 1
+
     // Изпращаме имейла до ТЕБ (Админа)
     await transporter.sendMail({
-      from: `"Contact Form" <${process.env.EMAIL_USER}>`, // От твоя служебен мейл
-      replyTo: email, // За да можеш да върнеш отговор на потребителя
-      to: process.env.EMAIL_USER, // Получател си ти
+      from: `"Contact Form" <${process.env.EMAIL_USER}>`, 
+      replyTo: email, // За да можеш да отговориш на потребителя
+      to: process.env.EMAIL_USER, // Пращаш го на себе си
       subject: `New Message from ${email}`,
       text: message,
       html: `<p><strong>From:</strong> ${email}</p><p>${message}</p>`
     });
 
+    console.log("Contact email sent successfully!"); // LOG 2
     res.json({ ok: true, message: "Message sent!" });
+
   } catch (err) {
-    console.error("Contact error:", err);
-    res.status(500).json({ error: "Failed to send message" });
+    console.error("CONTACT ERROR:", err); // LOG 3 (Ако има грешка, ще я видим тук)
+    res.status(500).json({ error: "Failed to send message: " + err.message });
   }
 });
 

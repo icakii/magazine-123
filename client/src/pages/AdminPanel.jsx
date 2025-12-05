@@ -4,10 +4,8 @@ import { useState, useEffect } from "react"
 import { api } from "../lib/api"
 import { useAuth } from "../hooks/useAuth"
 
-// --- НАСТРОЙКИ ЗА CLOUDINARY (Смени ги с твоите!) ---
-const CLOUDINARY_URL = "https://api.cloudinary.com/v1_1/dwezdx5zn/image/upload";
-const UPLOAD_PRESET = "ml_default"; 
-// --------------------------------------------------
+const CLOUDINARY_URL = "https://api.cloudinary.com/v1_1/YOUR_CLOUD_NAME/image/upload";
+const UPLOAD_PRESET = "YOUR_UPLOAD_PRESET"; 
 
 const ADMIN_EMAILS = ["icaki06@gmail.com", "icaki2k@gmail.com", "mirenmagazine@gmail.com"]
 
@@ -24,19 +22,21 @@ export default function AdminPanel() {
   const [showForm, setShowForm] = useState(false)
   const [msg, setMsg] = useState("")
   const [editingId, setEditingId] = useState(null)
-  
-  // State за качване на снимка
   const [uploading, setUploading] = useState(false)
 
   // Newsletter State
   const [subscribers, setSubscribers] = useState([])
-  
+  const [emailSubject, setEmailSubject] = useState("")
+  const [emailBody, setEmailBody] = useState("")
+
+  // Article Form
   const [articleForm, setArticleForm] = useState({
     title: "", text: "", date: new Date().toISOString().split("T")[0], time: "", imageUrl: "", excerpt: "", articleCategory: "Lifestyle", isPremium: false, linkTo: "/news"
   })
 
+  // Magazine Form
   const [magForm, setMagForm] = useState({
-    issueNumber: "0001", month: "January", year: new Date().getFullYear(), isLocked: true, pages: [""] 
+    issueNumber: "0001", month: "January", year: new Date().getFullYear(), isLocked: true, pages: [""], coverUrl: ""
   })
 
   const tabs = ["home", "news", "events", "gallery", "magazine", "newsletter"]
@@ -50,11 +50,13 @@ export default function AdminPanel() {
   async function loadData() {
     try {
       if (activeTab === "magazine") {
-         const stored = localStorage.getItem("mock_issues")
-         setItems(stored ? JSON.parse(stored) : [])
+         // ВЕЧЕ ЗАРЕЖДАМЕ ОТ API, А НЕ ОТ LOCALSTORAGE
+         const res = await api.get('/magazines');
+         setItems(res.data || []);
       } else if (activeTab === "newsletter") {
-         const localEmails = JSON.parse(localStorage.getItem("newsletter_emails") || "[]")
-         setSubscribers(localEmails)
+         // ЗАРЕЖДАМЕ РЕАЛНИ АБОНАТИ
+         const res = await api.get('/newsletter/subscribers');
+         setSubscribers(res.data || []);
       } else {
          const res = await api.get(`/articles?category=${activeTab}`)
          setItems(res.data || [])
@@ -62,89 +64,99 @@ export default function AdminPanel() {
     } catch (err) { console.error(err) }
   }
 
-  // --- IMAGE UPLOAD FUNCTION ---
-  async function handleImageUpload(e) {
+  // IMAGE UPLOAD (Cloudinary)
+  async function handleImageUpload(e, isCover = false) {
     const file = e.target.files[0];
     if (!file) return;
 
     setUploading(true);
     const formData = new FormData();
     formData.append("file", file);
-    formData.append("upload_preset", UPLOAD_PRESET); // Трябва да е Unsigned preset от Cloudinary
+    formData.append("upload_preset", UPLOAD_PRESET);
 
     try {
-        const res = await fetch(CLOUDINARY_URL, {
-            method: "POST",
-            body: formData
-        });
+        const res = await fetch(CLOUDINARY_URL, { method: "POST", body: formData });
         const data = await res.json();
         
         if (data.secure_url) {
-            setArticleForm(prev => ({ ...prev, imageUrl: data.secure_url }));
+            if (activeTab === "magazine") {
+                if (isCover) setMagForm(prev => ({ ...prev, coverUrl: data.secure_url }));
+                // Ако искаш да качваш страници, логиката е по-сложна, но засега корицата е важна
+            } else {
+                setArticleForm(prev => ({ ...prev, imageUrl: data.secure_url }));
+            }
             setMsg("Image uploaded successfully! ✅");
-        } else {
-            setMsg("Upload failed. Check Cloudinary settings.");
-            console.error("Cloudinary error:", data);
         }
-    } catch (error) {
-        console.error("Upload Error:", error);
-        setMsg("Error uploading image.");
-    } finally {
-        setUploading(false);
-    }
+    } catch (error) { setMsg("Error uploading image."); } 
+    finally { setUploading(false); }
   }
 
+  // SAVE DATA
   async function handleSave(e) {
     e.preventDefault()
     try {
       if (activeTab === "magazine") {
-         const dataToSave = { ...magForm, isLocked: Boolean(magForm.isLocked), id: editingId || Date.now().toString() }
-         const currentItems = JSON.parse(localStorage.getItem("mock_issues") || "[]")
-         let newItems = editingId ? currentItems.map(i => i.id === editingId ? dataToSave : i) : [...currentItems, dataToSave]
-         localStorage.setItem("mock_issues", JSON.stringify(newItems))
-         setMsg("Magazine saved!")
+         // MAGAZINE SAVE TO DB
+         const dataToSave = { ...magForm, isLocked: Boolean(magForm.isLocked) }
+         if (editingId) await api.put(`/magazines/${editingId}`, dataToSave);
+         else await api.post('/magazines', dataToSave);
+         setMsg("Magazine saved!");
+
       } else {
+         // ARTICLE SAVE TO DB
          const dataToSave = { 
             ...articleForm, 
             category: activeTab, 
             author: user.displayName || "Admin" 
          }
-
-         if (editingId) {
-            await api.put(`/articles/${editingId}`, dataToSave)
-            setMsg("Article updated successfully!")
-         } else {
-            await api.post("/articles", dataToSave)
-            setMsg("Article created successfully!")
-         }
+         if (editingId) await api.put(`/articles/${editingId}`, dataToSave);
+         else await api.post("/articles", dataToSave);
+         setMsg("Article saved successfully!");
       }
       setTimeout(() => { resetForms(); loadData(); }, 1000)
-    } catch (err) { console.error(err); setMsg("Error saving data: " + (err.response?.data?.message || err.message)); }
+    } catch (err) { 
+        console.error(err); 
+        setMsg("Error saving data: " + (err.response?.data?.message || err.message)); 
+    }
   }
 
+  // DELETE DATA
   async function handleDelete(id) {
     if (!window.confirm("Are you sure?")) return
-    if (activeTab === "magazine") {
-       const currentItems = JSON.parse(localStorage.getItem("mock_issues") || "[]")
-       localStorage.setItem("mock_issues", JSON.stringify(currentItems.filter(i => i.id !== id)))
-       loadData()
-    } else {
-       await api.delete(`/articles/${id}`)
-       loadData()
-    }
+    try {
+        if (activeTab === "magazine") await api.delete(`/magazines/${id}`);
+        else await api.delete(`/articles/${id}`);
+        loadData();
+    } catch (e) { alert("Error deleting"); }
+  }
+
+  // SEND NEWSLETTER
+  async function handleSendEmail(e) {
+    e.preventDefault();
+    if(!emailSubject || !emailBody) return;
+    try {
+        const res = await api.post('/newsletter/send', { subject: emailSubject, body: emailBody });
+        setMsg(`Success! Sent to ${res.data.count} subscribers.`);
+        setEmailSubject(""); setEmailBody("");
+    } catch (e) { setMsg("Error sending emails."); }
   }
 
   function handleEdit(item) {
     setEditingId(item.id)
-    if (item.category && item.category !== activeTab) setActiveTab(item.category)
-    
-    if (activeTab === "magazine" || item.category === "magazine") {
-       setMagForm(item)
+    if (activeTab === "magazine") {
+       setMagForm({
+           issueNumber: item.issueNumber || "",
+           month: item.month || "January",
+           year: item.year || 2025,
+           isLocked: !!item.isLocked,
+           coverUrl: item.coverUrl || "",
+           pages: item.pages || [""]
+       })
     } else {
        setArticleForm({
            title: item.title || "",
            text: item.text || "",
-           date: item.date ? item.date.split('T')[0] : new Date().toISOString().split("T")[0],
+           date: item.date ? item.date.split('T')[0] : "",
            time: item.time || "",
            imageUrl: item.imageUrl || "",
            excerpt: item.excerpt || "",
@@ -160,7 +172,7 @@ export default function AdminPanel() {
   function resetForms() {
     setEditingId(null); setShowForm(false); setMsg("");
     setArticleForm({ title: "", text: "", date: new Date().toISOString().split("T")[0], time: "", imageUrl: "", excerpt: "", articleCategory: "Lifestyle", isPremium: false, linkTo: "/news" })
-    setMagForm({ issueNumber: "", month: "January", year: new Date().getFullYear(), isLocked: true, pages: [""] })
+    setMagForm({ issueNumber: "", month: "January", year: new Date().getFullYear(), isLocked: true, pages: [""], coverUrl: "" })
   }
 
   if (loading) return <div className="page"><p>Loading...</p></div>
@@ -176,79 +188,92 @@ export default function AdminPanel() {
         ))}
       </div>
 
+      {/* NEWSLETTER TAB */}
+      {activeTab === "newsletter" && (
+        <div className="stack">
+            <h3>Newsletter Manager</h3>
+            <p>Total Subscribers: <strong>{subscribers.length}</strong></p>
+            
+            <div className="card" style={{padding: 20, marginBottom: 20}}>
+               <h4>Send Blast Email</h4>
+               <form onSubmit={handleSendEmail} className="form">
+                   <input className="input" placeholder="Subject" value={emailSubject} onChange={e=>setEmailSubject(e.target.value)} required />
+                   <textarea className="textarea" placeholder="Email Message (HTML supported)" value={emailBody} onChange={e=>setEmailBody(e.target.value)} required style={{minHeight: 150}} />
+                   <button className="btn primary" style={{backgroundColor: "#e63946", color:"white"}}>Send to All</button>
+               </form>
+               {msg && <p style={{marginTop: 10, fontWeight:"bold"}}>{msg}</p>}
+            </div>
+
+            <h4>Subscriber List</h4>
+            <div style={{maxHeight: 200, overflowY: "auto", border: "1px solid #eee", padding: 10}}>
+                {subscribers.map((sub, i) => (
+                    <div key={i} style={{borderBottom: "1px solid #eee", padding: 5}}>{sub.email} <span style={{fontSize: "0.8rem", color: "#888"}}>({new Date(sub.created_at).toLocaleDateString()})</span></div>
+                ))}
+            </div>
+        </div>
+      )}
+
+      {/* CREATE BUTTON */}
       {activeTab !== "newsletter" && !showForm && (
         <button onClick={() => { setShowForm(true); setEditingId(null); }} className="btn primary" style={{ marginBottom: 24, backgroundColor: "#e63946", color: "white" }}>
           + Create New in "{activeTab}"
         </button>
       )}
 
+      {/* FORM AREA */}
       {showForm && activeTab !== "newsletter" && (
         <div className="card" style={{ marginBottom: 24, padding: 20, border: "1px solid #ccc" }}>
           <h3>{editingId ? "Edit" : "Create New"} {activeTab}</h3>
           
           <form onSubmit={handleSave} className="form">
             {activeTab === "magazine" ? (
-               <div><input className="input" placeholder="Issue #" value={magForm.issueNumber} onChange={e=>setMagForm({...magForm, issueNumber: e.target.value})} /></div>
+               /* MAGAZINE FORM */
+               <div>
+                   <div style={{display:'flex', gap: 10, marginBottom: 10}}>
+                       <input className="input" placeholder="Issue # (e.g. 005)" value={magForm.issueNumber} onChange={e=>setMagForm({...magForm, issueNumber: e.target.value})} style={{flex:1}} />
+                       <input className="input" type="number" placeholder="Year" value={magForm.year} onChange={e=>setMagForm({...magForm, year: e.target.value})} style={{flex:1}} />
+                   </div>
+                   
+                   <label>Cover Image</label>
+                   <input type="file" onChange={(e) => handleImageUpload(e, true)} accept="image/*" disabled={uploading} />
+                   {magForm.coverUrl && <img src={magForm.coverUrl} style={{height: 100, marginTop: 10, display: "block"}} />}
+                   <input className="input" placeholder="Or Cover URL" value={magForm.coverUrl} onChange={e=>setMagForm({...magForm, coverUrl: e.target.value})} style={{marginTop: 5, width: "100%"}} />
+
+                   <label style={{marginTop: 15, display: "flex", alignItems: "center", gap: 5}}>
+                       <input type="checkbox" checked={magForm.isLocked} onChange={e => setMagForm({...magForm, isLocked: e.target.checked})} />
+                       Premium Locked?
+                   </label>
+               </div>
             ) : (
+               /* ARTICLE FORM */
                <>
-                  <label style={{fontSize: "0.8rem", color: "#666"}}>Title</label>
-                  <input className="input" type="text" value={articleForm.title} onChange={e => setArticleForm({...articleForm, title: e.target.value})} required style={{width:"100%", marginBottom: 10}} />
+                  <input className="input" type="text" placeholder="Title" value={articleForm.title} onChange={e => setArticleForm({...articleForm, title: e.target.value})} required style={{width:"100%", marginBottom: 10}} />
                   
-                  <div style={{display:'flex', gap: 10}}>
-                      <div style={{flex: 1}}>
-                         <label style={{fontSize: "0.8rem", color: "#666"}}>Date</label>
-                         <input className="input" type="date" value={articleForm.date} onChange={e => setArticleForm({...articleForm, date: e.target.value})} style={{width: "100%"}} />
-                      </div>
-                      {activeTab === "events" && (
-                          <div style={{flex: 1}}>
-                            <label style={{fontSize: "0.8rem", color: "#666"}}>Time</label>
-                            <input className="input" type="time" value={articleForm.time} onChange={e => setArticleForm({...articleForm, time: e.target.value})} style={{width: "100%"}} />
-                          </div>
-                      )}
-                  </div>
-                  
-                  {/* --- IMAGE UPLOAD SECTION --- */}
-                  <div style={{marginTop: 15, marginBottom: 15, background: "#f9f9f9", padding: 10, borderRadius: 5, border: "1px dashed #ccc"}}>
-                      <label style={{fontSize: "0.9rem", fontWeight: "bold", display: "block", marginBottom: 5}}>Image Upload</label>
-                      
-                      {/* File Input */}
+                  {/* Image Upload for Articles */}
+                  <div style={{marginBottom: 10, padding: 10, background: "#f9f9f9"}}>
+                      <label>Main Image</label>
                       <input type="file" onChange={handleImageUpload} accept="image/*" disabled={uploading} />
-                      {uploading && <span style={{marginLeft: 10}}>Uploading... ⏳</span>}
-
-                      {/* Manual URL fallback */}
-                      <div style={{marginTop: 5, display: "flex", alignItems: "center", gap: 5}}>
-                          <span style={{fontSize: "0.8rem"}}>OR Paste URL:</span>
-                          <input className="input" type="url" placeholder="https://..." value={articleForm.imageUrl} onChange={e => setArticleForm({...articleForm, imageUrl: e.target.value})} style={{flex: 1}} />
-                      </div>
-
-                      {/* Preview */}
-                      {articleForm.imageUrl && (
-                          <div style={{marginTop: 10}}>
-                              <img src={articleForm.imageUrl} alt="Preview" style={{height: 100, borderRadius: 5, border: "1px solid #ddd"}} />
-                          </div>
-                      )}
+                      {uploading && <span>Uploading...</span>}
+                      <input className="input" placeholder="Or Image URL" value={articleForm.imageUrl} onChange={e => setArticleForm({...articleForm, imageUrl: e.target.value})} style={{width:"100%", marginTop: 5}} />
+                      {articleForm.imageUrl && <img src={articleForm.imageUrl} style={{height: 80, marginTop: 5}} />}
                   </div>
 
-                  {/* Rest of the form */}
-                  {activeTab !== "gallery" && (
-                      <>
-                          {(activeTab === "news") && (
-                              <select className="input" value={articleForm.articleCategory} onChange={e => setArticleForm({...articleForm, articleCategory: e.target.value})} style={{width:"100%", marginBottom: 10}}>
-                                  {ARTICLE_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
-                              </select>
-                          )}
-                          {(activeTab === "news" || activeTab === "events") && (
-                              <label style={{display: "flex", alignItems: "center", gap: 10, marginBottom: 15, cursor: "pointer"}}>
-                                <input type="checkbox" checked={articleForm.isPremium} onChange={e => setArticleForm({...articleForm, isPremium: e.target.checked})} style={{width: 20, height: 20}} />
-                                <span>{articleForm.isPremium ? "🔒 Premium" : "🔓 Public"}</span>
-                              </label>
-                          )}
-                          <textarea className="textarea" placeholder="Full Text..." value={articleForm.text} onChange={e => setArticleForm({...articleForm, text: e.target.value})} style={{width:"100%", minHeight: 100}} />
-                          <input className="input" type="text" placeholder="Short Excerpt" value={articleForm.excerpt} onChange={e => setArticleForm({...articleForm, excerpt: e.target.value})} style={{width:"100%", marginTop: 10}} />
-                      </>
+                  {/* Rest of inputs */}
+                  <div style={{display:'flex', gap: 10}}>
+                      <input className="input" type="date" value={articleForm.date} onChange={e => setArticleForm({...articleForm, date: e.target.value})} style={{flex:1}} />
+                      {activeTab === "events" && <input className="input" type="time" value={articleForm.time} onChange={e => setArticleForm({...articleForm, time: e.target.value})} style={{flex:1}} />}
+                  </div>
+
+                  {activeTab === "news" && (
+                       <select className="input" value={articleForm.articleCategory} onChange={e => setArticleForm({...articleForm, articleCategory: e.target.value})} style={{width:"100%", marginTop: 10}}>
+                           {ARTICLE_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+                       </select>
                   )}
+
+                  <textarea className="textarea" placeholder="Full Text..." value={articleForm.text} onChange={e => setArticleForm({...articleForm, text: e.target.value})} style={{width:"100%", minHeight: 100, marginTop: 10}} />
                </>
             )}
+
             <div style={{ display: "flex", gap: 12, marginTop: 20 }}>
               <button type="submit" className="btn primary" style={{backgroundColor: "#e63946", color: "white"}} disabled={uploading}>
                   {editingId ? "Update" : "Save"}
@@ -256,7 +281,7 @@ export default function AdminPanel() {
               <button type="button" onClick={resetForms} className="btn ghost">Cancel</button>
             </div>
           </form>
-          {msg && <p style={{marginTop: 10, fontWeight: "bold"}}>{msg}</p>}
+          {msg && <p style={{marginTop: 10, color: msg.includes("Error") ? "red" : "green"}}>{msg}</p>}
         </div>
       )}
       
@@ -267,8 +292,8 @@ export default function AdminPanel() {
                 <div key={item.id} className="card inline" style={{ display: "flex", justifyContent: 'space-between', padding: 10, borderBottom: "1px solid #eee" }}>
                     <span><strong>{item.title || `Issue ${item.issueNumber}`}</strong></span>
                     <div>
-                        <button onClick={() => handleEdit(item)} style={{marginRight:10}}>✏️ Edit</button>
-                        <button onClick={() => handleDelete(item.id)} style={{color:"red"}}>🗑️ Delete</button>
+                        <button onClick={() => handleEdit(item)} style={{marginRight:10}}>✏️</button>
+                        <button onClick={() => handleDelete(item.id)} style={{color:"red"}}>🗑️</button>
                     </div>
                 </div>
             ))}

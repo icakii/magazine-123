@@ -1,4 +1,4 @@
-// ------------ server/index.js (С Leaderboard FIX) ------------
+// ------------ server/index.js (FULL VERSION) ------------
 
 require('dotenv').config(); 
 const express = require('express');
@@ -17,7 +17,7 @@ const JWT_SECRET = process.env.JWT_SECRET || 'super-secret-key-change-this';
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
 const APP_URL = process.env.APP_URL || 'http://localhost:5173'; 
 
-// --- SAFARI FIX 1: Trust Proxy ---
+// --- SAFARI FIX: Trust Proxy ---
 app.set('trust proxy', 1); 
 
 // Middleware
@@ -27,7 +27,7 @@ app.use(cors({
   credentials: true,
 }));
 
-// 3. AUTH & USER (EMAIL SETUP)
+// EMAIL CONFIG
 const transporter = nodemailer.createTransport({
   service: 'gmail',
   auth: { 
@@ -37,7 +37,7 @@ const transporter = nodemailer.createTransport({
 });
 
 // =========================================================================
-// 1. WEBHOOK ENDPOINT
+// 1. STRIPE WEBHOOK (Must be before body parsers)
 // =========================================================================
 app.post('/api/stripe-webhook', express.raw({ type: 'application/json' }), async (req, res) => {
   const sig = req.headers['stripe-signature'];
@@ -71,7 +71,7 @@ app.post('/api/stripe-webhook', express.raw({ type: 'application/json' }), async
 app.use(express.json()); 
 app.use(express.urlencoded({ extended: true }));
 
-// Auth Middleware (SAFARI FIX 2: Четене от Header)
+// --- AUTH MIDDLEWARE ---
 function authMiddleware(req, res, next) {
   let token = req.cookies['auth'];
   if (!token && req.headers.authorization) {
@@ -95,15 +95,17 @@ function adminMiddleware(req, res, next) {
 
 function signToken(payload) { return jwt.sign(payload, JWT_SECRET, { expiresIn: '7d' }); }
 
-// --- ROUTES ---
 
-// НОВ РУТ: LEADERBOARD (С FIX ЗА DISPLAY NAME)
+// =========================================================================
+// 3. API ROUTES
+// =========================================================================
+
+// --- LEADERBOARD ---
 app.get('/api/leaderboard', async (req, res) => {
-    const { game } = req.query; 
     try {
         const queryText = `
             SELECT
-                u.display_name AS "displayName", -- <-- FIX: Alias to camelCase
+                u.display_name AS "displayName",
                 u.email,
                 u.wordle_streak AS streak,
                 s.plan
@@ -120,13 +122,11 @@ app.get('/api/leaderboard', async (req, res) => {
     }
 });
 
-
-// Contact Form Endpoint
+// --- CONTACT FORM ---
 app.post("/api/contact", async (req, res) => {
   const { email, message } = req.body;
   if (!email || !message) return res.status(400).json({ error: "Email and message are required" });
   try {
-    console.log(`Attempting to send contact email from ${email}...`); 
     await transporter.sendMail({
       from: `"Contact Form" <${process.env.EMAIL_USER}>`, 
       replyTo: email, 
@@ -135,13 +135,13 @@ app.post("/api/contact", async (req, res) => {
       text: message,
       html: `<p><strong>From:</strong> ${email}</p><p>${message}</p>`
     });
-    console.log("Contact email sent successfully!"); 
     res.json({ ok: true, message: "Message sent!" });
   } catch (err) { console.error("CONTACT ERROR:", err); res.status(500).json({ error: "Failed to send message: " + err.message }); }
 });
 
+// --- ARTICLES (GET, POST, DELETE, PUT) ---
 
-// 1. ARTICLES
+// GET Articles
 app.get("/api/articles", async (req, res) => {
   try {
     const { category } = req.query;
@@ -150,27 +150,75 @@ app.get("/api/articles", async (req, res) => {
     if (category) { query += ' WHERE category = $1'; params.push(category); }
     query += ' ORDER BY date DESC';
     const { rows } = await db.query(query, params);
-    res.json(rows);
+    
+    // Mapping DB columns to frontend structure
+    const mappedRows = rows.map(row => ({
+        id: row.id,
+        title: row.title,
+        text: row.text,
+        author: row.author,
+        date: row.date,
+        imageUrl: row.image_url, // map snake_case to camelCase
+        articleCategory: row.category,
+        excerpt: row.excerpt,
+        isPremium: row.is_premium,
+        linkTo: row.link_to,
+        time: row.time
+    }));
+    res.json(mappedRows);
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+// CREATE Article
 app.post("/api/articles", adminMiddleware, async (req, res) => {
-  const { title, text, author, date, imageUrl, category, excerpt } = req.body;
+  const { title, text, author, date, imageUrl, category, excerpt, isPremium, linkTo, time } = req.body;
   try {
     const { rows } = await db.query(
-      'INSERT INTO articles (title, text, author, date, image_url, category, excerpt) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *',
-      [title, text, author || "MIREN", date, imageUrl, category, excerpt]
+      `INSERT INTO articles 
+       (title, text, author, date, image_url, category, excerpt, is_premium, link_to, time) 
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) 
+       RETURNING *`,
+      [title, text, author || "MIREN", date, imageUrl, category, excerpt, isPremium || false, linkTo, time]
     );
     res.json({ ok: true, article: rows[0] });
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { 
+      console.error(err);
+      res.status(500).json({ error: err.message }); 
+  }
 });
 
+// UPDATE Article (THE FIX)
+app.put('/api/articles/:id', adminMiddleware, async (req, res) => {
+  const { id } = req.params;
+  const { title, text, author, date, imageUrl, category, excerpt, isPremium, linkTo, time } = req.body;
+
+  try {
+    const result = await db.query(
+        `UPDATE articles 
+         SET title=$1, text=$2, author=$3, date=$4, image_url=$5, category=$6, excerpt=$7, is_premium=$8, link_to=$9, time=$10
+         WHERE id=$11 RETURNING *`,
+        [title, text, author, date, imageUrl, category, excerpt, isPremium || false, linkTo, time, id]
+    );
+
+    if (result.rows.length === 0) {
+        return res.status(404).json({ message: "Article not found" });
+    }
+    
+    console.log(`✅ Article ${id} updated in DB.`);
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error("Update Error:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// DELETE Article
 app.delete("/api/articles/:id", adminMiddleware, async (req, res) => {
   try { await db.query('DELETE FROM articles WHERE id = $1', [req.params.id]); res.json({ ok: true }); } 
   catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// 2. MAGAZINE SETTINGS
+// --- MAGAZINE SETTINGS ---
 app.get("/api/magazine/status", async (req, res) => {
   try {
     const { rows } = await db.query("SELECT value FROM settings WHERE key = 'magazine'");
@@ -188,7 +236,7 @@ app.post("/api/magazine/toggle", adminMiddleware, async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// 3. AUTH & USER
+// --- AUTH & USER ENDPOINTS ---
 
 app.post('/api/auth/reset-password-request', async (req, res) => {
   const { email } = req.body;
@@ -296,77 +344,77 @@ app.post('/api/auth/confirm', async (req, res) => {
 });
 
 app.post('/api/auth/login', async (req, res) => {
-  const { email, password } = req.body;
-  try {
-    const { rows } = await db.query('SELECT * FROM users WHERE email = $1', [email]);
-    const user = rows[0];
-    
-    if (!user) return res.status(404).json({ error: 'User not found (Wrong Email)' });
-    if (!(await bcrypt.compare(password, user.password_hash))) return res.status(401).json({ error: 'Wrong password' });
-    if (!user.is_confirmed) return res.status(403).json({ error: 'Please confirm email first.' });
-    if (user.two_fa_enabled) return res.json({ ok: true, requires2fa: true });
-    
-    const token = signToken({ email: user.email });
-    const isProduction = process.env.NODE_ENV === 'production';
-    res.cookie('auth', token, { httpOnly: true, sameSite: isProduction ? 'none' : 'lax', secure: isProduction });
-    
-    res.json({ ok: true, user: { email: user.email, displayName: user.display_name }, token });
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  const { email, password } = req.body;
+  try {
+    const { rows } = await db.query('SELECT * FROM users WHERE email = $1', [email]);
+    const user = rows[0];
+    
+    if (!user) return res.status(404).json({ error: 'User not found (Wrong Email)' });
+    if (!(await bcrypt.compare(password, user.password_hash))) return res.status(401).json({ error: 'Wrong password' });
+    if (!user.is_confirmed) return res.status(403).json({ error: 'Please confirm email first.' });
+    if (user.two_fa_enabled) return res.json({ ok: true, requires2fa: true });
+    
+    const token = signToken({ email: user.email });
+    const isProduction = process.env.NODE_ENV === 'production';
+    res.cookie('auth', token, { httpOnly: true, sameSite: isProduction ? 'none' : 'lax', secure: isProduction });
+    
+    res.json({ ok: true, user: { email: user.email, displayName: user.display_name }, token });
+  } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 app.post('/api/auth/logout', (req, res) => { 
-    const isProduction = process.env.NODE_ENV === 'production';
-    res.clearCookie('auth', { httpOnly: true, sameSite: isProduction ? 'none' : 'lax', secure: isProduction });
-    res.json({ ok: true }); 
+    const isProduction = process.env.NODE_ENV === 'production';
+    res.clearCookie('auth', { httpOnly: true, sameSite: isProduction ? 'none' : 'lax', secure: isProduction });
+    res.json({ ok: true }); 
 });
 
 app.get('/api/user/me', authMiddleware, async (req, res) => {
-  try {
-    const { rows } = await db.query('SELECT email, display_name, last_username_change, two_fa_enabled FROM users WHERE email = $1', [req.user.email]);
-    if (rows.length === 0) return res.status(404).json({ error: 'User not found' });
-    res.json({ email: rows[0].email, displayName: rows[0].display_name, lastUsernameChange: rows[0].last_username_change, twoFaEnabled: rows[0].two_fa_enabled });
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  try {
+    const { rows } = await db.query('SELECT email, display_name, last_username_change, two_fa_enabled FROM users WHERE email = $1', [req.user.email]);
+    if (rows.length === 0) return res.status(404).json({ error: 'User not found' });
+    res.json({ email: rows[0].email, displayName: rows[0].display_name, lastUsernameChange: rows[0].last_username_change, twoFaEnabled: rows[0].two_fa_enabled });
+  } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 app.get('/api/subscriptions', authMiddleware, async (req, res) => {
-  try {
-    const { rows } = await db.query('SELECT plan FROM subscriptions WHERE email = $1 ORDER BY id DESC LIMIT 1', [req.user.email]);
-    res.json(rows);
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  try {
+    const { rows } = await db.query('SELECT plan FROM subscriptions WHERE email = $1 ORDER BY id DESC LIMIT 1', [req.user.email]);
+    res.json(rows);
+  } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 app.post('/api/user/update-username', authMiddleware, async (req, res) => {
-    const { newUsername } = req.body;
-    const email = req.user.email;
-    try {
-        const subRes = await db.query('SELECT plan FROM subscriptions WHERE email = $1 ORDER BY id DESC LIMIT 1', [email]);
-        const plan = subRes.rows[0]?.plan?.toLowerCase() || 'free';
-        if (plan !== 'monthly' && plan !== 'yearly') return res.status(403).json({ error: "Premium only feature" });
-        await db.query('UPDATE users SET display_name = $1, last_username_change = NOW() WHERE email = $2', [newUsername, email]);
-        res.json({ ok: true });
-    } catch (err) { res.status(500).json({ error: err.message }); }
+    const { newUsername } = req.body;
+    const email = req.user.email;
+    try {
+        const subRes = await db.query('SELECT plan FROM subscriptions WHERE email = $1 ORDER BY id DESC LIMIT 1', [email]);
+        const plan = subRes.rows[0]?.plan?.toLowerCase() || 'free';
+        if (plan !== 'monthly' && plan !== 'yearly') return res.status(403).json({ error: "Premium only feature" });
+        await db.query('UPDATE users SET display_name = $1, last_username_change = NOW() WHERE email = $2', [newUsername, email]);
+        res.json({ ok: true });
+    } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 app.post('/api/user/streak', authMiddleware, async (req, res) => {
-    try { await db.query('UPDATE users SET wordle_streak = $1 WHERE email = $2', [req.body.streak, req.user.email]); res.json({ ok: true }); } 
-    catch (err) { res.status(500).json({ error: err.message }); }
+    try { await db.query('UPDATE users SET wordle_streak = $1 WHERE email = $2', [req.body.streak, req.user.email]); res.json({ ok: true }); } 
+    catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 app.post('/api/create-checkout-session', authMiddleware, async (req, res) => {
-  const { plan } = req.body;
-  const userEmail = req.user.email;
-  const frontendUrl = process.env.APP_URL;
-  let priceData;
-  if (plan === 'monthly') priceData = { product_data: { name: 'MIREN Monthly' }, unit_amount: 499, currency: 'eur', recurring: { interval: 'month' } };
-  else if (plan === 'yearly') priceData = { product_data: { name: 'MIREN Yearly' }, unit_amount: 4999, currency: 'eur', recurring: { interval: 'year' } };
-  else return res.status(400).json({ error: 'Invalid plan' });
-  try {
-    const session = await stripe.checkout.sessions.create({
-      payment_method_types: ['card'], mode: 'subscription', line_items: [{ price_data: priceData, quantity: 1 }],
-      customer_email: userEmail, success_url: `${frontendUrl}/profile?payment_success=true`, cancel_url: `${frontendUrl}/subscriptions`,
-    });
-    res.json({ url: session.url });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  const { plan } = req.body;
+  const userEmail = req.user.email;
+  const frontendUrl = process.env.APP_URL;
+  let priceData;
+  if (plan === 'monthly') priceData = { product_data: { name: 'MIREN Monthly' }, unit_amount: 499, currency: 'eur', recurring: { interval: 'month' } };
+  else if (plan === 'yearly') priceData = { product_data: { name: 'MIREN Yearly' }, unit_amount: 4999, currency: 'eur', recurring: { interval: 'year' } };
+  else return res.status(400).json({ error: 'Invalid plan' });
+  try {
+    const session = await stripe.checkout.sessions.create({
+      payment_method_types: ['card'], mode: 'subscription', line_items: [{ price_data: priceData, quantity: 1 }],
+      customer_email: userEmail, success_url: `${frontendUrl}/profile?payment_success=true`, cancel_url: `${frontendUrl}/subscriptions`,
+    });
+    res.json({ url: session.url });
+  } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
 app.listen(PORT, () => console.log(`API running on http://localhost:${PORT}`));

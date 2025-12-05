@@ -380,8 +380,8 @@ app.post("/api/contact", async (req, res) => {
 // НОВ РУТ: LEADERBOARD
 // =========================================================================
 app.get('/api/leaderboard', async (req, res) => {
-    // В момента game не се ползва, но е оставено за бъдещи игри
     const { game } = req.query; 
+    // Забележка: В момента не се ползва, но е оставено за бъдещи игри
 
     try {
         const queryText = `
@@ -392,13 +392,13 @@ app.get('/api/leaderboard', async (req, res) => {
                 s.plan
             FROM users u
             JOIN subscriptions s ON u.email = s.email
-            WHERE u.wordle_streak > 0  -- Показваме само потребители с активен streak
+            WHERE u.wordle_streak IS NOT NULL AND u.wordle_streak > 0  -- Показваме само потребители с активен streak
             ORDER BY u.wordle_streak DESC, u.created_at ASC
         `;
         
         const { rows } = await db.query(queryText);
 
-        // Връщаме данните
+        // Връщаме данните. Frontend-ът вече знае как да ги ползва.
         res.json(rows);
     } catch (err) {
         console.error("Leaderboard error:", err);

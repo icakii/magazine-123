@@ -1,4 +1,4 @@
-// ------------ server/index.js (ПЪЛЕН КОД + SAFARI FIX) ------------
+// ------------ server/index.js (С Leaderboard FIX) ------------
 
 require('dotenv').config(); 
 const express = require('express');
@@ -74,7 +74,6 @@ app.use(express.urlencoded({ extended: true }));
 // Auth Middleware (SAFARI FIX 2: Четене от Header)
 function authMiddleware(req, res, next) {
   let token = req.cookies['auth'];
-
   if (!token && req.headers.authorization) {
     const parts = req.headers.authorization.split(' ');
     if (parts.length === 2 && parts[0] === 'Bearer') {
@@ -98,13 +97,13 @@ function signToken(payload) { return jwt.sign(payload, JWT_SECRET, { expiresIn: 
 
 // --- ROUTES ---
 
-// НОВ РУТ: LEADERBOARD
+// НОВ РУТ: LEADERBOARD (С FIX ЗА DISPLAY NAME)
 app.get('/api/leaderboard', async (req, res) => {
     const { game } = req.query; 
     try {
         const queryText = `
             SELECT
-                u.display_name,
+                u.display_name AS "displayName", -- <-- FIX: Alias to camelCase
                 u.email,
                 u.wordle_streak AS streak,
                 s.plan
@@ -368,52 +367,6 @@ app.post('/api/create-checkout-session', authMiddleware, async (req, res) => {
     });
     res.json({ url: session.url });
   } catch (e) { res.status(500).json({ error: e.message }); }
-});
-
-app.post("/api/contact", async (req, res) => {
-  const { email, message } = req.body;
-  
-  if (!email || !message) return res.status(400).json({ error: "Email and message are required" });
-
-  try {
-    console.log(`Attempting to send contact email from ${email}...`);
-    await transporter.sendMail({
-      from: `"Contact Form" <${process.env.EMAIL_USER}>`, 
-      replyTo: email,
-      to: process.env.EMAIL_USER,
-      subject: `New Message from ${email}`,
-      text: message,
-      html: `<p><strong>From:</strong> ${email}</p><p>${message}</p>`
-    });
-    console.log("Contact email sent successfully!");
-    res.json({ ok: true, message: "Message sent!" });
-
-  } catch (err) {
-    console.error("CONTACT ERROR:", err);
-    res.status(500).json({ error: "Failed to send message: " + err.message });
-  }
-});
-
-app.get('/api/leaderboard', async (req, res) => {
-    const { game } = req.query; 
-    try {
-        const queryText = `
-            SELECT
-                u.display_name,
-                u.email,
-                u.wordle_streak AS streak,
-                s.plan
-            FROM users u
-            JOIN subscriptions s ON u.email = s.email
-            WHERE u.wordle_streak IS NOT NULL AND u.wordle_streak > 0
-            ORDER BY u.wordle_streak DESC, u.created_at ASC
-        `;
-        const { rows } = await db.query(queryText);
-        res.json(rows);
-    } catch (err) {
-        console.error("Leaderboard error:", err);
-        res.status(500).json({ error: "Failed to load leaderboard data" });
-    }
 });
 
 app.listen(PORT, () => console.log(`API running on http://localhost:${PORT}`));

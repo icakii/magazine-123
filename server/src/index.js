@@ -372,4 +372,38 @@ app.post("/api/contact", async (req, res) => {
   }
 });
 
+// server/index.js
+
+// ... (при другите ROUTES) ...
+
+// =========================================================================
+// НОВ РУТ: LEADERBOARD
+// =========================================================================
+app.get('/api/leaderboard', async (req, res) => {
+    // В момента game не се ползва, но е оставено за бъдещи игри
+    const { game } = req.query; 
+
+    try {
+        const queryText = `
+            SELECT
+                u.display_name,
+                u.email,
+                u.wordle_streak AS streak,
+                s.plan
+            FROM users u
+            JOIN subscriptions s ON u.email = s.email
+            WHERE u.wordle_streak > 0  -- Показваме само потребители с активен streak
+            ORDER BY u.wordle_streak DESC, u.created_at ASC
+        `;
+        
+        const { rows } = await db.query(queryText);
+
+        // Връщаме данните
+        res.json(rows);
+    } catch (err) {
+        console.error("Leaderboard error:", err);
+        res.status(500).json({ error: "Failed to load leaderboard data" });
+    }
+});
+
 app.listen(PORT, () => console.log(`API running on http://localhost:${PORT}`));

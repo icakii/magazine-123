@@ -1,96 +1,102 @@
+"use client"
 import { useState, useEffect } from "react"
+import { api } from "../lib/api"
 
-export default function NewsletterManager({ user, title = "🎁 Get free monthly archives!", text = "Subscribe now to stay updated." }) {
-  const [showCookieBanner, setShowCookieBanner] = useState(false)
-  const [showPopup, setShowPopup] = useState(false)
-  const [email, setEmail] = useState(user?.email || "")
-  const [isSubscribed, setIsSubscribed] = useState(false)
+export default function NewsletterManager({ user, title, text, type = "static" }) {
+  const [email, setEmail] = useState("")
+  const [subscribed, setSubscribed] = useState(false)
+  const [isOpen, setIsOpen] = useState(false)
 
+  // Ако е popup, показваме го след 3 секунди
   useEffect(() => {
-    // 1. Proverka za Cookies
-    const cookiesAccepted = localStorage.getItem("cookies_accepted")
-    if (!cookiesAccepted) {
-      setShowCookieBanner(true)
-    }
-
-    // 2. Proverka dali veche e aboniran
-    const localSub = localStorage.getItem("newsletter_subscribed")
-    if (localSub) setIsSubscribed(true)
-
-    // 3. Timer za Pop-up (samo ako ne e aboniran)
-    if (!localSub && cookiesAccepted) {
+    if (type === "popup") {
       const timer = setTimeout(() => {
-        setShowPopup(true)
-      }, 30000) // 30 sekundi
+        const alreadySubscribed = localStorage.getItem("newsletter_closed")
+        if (!alreadySubscribed) setIsOpen(true)
+      }, 3000)
       return () => clearTimeout(timer)
     }
-  }, [showCookieBanner]) 
+  }, [type])
 
-  const handleCookieAccept = () => {
-    localStorage.setItem("cookies_accepted", "true")
-    setShowCookieBanner(false)
-  }
-
-  const handleSubscribe = (e) => {
+  const handleSubscribe = async (e) => {
     e.preventDefault()
-    console.log("Subscribed:", email)
-    
-    // Zapazvame v browsera
-    localStorage.setItem("newsletter_subscribed", "true")
-    setIsSubscribed(true)
-    setShowPopup(false)
-    alert("Successfully subscribed!")
+    if (!email) return
+    try {
+      // Тук пращаме към API-то (или мокнат backend)
+      await api.post("/newsletter/subscribe", { email })
+      setSubscribed(true)
+      localStorage.setItem("newsletter_closed", "true")
+      if (type === "popup") setTimeout(() => setIsOpen(false), 2000)
+    } catch (err) {
+      console.error("Error subscribing", err)
+      // Fallback за демо цели (ако нямаш реален endpoint)
+      const existing = JSON.parse(localStorage.getItem("newsletter_emails") || "[]")
+      if (!existing.includes(email)) {
+         localStorage.setItem("newsletter_emails", JSON.stringify([...existing, email]))
+      }
+      setSubscribed(true)
+      localStorage.setItem("newsletter_closed", "true")
+      if (type === "popup") setTimeout(() => setIsOpen(false), 2000)
+    }
   }
 
-  return (
-    <>
-      {/* BANNER (Lenta nai-gore) */}
-      {!isSubscribed && (
-         <div style={{ width: "100%", backgroundColor: "#e63946", color: "white", padding: "8px", display: "flex", flexWrap: "wrap", justifyContent: "center", alignItems: "center", gap: "10px", fontSize: "0.9rem" }}>
-           <span style={{ fontWeight: "bold" }}>{title}</span>
-           <form onSubmit={handleSubscribe} style={{ display: "flex", gap: "5px" }}>
+  // За Static версията (на Home page)
+  if (type === "static") {
+    return (
+       <div style={{ textAlign: "center", padding: "40px 20px", background: "#f4f4f4", borderRadius: 8, marginBottom: 40 }}>
+        <h3>{title}</h3>
+        <p className="text-muted" style={{ marginBottom: 20 }}>{text}</p>
+        {subscribed ? (
+          <p style={{ color: "green", fontWeight: "bold" }}>You have successfully subscribed! ✅</p>
+        ) : (
+          <form onSubmit={handleSubscribe} style={{ display: "flex", justifyContent: "center", gap: 10, maxWidth: 500, margin: "0 auto" }}>
              <input 
-               type="email" 
-               placeholder="Email..." 
-               style={{ padding: "4px 8px", borderRadius: "4px", border: "none", color: "black", width: "150px" }} 
-               value={email} 
-               onChange={(e) => setEmail(e.target.value)} 
-               required 
-             />
-             <button type="submit" style={{ background: "black", color: "white", border: "none", padding: "4px 12px", borderRadius: "4px", cursor: "pointer", fontWeight: "bold" }}>Join</button>
-           </form>
-         </div>
-      )}
-
-      {/* POP-UP PROZOREC */}
-      {showPopup && !isSubscribed && (
-        <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.6)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
-          <div style={{ background: "white", padding: "30px", borderRadius: "12px", maxWidth: "400px", textAlign: "center", boxShadow: "0 10px 25px rgba(0,0,0,0.2)", position: "relative" }}>
-            <button onClick={() => setShowPopup(false)} style={{ position: "absolute", top: "10px", right: "15px", background: "none", border: "none", fontSize: "1.5rem", cursor: "pointer" }}>&times;</button>
-            <h2 style={{ marginBottom: "10px", color: "#1d3557" }}>Join the Club</h2>
-            <p style={{ color: "#666", marginBottom: "20px" }}>{text}</p>
-            <form onSubmit={handleSubscribe} style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-              <input 
                 type="email" 
                 placeholder="Your best email" 
-                style={{ padding: "10px", border: "1px solid #ddd", borderRadius: "6px" }} 
-                required 
                 value={email} 
-                onChange={(e) => setEmail(e.target.value)} 
-              />
-              <button type="submit" style={{ backgroundColor: "#e63946", color: "white", padding: "10px", borderRadius: "6px", border: "none", fontWeight: "bold", cursor: "pointer" }}>Subscribe</button>
-            </form>
-          </div>
-        </div>
-      )}
+                onChange={e => setEmail(e.target.value)} 
+                style={{ flex: 1, padding: 10, borderRadius: 4, border: "1px solid #ccc" }} 
+                required
+             />
+             <button className="btn primary" style={{ backgroundColor: "#e63946", color: "white" }}>Subscribe</button>
+          </form>
+        )}
+      </div>
+    )
+  }
 
-      {/* COOKIE BANNER (Lenta nai-dolu) */}
-      {showCookieBanner && (
-        <div style={{ position: "fixed", bottom: 0, left: 0, width: "100%", background: "#1d3557", color: "white", padding: "15px", display: "flex", justifyContent: "space-between", alignItems: "center", zIndex: 999 }}>
-          <div style={{ fontSize: "0.9rem" }}>We use cookies to improve your experience. <span style={{ textDecoration: "underline", cursor: "pointer" }}>Privacy Policy</span>.</div>
-          <button onClick={handleCookieAccept} style={{ backgroundColor: "#e63946", color: "white", padding: "6px 16px", border: "none", borderRadius: "4px", cursor: "pointer" }}>Accept</button>
+  // За Popup версията
+  if (type === "popup" && isOpen) {
+    return (
+      <div className="modal-backdrop">
+        <div className="modal-content" style={{ textAlign: "center", maxWidth: 450 }}>
+           <button className="modal-close" onClick={() => { setIsOpen(false); localStorage.setItem("newsletter_closed", "true"); }}>×</button>
+           <h2 style={{ color: "#1a2b49", marginBottom: 10 }}>Join the Club</h2>
+           <p className="text-muted" style={{ marginBottom: 20 }}>
+             Budi v krak s nai-novoto v sveta na MIREN. Poluchavai izvestiq za novi statii i subitiq.
+           </p>
+           {subscribed ? (
+             <p style={{ color: "green", fontWeight: "bold" }}>Thank you for subscribing!</p>
+           ) : (
+             <form onSubmit={handleSubscribe}>
+               <input 
+                  type="email" 
+                  className="input"
+                  placeholder="Your best email" 
+                  value={email} 
+                  onChange={e => setEmail(e.target.value)} 
+                  style={{ width: "100%", marginBottom: 15, padding: 10 }} 
+                  required
+               />
+               <button className="btn primary" style={{ width: "100%", backgroundColor: "#e63946", color: "white" }}>
+                 Subscribe
+               </button>
+             </form>
+           )}
         </div>
-      )}
-    </>
-  )
+      </div>
+    )
+  }
+
+  return null
 }

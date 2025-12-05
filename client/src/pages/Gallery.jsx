@@ -1,63 +1,36 @@
 "use client"
-
 import { useState, useEffect } from "react"
 import { api } from "../lib/api"
-import { t } from "../lib/i18n"
+
+const CATEGORIES = ["All", "Photography", "Art", "Travel", "Nature"]
 
 export default function Gallery() {
   const [articles, setArticles] = useState([])
-  const [loading, setLoading] = useState(true)
+  const [filter, setFilter] = useState("All")
 
   useEffect(() => {
-    loadArticles()
+    api.get("/articles?category=gallery").then(res => setArticles(res.data || [])).catch(()=>{})
   }, [])
 
-  async function loadArticles() {
-    try {
-      const res = await api.get("/articles?category=gallery")
-      setArticles(res.data || [])
-    } catch (err) {
-      console.error("Error loading gallery:", err)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  if (loading)
-    return (
-      <div className="page">
-        <p>{t("loading")}</p>
-      </div>
-    )
+  const filtered = filter === "All" ? articles : articles.filter(a => a.articleCategory === filter)
 
   return (
     <div className="page hero-bg">
-      <h2 className="headline">{t("gallery")}</h2>
-      <div className="grid">
-        {articles.length === 0 ? (
-          <p className="text-muted">No gallery items yet</p>
-        ) : (
-          articles.map((article) => (
-            <div key={article.id} className="col-4">
-              <div className="gallery-item">
-                {article.imageUrl && (
-                  <img
-                    src={article.imageUrl || "/placeholder.svg"}
-                    alt={article.title}
-                    style={{ width: "100%", height: 200, objectFit: "cover", borderRadius: 8, marginBottom: 12 }}
-                  />
-                )}
-                <h4 style={{ marginBottom: 4 }}>{article.title}</h4>
-                <p style={{ fontSize: "0.9rem", color: "var(--text-muted)", marginBottom: 8 }}>
-                  {article.date && new Date(article.date).toLocaleDateString()}
-                </p>
-                <p style={{ fontSize: "0.95rem", marginBottom: 0 }}>
-                  {article.excerpt || article.text.substring(0, 80)}...
-                </p>
-              </div>
-            </div>
-          ))
-        )}
+      <h2 className="headline">Gallery</h2>
+      <div style={{marginBottom: 20}}>
+         {CATEGORIES.map(c => <button key={c} onClick={()=>setFilter(c)} className={`btn ${filter===c?"primary":"ghost"}`} style={{marginRight: 10}}>{c}</button>)}
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "30px" }}>
+        {filtered.map((item) => (
+           <div key={item.id} className="gallery-item" style={{ position: "relative" }}>
+               <img src={item.imageUrl} style={{ width: "100%", height: 400, objectFit: "cover", borderRadius: 8 }} />
+               <div style={{ position: "absolute", bottom: 0, left: 0, width: "100%", background: "rgba(0,0,0,0.6)", color: "white", padding: "10px", borderBottomLeftRadius: 8, borderBottomRightRadius: 8 }}>
+                   <p style={{ margin: 0, fontWeight: "bold" }}>{item.author}</p>
+                   <p style={{ margin: 0, fontSize: "0.8rem" }}>{new Date(item.date).toLocaleDateString()}</p>
+               </div>
+           </div>
+        ))}
       </div>
     </div>
   )

@@ -4,12 +4,11 @@ import { useEffect, useState } from "react"
 import { api } from "../lib/api"
 import { useAuth } from "../hooks/useAuth"
 
-const CATEGORIES = ["All", "Music", "Art", "Business", "Culture"]
+// Изтрихме масива с категории, тъй като не искаш филтър тук
 
 export default function Events() {
   const { user, hasSubscription } = useAuth()
   const [articles, setArticles] = useState([])
-  const [filter, setFilter] = useState("All")
   const [selectedArticle, setSelectedArticle] = useState(null)
 
   useEffect(() => {
@@ -20,23 +19,17 @@ export default function Events() {
 
   const handleReminder = (title) => {
      if(!user) return alert("Please login to set reminders.")
-     // API Call simulation
      alert(`✅ Reminder set! We will email you 1 day before "${title}".`)
   }
-
-  const filtered = filter === "All" ? articles : articles.filter(a => a.articleCategory === filter)
 
   return (
     <div className="page">
       <h2 className="headline">Upcoming Events</h2>
       
-      {/* Filter */}
-      <div style={{ marginBottom: 20 }}>
-         {CATEGORIES.map(c => <button key={c} onClick={()=>setFilter(c)} className={`btn ${filter===c?"primary":"ghost"}`} style={{marginRight: 10}}>{c}</button>)}
-      </div>
+      {/* Тук вече няма филтри */}
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px" }}>
-        {filtered.map((article) => {
+        {articles.map((article) => {
            const isLocked = article.isPremium && !hasSubscription;
 
            return (
@@ -64,10 +57,10 @@ export default function Events() {
         })}
       </div>
 
-      {/* Modal Logic (same as others) */}
       {selectedArticle && (
         <div className="modal-backdrop" onClick={() => setSelectedArticle(null)}>
-           <div className="modal-content">
+           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+              <button className="modal-close" onClick={() => setSelectedArticle(null)}>×</button>
               <h2>{selectedArticle.title}</h2>
               <p>{selectedArticle.text}</p>
            </div>

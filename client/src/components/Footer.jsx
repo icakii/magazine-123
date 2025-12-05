@@ -20,9 +20,9 @@ export default function Footer() {
     {
       name: "Threads",
       url: "https://threads.net/@miren_magazine",
-      // НОВИЯТ, ПО-ЧИСТ ПЪТ ЗА 24x24 (изисква fillRule="evenodd")
-      path: "M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm0 21.818c-4.624 0-8.384-3.76-8.384-8.384S7.376 3.616 12 3.616s8.384 3.76 8.384 8.384-3.76 8.384-8.384 8.384zm1.164-4.077v-1.514c-.677.7-1.59 1.135-2.574 1.135-2.21 0-3.964-1.754-3.964-3.928 0-2.174 1.754-3.928 3.964-3.928 1.246 0 2.303.63 2.916 1.57.105-1.242 1.164-2.192 2.443-2.192 1.36 0 2.46 1.1 2.46 2.46 0 1.862-1.17 3.406-2.844 4.09-.6.245-1.24.35-1.883.327v-1.404c.38.01.76-.04 1.118-.186 1.055-.43 1.75-1.46 1.75-2.65 0-.58-.472-1.05-1.05-1.05-.56 0-1.01.44-1.048 1.02v.127c-.03.4-.18.76-.4 1.07l-.01.016c-.55-1.01-1.617-1.675-2.825-1.675-1.77 0-3.2 1.43-3.2 3.2s1.43 3.2 3.2 3.2c1.1 0 2.08-.59 2.62-1.47v1.47h.55v.31c0 2.13-3.1 2.9-5.13 1.75-1.33-.75-2.15-2.16-2.15-3.7 0-2.36 1.92-4.28 4.28-4.28 1.6 0 3.05.88 3.78 2.29l1.24-.77c-1.01-1.96-3.03-3.18-5.26-3.18-3.3 0-5.98 2.68-5.98 5.98s2.68 5.98 5.98 5.98c2.16 0 4.12-1.08 5.19-2.76l-1.23-.79z",
-      fillRule: "evenodd"
+      // МНОГО ВАЖНО: Премахваме сложния път и го заместваме с текст
+      path: null, 
+      textIcon: "@" 
     },
     {
       name: "Pinterest",
@@ -48,15 +48,21 @@ export default function Footer() {
             className="social-btn"
             aria-label={social.name}
           >
-            <svg 
-              viewBox="0 0 24 24" 
-              width="24" 
-              height="24" 
-              fill="currentColor"
-              className="social-icon"
-            >
-              <path d={social.path} fillRule={social.fillRule || "nonzero"} />
-            </svg>
+            {social.textIcon ? ( // <-- Проверка за текст икона
+                <span style={{ fontSize: '1.5rem', lineHeight: '1', fontWeight: '900', color: 'currentColor' }}>
+                    {social.textIcon}
+                </span>
+            ) : (
+                <svg 
+                  viewBox="0 0 24 24" 
+                  width="24" 
+                  height="24" 
+                  fill="currentColor"
+                  className="social-icon"
+                >
+                  <path d={social.path} fillRule={social.fillRule || "nonzero"} />
+                </svg>
+            )}
           </a>
         ))}
       </div>

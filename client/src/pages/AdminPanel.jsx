@@ -4,8 +4,8 @@ import { useState, useEffect } from "react"
 import { api } from "../lib/api"
 import { useAuth } from "../hooks/useAuth"
 
-const CLOUDINARY_URL = "https://api.cloudinary.com/v1_1/YOUR_CLOUD_NAME/image/upload";
-const UPLOAD_PRESET = "YOUR_UPLOAD_PRESET"; 
+const CLOUDINARY_URL = "https://api.cloudinary.com/v1_1/dwezdx5zn/image/upload";
+const UPLOAD_PRESET = "ml_default"; 
 
 const ADMIN_EMAILS = ["icaki06@gmail.com", "icaki2k@gmail.com", "mirenmagazine@gmail.com"]
 

@@ -3,20 +3,11 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { api } from "../lib/api"
-import { useAuth } from "../hooks/useAuth" // <-- ВАЖНО: Добавяме useAuth за уникален streak
-
-// ... (Mock API остава за дебъгване, ако не ползваш истинското API) ...
-const api = {
-  post: async (url, data) => {
-    console.log("API POST:", url, data)
-    return { data: { success: true } }
-  }
-}
-// ---------------------------------------
+import { api } from "../lib/api" // <-- ИЗПОЛЗВАМЕ ИСТИНСКИЯ API
+import { useAuth } from "../hooks/useAuth" 
 
 export default function Games() {
-  const { user } = useAuth() // <-- Взимаме потребителя за уникален ключ
+  const { user } = useAuth()
   const [word, setWord] = useState("")
   const [guesses, setGuesses] = useState([])
   const [currentGuess, setCurrentGuess] = useState("")
@@ -29,11 +20,12 @@ export default function Games() {
   const [validWords, setValidWords] = useState([]) 
   const [loading, setLoading] = useState(true)
 
-  // Генерираме уникален ключ за LocalStorage (за да не се бъркат потребителите)
+  // Генерираме уникален ключ за LocalStorage
   const getStorageKey = (suffix = '') => `gameData_${user?.email || 'guest'}${suffix}`;
 
   useEffect(() => {
-    if (loading || !user) return; // Чакаме потребителя да се зареди
+    // Чакаме потребителя да се зареди
+    if (loading || !user) return; 
 
     async function initGame() {
       try {
@@ -56,20 +48,19 @@ export default function Games() {
             const lastWinDate = new Date(lastWinDateStr);
             const todayDate = new Date();
             const timeDiff = todayDate.getTime() - lastWinDate.getTime();
-            const diffDays = Math.floor(timeDiff / (1000 * 3600 * 24)); // Разлика в дни
+            const diffDays = Math.floor(timeDiff / (1000 * 3600 * 24)); 
 
-            // Ако разликата е по-голяма от 1 ден (т.е. пропуснал е вчера)
-            if (diffDays > 1) { 
+            if (diffDays > 1) { // Ако разликата е по-голяма от 1 ден (пропуснат е вчера)
                 currentStreak = 0; 
                 localStorage.setItem(getStorageKey('_streak'), 0);
-                api.post('/user/streak', { streak: 0 }); // Обновяваме DB
+                // Използваме реалния API
+                api.post('/user/streak', { streak: 0 }); 
             }
         }
         // ------------------------------------------------------------
 
 
         if (parsedData.date === today && parsedData.word) {
-          // Зареждане на съществуващата игра
           setWord(parsedData.word)
           setGuesses(parsedData.guesses || [])
           setWon(parsedData.won || false)
@@ -80,7 +71,6 @@ export default function Games() {
           if(parsedData.gameOver) setMessage(`Game over! Word: ${parsedData.word}`)
           if(parsedData.won) setMessage("Already solved today!")
         } else {
-            // Нова игра
             const dateStr = new Date().toISOString().slice(0, 10);
             let seed = 0;
             for (let i = 0; i < dateStr.length; i++) seed += dateStr.charCodeAt(i);
@@ -98,31 +88,24 @@ export default function Games() {
       }
     }
     
-    if (user) {
-        initGame();
-    } else {
-        // Ако не е логнат, показваме, че е protected (AuthGuard го прави, но за консистентност)
-        setLoading(false);
-    }
-  }, [user]) // Рестартира играта при смяна на потребител
+    if (user) initGame();
+    else setLoading(false);
+
+  }, [user])
 
   useEffect(() => {
     if (word && user) {
       const today = new Date().toDateString()
       const gameData = { date: today, word, guesses, won, gameOver, usedLetters: Array.from(usedLetters), streak }
-      // Запазваме играта уникално
       localStorage.setItem(getStorageKey(), JSON.stringify(gameData))
     }
   }, [word, guesses, won, gameOver, usedLetters, streak, user])
 
   useEffect(() => {
       if (won && user) {
-          // Запазваме новата серия
           localStorage.setItem(getStorageKey('_streak'), streak);
-          // Запазваме датата на последната победа
           localStorage.setItem(getStorageKey('_lastWinDate'), new Date().toDateString()); 
 
-          // Обновяваме DB
           api.post('/user/streak', { streak })
              .then(() => console.log('Streak synced with DB!'))
              .catch(err => console.error('Failed to sync streak:', err))
@@ -134,7 +117,6 @@ export default function Games() {
     const key = e.key.toUpperCase()
 
     if (key === "ENTER") {
-      // ... (Rest of the logic is the same)
       if (currentGuess.length !== 5) { setMessage("Word must be 5 letters"); return }
       if (!validWords.includes(currentGuess)) { setMessage("Not a valid word"); return }
 
@@ -154,8 +136,8 @@ export default function Games() {
       if (newGuesses.length >= 5) {
         setGameOver(true)
         setStreak(0)
-        localStorage.setItem(getStorageKey('_streak'), 0) // Нулираме streak-а
-        api.post('/user/streak', { streak: 0 }); // Нулираме DB
+        localStorage.setItem(getStorageKey('_streak'), 0)
+        api.post('/user/streak', { streak: 0 }); 
         setMessage(`Game over! The word was: ${word}`)
         return
       }
@@ -170,12 +152,7 @@ export default function Games() {
     }
   }
   
-  // ... (Останалите функции за кликване остават същите) ...
-
-  function handleKeyClick(letter) {
-    if (!gameOver && currentGuess.length < 5) setCurrentGuess(prev => prev + letter)
-  }
-
+  function handleKeyClick(letter) { if (!gameOver && currentGuess.length < 5) setCurrentGuess(prev => prev + letter) }
   function handleBackspace() { if(!gameOver) setCurrentGuess(prev => prev.slice(0, -1)); setMessage("") }
   function handleSubmit() { if(!gameOver) handleKeyDown({ key: "Enter" }) }
 
@@ -202,7 +179,6 @@ export default function Games() {
     <div className="page" style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
       <h2 className="headline">Daily Word Game</h2>
       
-      {/* --- ARCHIVE BUTTON (Izpolzvame 'a' tag za da izbegnem greshki s Router-a pri preview) --- */}
       <a 
         href="/word-game-archive" 
         className="btn ghost" 
@@ -219,7 +195,6 @@ export default function Games() {
       >
         📜 Play Past Games (Archive)
       </a>
-      {/* -------------------------------------- */}
 
       <p className="subhead">Attempts remaining: {attempts}</p>
 

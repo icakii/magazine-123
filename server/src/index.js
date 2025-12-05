@@ -27,6 +27,15 @@ app.use(cors({
   credentials: true,
 }));
 
+// 3. AUTH & USER (EMAIL SETUP)
+const transporter = nodemailer.createTransport({
+  service: 'gmail',
+  auth: { 
+    user: process.env.EMAIL_USER, 
+    pass: process.env.EMAIL_PASS  
+  } 
+});
+
 // =========================================================================
 // 1. WEBHOOK ENDPOINT
 // =========================================================================
@@ -66,7 +75,6 @@ app.use(express.urlencoded({ extended: true }));
 function authMiddleware(req, res, next) {
   let token = req.cookies['auth'];
 
-  // Ако няма бисквитка, търсим в Header-а
   if (!token && req.headers.authorization) {
     const parts = req.headers.authorization.split(' ');
     if (parts.length === 2 && parts[0] === 'Bearer') {
@@ -87,12 +95,52 @@ function adminMiddleware(req, res, next) {
 }
 
 function signToken(payload) { return jwt.sign(payload, JWT_SECRET, { expiresIn: '7d' }); }
-const transporter = nodemailer.createTransport({
-  service: 'gmail',
-  auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS } 
-});
 
 // --- ROUTES ---
+
+// НОВ РУТ: LEADERBOARD
+app.get('/api/leaderboard', async (req, res) => {
+    const { game } = req.query; 
+    try {
+        const queryText = `
+            SELECT
+                u.display_name,
+                u.email,
+                u.wordle_streak AS streak,
+                s.plan
+            FROM users u
+            JOIN subscriptions s ON u.email = s.email
+            WHERE u.wordle_streak IS NOT NULL AND u.wordle_streak > 0 
+            ORDER BY u.wordle_streak DESC, u.created_at ASC
+        `;
+        const { rows } = await db.query(queryText);
+        res.json(rows);
+    } catch (err) {
+        console.error("Leaderboard error:", err);
+        res.status(500).json({ error: "Failed to load leaderboard data" });
+    }
+});
+
+
+// Contact Form Endpoint
+app.post("/api/contact", async (req, res) => {
+  const { email, message } = req.body;
+  if (!email || !message) return res.status(400).json({ error: "Email and message are required" });
+  try {
+    console.log(`Attempting to send contact email from ${email}...`); 
+    await transporter.sendMail({
+      from: `"Contact Form" <${process.env.EMAIL_USER}>`, 
+      replyTo: email, 
+      to: process.env.EMAIL_USER, 
+      subject: `New Message from ${email}`,
+      text: message,
+      html: `<p><strong>From:</strong> ${email}</p><p>${message}</p>`
+    });
+    console.log("Contact email sent successfully!"); 
+    res.json({ ok: true, message: "Message sent!" });
+  } catch (err) { console.error("CONTACT ERROR:", err); res.status(500).json({ error: "Failed to send message: " + err.message }); }
+});
+
 
 // 1. ARTICLES
 app.get("/api/articles", async (req, res) => {
@@ -197,8 +245,6 @@ app.post('/api/auth/verify-2fa', async (req, res) => {
     const authToken = signToken({ email: user.email });
     const isProduction = process.env.NODE_ENV === 'production';
     res.cookie('auth', authToken, { httpOnly: true, sameSite: isProduction ? 'none' : 'lax', secure: isProduction });
-    
-    // SAFARI FIX: Връщаме токена
     res.json({ ok: true, message: "Verification successful!", token: authToken });
   } catch (err) { console.error("Verify 2FA error:", err); res.status(500).json({ error: "Error verifying" }); }
 });
@@ -213,7 +259,7 @@ app.get("/api/auth/check", async (req, res) => {
     else { return res.json({ taken: false }); }
     const { rows } = await db.query(query, params);
     res.json({ taken: rows.length > 0 });
-  } catch (err) { res.json({ taken: false }); }
+  } catch (err) { console.error("Check error:", err.message); res.json({ taken: false }); }
 });
 
 app.post("/api/auth/register", async (req, res) => {
@@ -232,7 +278,7 @@ app.post("/api/auth/register", async (req, res) => {
     console.log("Sending email to:", email); 
     await transporter.sendMail({ from: '"MIREN" <mirenmagazine@gmail.com>', to: email, subject: 'Confirm your account', html: `<p>Welcome!</p><p>Click below to confirm:</p><a href="${confirmationUrl}" style="padding: 10px; background: #e63946; color: white;">Confirm Email</a>` });
     res.status(201).json({ ok: true, message: "Registration successful! Check email." });
-  } catch (err) { console.error(err); res.status(500).json({ error: "Registration failed" }); }
+  } catch (err) { console.error("Register Error:", err); res.status(500).json({ error: "Registration failed" }); }
 });
 
 app.post('/api/auth/confirm', async (req, res) => {
@@ -246,164 +292,128 @@ app.post('/api/auth/confirm', async (req, res) => {
     const authToken = signToken({ email: user.email });
     const isProduction = process.env.NODE_ENV === 'production';
     res.cookie('auth', authToken, { httpOnly: true, sameSite: isProduction ? 'none' : 'lax', secure: isProduction });
-    
-    // SAFARI FIX: Връщаме токена
     res.json({ ok: true, message: "Confirmed!", token: authToken });
   } catch (err) { console.error(err); res.status(500).json({ error: "Confirm error" }); }
 });
 
-// Login (Updated for specific errors)
 app.post('/api/auth/login', async (req, res) => {
-  const { email, password } = req.body;
-  try {
-    const { rows } = await db.query('SELECT * FROM users WHERE email = $1', [email]);
-    const user = rows[0];
-    
-    // 1. Ако няма такъв потребител
-    if (!user) {
-        return res.status(404).json({ error: 'User not found (Wrong Email)' });
-    }
-
-    // 2. Ако паролата е грешна
-    if (!(await bcrypt.compare(password, user.password_hash))) {
-        return res.status(401).json({ error: 'Wrong password' });
-    }
-    
-    // 3. Ако не е потвърден
-    if (!user.is_confirmed) {
-        return res.status(403).json({ error: 'Please confirm your email first.' });
-    }
-
-    // 4. 2FA Проверка
-    if (user.two_fa_enabled) {
-        return res.json({ ok: true, requires2fa: true });
-    }
-    
-    const token = signToken({ email: user.email });
-    const isProduction = process.env.NODE_ENV === 'production';
-    res.cookie('auth', token, { httpOnly: true, sameSite: isProduction ? 'none' : 'lax', secure: isProduction });
-    
-    res.json({ ok: true, user: { email: user.email, displayName: user.display_name }, token });
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  const { email, password } = req.body;
+  try {
+    const { rows } = await db.query('SELECT * FROM users WHERE email = $1', [email]);
+    const user = rows[0];
+    
+    if (!user) return res.status(404).json({ error: 'User not found (Wrong Email)' });
+    if (!(await bcrypt.compare(password, user.password_hash))) return res.status(401).json({ error: 'Wrong password' });
+    if (!user.is_confirmed) return res.status(403).json({ error: 'Please confirm email first.' });
+    if (user.two_fa_enabled) return res.json({ ok: true, requires2fa: true });
+    
+    const token = signToken({ email: user.email });
+    const isProduction = process.env.NODE_ENV === 'production';
+    res.cookie('auth', token, { httpOnly: true, sameSite: isProduction ? 'none' : 'lax', secure: isProduction });
+    
+    res.json({ ok: true, user: { email: user.email, displayName: user.display_name }, token });
+  } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 app.post('/api/auth/logout', (req, res) => { 
-    const isProduction = process.env.NODE_ENV === 'production';
-    res.clearCookie('auth', { httpOnly: true, sameSite: isProduction ? 'none' : 'lax', secure: isProduction });
-    res.json({ ok: true }); 
+    const isProduction = process.env.NODE_ENV === 'production';
+    res.clearCookie('auth', { httpOnly: true, sameSite: isProduction ? 'none' : 'lax', secure: isProduction });
+    res.json({ ok: true }); 
 });
 
 app.get('/api/user/me', authMiddleware, async (req, res) => {
-  try {
-    const { rows } = await db.query('SELECT email, display_name, last_username_change, two_fa_enabled FROM users WHERE email = $1', [req.user.email]);
-    if (rows.length === 0) return res.status(404).json({ error: 'User not found' });
-    res.json({ email: rows[0].email, displayName: rows[0].display_name, lastUsernameChange: rows[0].last_username_change, twoFaEnabled: rows[0].two_fa_enabled });
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  try {
+    const { rows } = await db.query('SELECT email, display_name, last_username_change, two_fa_enabled FROM users WHERE email = $1', [req.user.email]);
+    if (rows.length === 0) return res.status(404).json({ error: 'User not found' });
+    res.json({ email: rows[0].email, displayName: rows[0].display_name, lastUsernameChange: rows[0].last_username_change, twoFaEnabled: rows[0].two_fa_enabled });
+  } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 app.get('/api/subscriptions', authMiddleware, async (req, res) => {
-  try {
-    const { rows } = await db.query('SELECT plan FROM subscriptions WHERE email = $1 ORDER BY id DESC LIMIT 1', [req.user.email]);
-    res.json(rows);
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  try {
+    const { rows } = await db.query('SELECT plan FROM subscriptions WHERE email = $1 ORDER BY id DESC LIMIT 1', [req.user.email]);
+    res.json(rows);
+  } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 app.post('/api/user/update-username', authMiddleware, async (req, res) => {
-    const { newUsername } = req.body;
-    const email = req.user.email;
-    try {
-        const subRes = await db.query('SELECT plan FROM subscriptions WHERE email = $1 ORDER BY id DESC LIMIT 1', [email]);
-        const plan = subRes.rows[0]?.plan?.toLowerCase() || 'free';
-        if (plan !== 'monthly' && plan !== 'yearly') return res.status(403).json({ error: "Premium only feature" });
-        await db.query('UPDATE users SET display_name = $1, last_username_change = NOW() WHERE email = $2', [newUsername, email]);
-        res.json({ ok: true });
-    } catch (err) { res.status(500).json({ error: err.message }); }
+    const { newUsername } = req.body;
+    const email = req.user.email;
+    try {
+        const subRes = await db.query('SELECT plan FROM subscriptions WHERE email = $1 ORDER BY id DESC LIMIT 1', [email]);
+        const plan = subRes.rows[0]?.plan?.toLowerCase() || 'free';
+        if (plan !== 'monthly' && plan !== 'yearly') return res.status(403).json({ error: "Premium only feature" });
+        await db.query('UPDATE users SET display_name = $1, last_username_change = NOW() WHERE email = $2', [newUsername, email]);
+        res.json({ ok: true });
+    } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 app.post('/api/user/streak', authMiddleware, async (req, res) => {
-    try { await db.query('UPDATE users SET wordle_streak = $1 WHERE email = $2', [req.body.streak, req.user.email]); res.json({ ok: true }); } 
-    catch (err) { res.status(500).json({ error: err.message }); }
+    try { await db.query('UPDATE users SET wordle_streak = $1 WHERE email = $2', [req.body.streak, req.user.email]); res.json({ ok: true }); } 
+    catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 app.post('/api/create-checkout-session', authMiddleware, async (req, res) => {
-  const { plan } = req.body;
-  const userEmail = req.user.email;
-  const frontendUrl = process.env.APP_URL;
-  let priceData;
-  if (plan === 'monthly') priceData = { product_data: { name: 'MIREN Monthly' }, unit_amount: 499, currency: 'eur', recurring: { interval: 'month' } };
-  else if (plan === 'yearly') priceData = { product_data: { name: 'MIREN Yearly' }, unit_amount: 4999, currency: 'eur', recurring: { interval: 'year' } };
-  else return res.status(400).json({ error: 'Invalid plan' });
-  try {
-    const session = await stripe.checkout.sessions.create({
-      payment_method_types: ['card'], mode: 'subscription', line_items: [{ price_data: priceData, quantity: 1 }],
-      customer_email: userEmail, success_url: `${frontendUrl}/profile?payment_success=true`, cancel_url: `${frontendUrl}/subscriptions`,
-    });
-    res.json({ url: session.url });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  const { plan } = req.body;
+  const userEmail = req.user.email;
+  const frontendUrl = process.env.APP_URL;
+  let priceData;
+  if (plan === 'monthly') priceData = { product_data: { name: 'MIREN Monthly' }, unit_amount: 499, currency: 'eur', recurring: { interval: 'month' } };
+  else if (plan === 'yearly') priceData = { product_data: { name: 'MIREN Yearly' }, unit_amount: 4999, currency: 'eur', recurring: { interval: 'year' } };
+  else return res.status(400).json({ error: 'Invalid plan' });
+  try {
+    const session = await stripe.checkout.sessions.create({
+      payment_method_types: ['card'], mode: 'subscription', line_items: [{ price_data: priceData, quantity: 1 }],
+      customer_email: userEmail, success_url: `${frontendUrl}/profile?payment_success=true`, cancel_url: `${frontendUrl}/subscriptions`,
+    });
+    res.json({ url: session.url });
+  } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-// Contact Form Endpoint
 app.post("/api/contact", async (req, res) => {
-  const { email, message } = req.body;
-  
-  if (!email || !message) {
-    return res.status(400).json({ error: "Email and message are required" });
-  }
+  const { email, message } = req.body;
+  
+  if (!email || !message) return res.status(400).json({ error: "Email and message are required" });
 
-  try {
-    console.log(`Attempting to send contact email from ${email}...`); // LOG 1
+  try {
+    console.log(`Attempting to send contact email from ${email}...`);
+    await transporter.sendMail({
+      from: `"Contact Form" <${process.env.EMAIL_USER}>`, 
+      replyTo: email,
+      to: process.env.EMAIL_USER,
+      subject: `New Message from ${email}`,
+      text: message,
+      html: `<p><strong>From:</strong> ${email}</p><p>${message}</p>`
+    });
+    console.log("Contact email sent successfully!");
+    res.json({ ok: true, message: "Message sent!" });
 
-    // Изпращаме имейла до ТЕБ (Админа)
-    await transporter.sendMail({
-      from: `"Contact Form" <${process.env.EMAIL_USER}>`, 
-      replyTo: email, // За да можеш да отговориш на потребителя
-      to: process.env.EMAIL_USER, // Пращаш го на себе си
-      subject: `New Message from ${email}`,
-      text: message,
-      html: `<p><strong>From:</strong> ${email}</p><p>${message}</p>`
-    });
-
-    console.log("Contact email sent successfully!"); // LOG 2
-    res.json({ ok: true, message: "Message sent!" });
-
-  } catch (err) {
-    console.error("CONTACT ERROR:", err); // LOG 3 (Ако има грешка, ще я видим тук)
-    res.status(500).json({ error: "Failed to send message: " + err.message });
-  }
+  } catch (err) {
+    console.error("CONTACT ERROR:", err);
+    res.status(500).json({ error: "Failed to send message: " + err.message });
+  }
 });
 
-// server/index.js
-
-// ... (при другите ROUTES) ...
-
-// =========================================================================
-// НОВ РУТ: LEADERBOARD
-// =========================================================================
 app.get('/api/leaderboard', async (req, res) => {
-    const { game } = req.query; 
-    // Забележка: В момента не се ползва, но е оставено за бъдещи игри
-
-    try {
-        const queryText = `
-            SELECT
-                u.display_name,
-                u.email,
-                u.wordle_streak AS streak,
-                s.plan
-            FROM users u
-            JOIN subscriptions s ON u.email = s.email
-            WHERE u.wordle_streak IS NOT NULL AND u.wordle_streak > 0  -- Показваме само потребители с активен streak
-            ORDER BY u.wordle_streak DESC, u.created_at ASC
-        `;
-        
-        const { rows } = await db.query(queryText);
-
-        // Връщаме данните. Frontend-ът вече знае как да ги ползва.
-        res.json(rows);
-    } catch (err) {
-        console.error("Leaderboard error:", err);
-        res.status(500).json({ error: "Failed to load leaderboard data" });
-    }
+    const { game } = req.query; 
+    try {
+        const queryText = `
+            SELECT
+                u.display_name,
+                u.email,
+                u.wordle_streak AS streak,
+                s.plan
+            FROM users u
+            JOIN subscriptions s ON u.email = s.email
+            WHERE u.wordle_streak IS NOT NULL AND u.wordle_streak > 0
+            ORDER BY u.wordle_streak DESC, u.created_at ASC
+        `;
+        const { rows } = await db.query(queryText);
+        res.json(rows);
+    } catch (err) {
+        console.error("Leaderboard error:", err);
+        res.status(500).json({ error: "Failed to load leaderboard data" });
+    }
 });
 
 app.listen(PORT, () => console.log(`API running on http://localhost:${PORT}`));

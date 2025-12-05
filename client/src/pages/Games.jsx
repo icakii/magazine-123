@@ -4,10 +4,19 @@
 
 import { useState, useEffect } from "react"
 import { api } from "../lib/api"
-import { useAuth } from "../hooks/useAuth" // 1. Импортваме useAuth
+import { useAuth } from "../hooks/useAuth" // <-- ВАЖНО: Добавяме useAuth за уникален streak
+
+// ... (Mock API остава за дебъгване, ако не ползваш истинското API) ...
+const api = {
+  post: async (url, data) => {
+    console.log("API POST:", url, data)
+    return { data: { success: true } }
+  }
+}
+// ---------------------------------------
 
 export default function Games() {
-  const { user } = useAuth() // 2. Взимаме текущия потребител
+  const { user } = useAuth() // <-- Взимаме потребителя за уникален ключ
   const [word, setWord] = useState("")
   const [guesses, setGuesses] = useState([])
   const [currentGuess, setCurrentGuess] = useState("")
@@ -20,12 +29,11 @@ export default function Games() {
   const [validWords, setValidWords] = useState([]) 
   const [loading, setLoading] = useState(true)
 
-  // Помощна функция за ключа в LocalStorage
-  // Сега ключът е уникален за всеки имейл!
-  const getStorageKey = () => `gameData_${user?.email || 'guest'}`
+  // Генерираме уникален ключ за LocalStorage (за да не се бъркат потребителите)
+  const getStorageKey = (suffix = '') => `gameData_${user?.email || 'guest'}${suffix}`;
 
   useEffect(() => {
-    if (!user) return; // Чакаме да се зареди потребителят
+    if (loading || !user) return; // Чакаме потребителя да се зареди
 
     async function initGame() {
       try {
@@ -36,32 +44,50 @@ export default function Games() {
         setValidWords(allWords);
 
         const today = new Date().toDateString()
-        
-        // 3. Четем от уникалния ключ на потребителя
         const savedData = localStorage.getItem(getStorageKey())
         const parsedData = savedData ? JSON.parse(savedData) : {}
+        
+        // --- НОВА ЛОГИКА ЗА СЕРИЯТА (Проверка за пропуснат ден) ---
+        const storedStreak = parseInt(localStorage.getItem(getStorageKey('_streak')) || 0);
+        const lastWinDateStr = localStorage.getItem(getStorageKey('_lastWinDate'));
+        let currentStreak = storedStreak;
+        
+        if (lastWinDateStr && storedStreak > 0) {
+            const lastWinDate = new Date(lastWinDateStr);
+            const todayDate = new Date();
+            const timeDiff = todayDate.getTime() - lastWinDate.getTime();
+            const diffDays = Math.floor(timeDiff / (1000 * 3600 * 24)); // Разлика в дни
+
+            // Ако разликата е по-голяма от 1 ден (т.е. пропуснал е вчера)
+            if (diffDays > 1) { 
+                currentStreak = 0; 
+                localStorage.setItem(getStorageKey('_streak'), 0);
+                api.post('/user/streak', { streak: 0 }); // Обновяваме DB
+            }
+        }
+        // ------------------------------------------------------------
+
 
         if (parsedData.date === today && parsedData.word) {
+          // Зареждане на съществуващата игра
           setWord(parsedData.word)
           setGuesses(parsedData.guesses || [])
           setWon(parsedData.won || false)
           setGameOver(parsedData.gameOver || false)
           setUsedLetters(new Set(parsedData.usedLetters || []))
-          setStreak(parsedData.streak || 0)
+          setStreak(currentStreak)
           setAttempts(5 - (parsedData.guesses || []).length)
           if(parsedData.gameOver) setMessage(`Game over! Word: ${parsedData.word}`)
           if(parsedData.won) setMessage("Already solved today!")
         } else {
-            // Зареждаме streak-а от локалния ключ също
-            const currentStreak = localStorage.getItem(`streak_${user.email}`) ? parseInt(localStorage.getItem(`streak_${user.email}`)) : 0;
-            
+            // Нова игра
             const dateStr = new Date().toISOString().slice(0, 10);
             let seed = 0;
             for (let i = 0; i < dateStr.length; i++) seed += dateStr.charCodeAt(i);
             const dailyIndex = (seed * 9301 + 49297) % allWords.length;
             
             setWord(allWords[dailyIndex])
-            setStreak(currentStreak)
+            setStreak(currentStreak) 
             setAttempts(5)
         }
       } catch (e) {
@@ -71,23 +97,32 @@ export default function Games() {
         setLoading(false);
       }
     }
-    initGame();
-  }, [user]) // Рестартира играта, ако се смени потребителят
+    
+    if (user) {
+        initGame();
+    } else {
+        // Ако не е логнат, показваме, че е protected (AuthGuard го прави, но за консистентност)
+        setLoading(false);
+    }
+  }, [user]) // Рестартира играта при смяна на потребител
 
   useEffect(() => {
     if (word && user) {
       const today = new Date().toDateString()
       const gameData = { date: today, word, guesses, won, gameOver, usedLetters: Array.from(usedLetters), streak }
-      // 4. Записваме в уникалния ключ
+      // Запазваме играта уникално
       localStorage.setItem(getStorageKey(), JSON.stringify(gameData))
     }
   }, [word, guesses, won, gameOver, usedLetters, streak, user])
 
   useEffect(() => {
       if (won && user) {
-          // Записваме streak-а също уникално
-          localStorage.setItem(`streak_${user.email}`, streak);
-          
+          // Запазваме новата серия
+          localStorage.setItem(getStorageKey('_streak'), streak);
+          // Запазваме датата на последната победа
+          localStorage.setItem(getStorageKey('_lastWinDate'), new Date().toDateString()); 
+
+          // Обновяваме DB
           api.post('/user/streak', { streak })
              .then(() => console.log('Streak synced with DB!'))
              .catch(err => console.error('Failed to sync streak:', err))
@@ -95,10 +130,11 @@ export default function Games() {
   }, [won, streak, user])
 
   function handleKeyDown(e) {
-    if (gameOver || loading) return
+    if (gameOver || loading || !user) return
     const key = e.key.toUpperCase()
 
     if (key === "ENTER") {
+      // ... (Rest of the logic is the same)
       if (currentGuess.length !== 5) { setMessage("Word must be 5 letters"); return }
       if (!validWords.includes(currentGuess)) { setMessage("Not a valid word"); return }
 
@@ -118,7 +154,8 @@ export default function Games() {
       if (newGuesses.length >= 5) {
         setGameOver(true)
         setStreak(0)
-        localStorage.setItem(`streak_${user?.email}`, 0) // Reset streak unique
+        localStorage.setItem(getStorageKey('_streak'), 0) // Нулираме streak-а
+        api.post('/user/streak', { streak: 0 }); // Нулираме DB
         setMessage(`Game over! The word was: ${word}`)
         return
       }
@@ -132,6 +169,8 @@ export default function Games() {
       setCurrentGuess((prev) => prev + key)
     }
   }
+  
+  // ... (Останалите функции за кликване остават същите) ...
 
   function handleKeyClick(letter) {
     if (!gameOver && currentGuess.length < 5) setCurrentGuess(prev => prev + letter)
@@ -154,30 +193,33 @@ export default function Games() {
   useEffect(() => {
     window.addEventListener("keydown", handleKeyDown)
     return () => window.removeEventListener("keydown", handleKeyDown)
-  }, [currentGuess, gameOver, word, guesses, usedLetters, validWords])
+  }, [currentGuess, gameOver, word, guesses, usedLetters, validWords, user])
 
-  if (loading) return <div className="page"><p>Loading...</p></div>
+
+  if (loading || !user) return <div className="page"><p>Loading...</p></div>
 
   return (
     <div className="page" style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
       <h2 className="headline">Daily Word Game</h2>
       
+      {/* --- ARCHIVE BUTTON (Izpolzvame 'a' tag za da izbegnem greshki s Router-a pri preview) --- */}
       <a 
         href="/word-game-archive" 
         className="btn ghost" 
         style={{ 
             marginBottom: "20px", 
             textDecoration: "none", 
-            border: "2px solid #e63946", 
+            border: "2px solid var(--primary)", 
             padding: "10px 20px",
             borderRadius: "8px",
-            color: "#e63946",
+            color: "var(--primary)",
             fontWeight: "bold",
             display: "inline-block"
         }}
       >
         📜 Play Past Games (Archive)
       </a>
+      {/* -------------------------------------- */}
 
       <p className="subhead">Attempts remaining: {attempts}</p>
 

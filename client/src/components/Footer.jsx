@@ -20,9 +20,8 @@ export default function Footer() {
     {
       name: "Threads",
       url: "https://threads.net/@miren_magazine",
-      // МНОГО ВАЖНО: Премахваме сложния път и го заместваме с текст
-      path: null, 
-      textIcon: "@" 
+      path: null, // <-- НЯМА ПЪТ
+      textIcon: "@" // <-- ДОБАВЯМЕ ТЕКСТОВИЯ СИМВОЛ
     },
     {
       name: "Pinterest",
@@ -48,7 +47,7 @@ export default function Footer() {
             className="social-btn"
             aria-label={social.name}
           >
-            {social.textIcon ? ( // <-- Проверка за текст икона
+            {social.textIcon ? (
                 <span style={{ fontSize: '1.5rem', lineHeight: '1', fontWeight: '900', color: 'currentColor' }}>
                     {social.textIcon}
                 </span>

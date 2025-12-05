@@ -8,7 +8,7 @@ import { useNavigate } from "react-router-dom"
 const CATEGORIES = ["All", "Sports", "E-Sports", "Photography", "Lifestyle", "Art", "Music", "Movies & Series", "Business", "Science", "Culture", "Health & Fitness", "Travel"]
 
 export default function News() {
-  const { user, hasSubscription } = useAuth()
+  const { user, hasSubscription } = useAuth() // Assume user has hasSubscription boolean
   const [articles, setArticles] = useState([])
   const [filter, setFilter] = useState("All")
   const [selectedArticle, setSelectedArticle] = useState(null)
@@ -28,7 +28,7 @@ export default function News() {
     <div className="page">
       <h2 className="headline">News</h2>
       
-      {/* Category Filter - Сега е на няколко реда (flex-wrap) */}
+      {/* Category Filter - FLEX WRAP FIX */}
       <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 20 }}>
         {CATEGORIES.map(cat => (
             <button 
@@ -42,8 +42,7 @@ export default function News() {
         ))}
       </div>
 
-      {/* Grid - Направен да събира по 3 на ред (minmax 280px) */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: "20px" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: "20px" }}>
         {filteredArticles.map((article) => {
            const isLocked = article.isPremium && !hasSubscription;
 
@@ -64,7 +63,7 @@ export default function News() {
                       <h3>Premium Content</h3>
                       <button 
                         className="btn primary" 
-                        style={{ marginTop: 10, transition: "transform 0.2s" }}
+                        style={{ marginTop: 10 }}
                         onClick={() => navigate("/subscriptions")}
                       >
                           Subscribe to Read
@@ -75,14 +74,15 @@ export default function News() {
               {article.imageUrl && (
                 <img src={article.imageUrl} alt={article.title} style={{ width: "100%", borderRadius: 8, marginBottom: 12, height: 200, objectFit: "cover" }} />
               )}
-              <h3 style={{fontSize: "1.2rem", marginBottom: 5}}>{article.title}</h3>
-              <p className="text-muted" style={{ fontSize: "0.8rem", marginBottom: 10 }}>{new Date(article.date).toLocaleDateString()} • {article.author}</p>
+              <h3>{article.title}</h3>
+              <p className="text-muted" style={{ fontSize: "0.9rem" }}>{new Date(article.date).toLocaleDateString()} • {article.author}</p>
               
-              <div style={{ marginBottom: 10 }}>
-                 <span style={{background:"#eee", padding:"2px 6px", borderRadius:4, fontSize:"0.75rem"}}>{article.articleCategory}</span>
+              {/* Category Tag */}
+              <div style={{margin: "5px 0"}}>
+                  <span style={{fontSize: "0.8rem", background: "#eee", padding: "2px 6px", borderRadius: 4}}>{article.articleCategory}</span>
               </div>
 
-              <p style={{flex: 1, fontSize: "0.95rem"}}>{article.excerpt}</p>
+              <p style={{flex: 1}}>{article.excerpt}</p>
               
               <button className="btn outline" style={{marginTop: 15}} onClick={() => !isLocked && setSelectedArticle(article)} disabled={isLocked}>
                 Read More

@@ -3,11 +3,13 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { api } from "../lib/api" // <-- ИЗПОЛЗВАМЕ ИСТИНСКИЯ API
-import { useAuth } from "../hooks/useAuth" 
+import { api } from "../lib/api" // <-- ИЗПОЛЗВАМЕ РЕАЛНИЯ API
+import { useAuth } from "../hooks/useAuth" // <-- ДОБАВЯМЕ useAuth
+
+// --- ИЗТРИЙ СТАРИЯ MOCK API БЛОК ОТ РЕД 9 ДО 12 ---
 
 export default function Games() {
-  const { user } = useAuth()
+  const { user } = useAuth() // <-- Взимаме потребителя
   const [word, setWord] = useState("")
   const [guesses, setGuesses] = useState([])
   const [currentGuess, setCurrentGuess] = useState("")
@@ -29,6 +31,7 @@ export default function Games() {
 
     async function initGame() {
       try {
+        // ... (Код за зареждане на думи остава същия)
         const response = await fetch('https://raw.githubusercontent.com/tabatkins/wordle-list/main/words');
         const text = await response.text();
         const allWords = text.split('\n').map(w => w.trim().toUpperCase()).filter(w => w.length === 5);
@@ -39,7 +42,7 @@ export default function Games() {
         const savedData = localStorage.getItem(getStorageKey())
         const parsedData = savedData ? JSON.parse(savedData) : {}
         
-        // --- НОВА ЛОГИКА ЗА СЕРИЯТА (Проверка за пропуснат ден) ---
+        // --- ЛОГИКА ЗА СЕРИЯТА (Проверка за пропуснат ден) ---
         const storedStreak = parseInt(localStorage.getItem(getStorageKey('_streak')) || 0);
         const lastWinDateStr = localStorage.getItem(getStorageKey('_lastWinDate'));
         let currentStreak = storedStreak;
@@ -50,15 +53,13 @@ export default function Games() {
             const timeDiff = todayDate.getTime() - lastWinDate.getTime();
             const diffDays = Math.floor(timeDiff / (1000 * 3600 * 24)); 
 
-            if (diffDays > 1) { // Ако разликата е по-голяма от 1 ден (пропуснат е вчера)
+            if (diffDays > 1) { 
                 currentStreak = 0; 
                 localStorage.setItem(getStorageKey('_streak'), 0);
-                // Използваме реалния API
                 api.post('/user/streak', { streak: 0 }); 
             }
         }
         // ------------------------------------------------------------
-
 
         if (parsedData.date === today && parsedData.word) {
           setWord(parsedData.word)
@@ -88,9 +89,11 @@ export default function Games() {
       }
     }
     
-    if (user) initGame();
-    else setLoading(false);
-
+    if (user) {
+        initGame();
+    } else {
+        setLoading(false);
+    }
   }, [user])
 
   useEffect(() => {
@@ -137,7 +140,7 @@ export default function Games() {
         setGameOver(true)
         setStreak(0)
         localStorage.setItem(getStorageKey('_streak'), 0)
-        api.post('/user/streak', { streak: 0 }); 
+        api.post('/user/streak', { streak: 0 });
         setMessage(`Game over! The word was: ${word}`)
         return
       }

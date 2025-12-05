@@ -1,15 +1,22 @@
-// client/src/pages/Games.jsx
-
 "use client"
 
 import { useState, useEffect } from "react"
-import { api } from "../lib/api" // <-- ИЗПОЛЗВАМЕ РЕАЛНИЯ API
-import { useAuth } from "../hooks/useAuth" // <-- ДОБАВЯМЕ useAuth
+import { api } from "../lib/api"
+import { useAuth } from "../hooks/useAuth"
 
-// --- ИЗТРИЙ СТАРИЯ MOCK API БЛОК ОТ РЕД 9 ДО 12 ---
+// Списък с думи директно тук, за да не чакаме зареждане от интернет
+const WORDS = [
+  "APPLE", "BEACH", "BRAIN", "BREAD", "BRUSH", "CHAIR", "CHEST", "CHORD", "CLICK", "CLOCK", 
+  "CLOUD", "DANCE", "DIARY", "DRINK", "DRIVE", "EARTH", "FEAST", "FIELD", "FRUIT", "GLASS", 
+  "GRAPE", "GREEN", "GHOST", "HEART", "HOUSE", "JUICE", "LIGHT", "LEMON", "MELON", "MONEY", 
+  "MUSIC", "NIGHT", "OCEAN", "PARTY", "PIZZA", "PHONE", "PILOT", "PLANE", "PLANT", "PLATE", 
+  "POWER", "RADIO", "RIVER", "ROBOT", "SHIRT", "SHOES", "SKIRT", "SMILE", "SNAKE", "SPACE", 
+  "SPOON", "STORM", "TABLE", "TOAST", "TIGER", "TRAIN", "WATER", "WATCH", "WHALE", "WORLD", 
+  "WRITE", "YOUTH", "ZEBRA", "ALERT", "BAKER", "CANDY", "DREAM", "EAGLE", "FLAME", "GAMES"
+];
 
 export default function Games() {
-  const { user } = useAuth() // <-- Взимаме потребителя
+  const { user } = useAuth()
   const [word, setWord] = useState("")
   const [guesses, setGuesses] = useState([])
   const [currentGuess, setCurrentGuess] = useState("")
@@ -19,49 +26,52 @@ export default function Games() {
   const [usedLetters, setUsedLetters] = useState(new Set())
   const [streak, setStreak] = useState(0)
   const [attempts, setAttempts] = useState(5)
-  const [validWords, setValidWords] = useState([]) 
   const [loading, setLoading] = useState(true)
 
-  // Генерираме уникален ключ за LocalStorage
+  // Уникален ключ за всеки потребител
   const getStorageKey = (suffix = '') => `gameData_${user?.email || 'guest'}${suffix}`;
 
   useEffect(() => {
-    // Чакаме потребителя да се зареди
-    if (loading || !user) return; 
+    // Ако няма юзър, спираме (AuthGuard ще ни пренасочи, но за всеки случай)
+    if (!user) {
+        setLoading(false)
+        return
+    }
 
     async function initGame() {
       try {
-        // ... (Код за зареждане на думи остава същия)
-        const response = await fetch('https://raw.githubusercontent.com/tabatkins/wordle-list/main/words');
-        const text = await response.text();
-        const allWords = text.split('\n').map(w => w.trim().toUpperCase()).filter(w => w.length === 5);
-        
-        setValidWords(allWords);
-
         const today = new Date().toDateString()
-        const savedData = localStorage.getItem(getStorageKey())
-        const parsedData = savedData ? JSON.parse(savedData) : {}
         
-        // --- ЛОГИКА ЗА СЕРИЯТА (Проверка за пропуснат ден) ---
-        const storedStreak = parseInt(localStorage.getItem(getStorageKey('_streak')) || 0);
-        const lastWinDateStr = localStorage.getItem(getStorageKey('_lastWinDate'));
-        let currentStreak = storedStreak;
+        // 1. Проверка за streak
+        const storedStreak = parseInt(localStorage.getItem(getStorageKey('_streak')) || 0)
+        const lastWinDateStr = localStorage.getItem(getStorageKey('_lastWinDate'))
+        let currentStreak = storedStreak
         
         if (lastWinDateStr && storedStreak > 0) {
-            const lastWinDate = new Date(lastWinDateStr);
-            const todayDate = new Date();
-            const timeDiff = todayDate.getTime() - lastWinDate.getTime();
-            const diffDays = Math.floor(timeDiff / (1000 * 3600 * 24)); 
+            const lastWinDate = new Date(lastWinDateStr)
+            const todayDate = new Date()
+            const diffDays = Math.floor((todayDate - lastWinDate) / (1000 * 3600 * 24))
 
             if (diffDays > 1) { 
-                currentStreak = 0; 
-                localStorage.setItem(getStorageKey('_streak'), 0);
-                api.post('/user/streak', { streak: 0 }); 
+                currentStreak = 0
+                localStorage.setItem(getStorageKey('_streak'), 0)
+                api.post('/user/streak', { streak: 0 }).catch(e => console.error(e))
             }
         }
-        // ------------------------------------------------------------
 
-        if (parsedData.date === today && parsedData.word) {
+        // 2. Избиране на дума за деня
+        // Използваме датата като "seed", за да е еднаква думата за всички днес
+        const dateStr = new Date().toISOString().slice(0, 10)
+        let seed = 0
+        for (let i = 0; i < dateStr.length; i++) seed += dateStr.charCodeAt(i)
+        const dailyIndex = (seed * 9301 + 49297) % WORDS.length
+        const targetWord = WORDS[dailyIndex]
+
+        // 3. Проверка за запазена игра
+        const savedData = localStorage.getItem(getStorageKey())
+        const parsedData = savedData ? JSON.parse(savedData) : {}
+
+        if (parsedData.date === today && parsedData.word === targetWord) {
           setWord(parsedData.word)
           setGuesses(parsedData.guesses || [])
           setWon(parsedData.won || false)
@@ -69,59 +79,67 @@ export default function Games() {
           setUsedLetters(new Set(parsedData.usedLetters || []))
           setStreak(currentStreak)
           setAttempts(5 - (parsedData.guesses || []).length)
+          
           if(parsedData.gameOver) setMessage(`Game over! Word: ${parsedData.word}`)
           if(parsedData.won) setMessage("Already solved today!")
         } else {
-            const dateStr = new Date().toISOString().slice(0, 10);
-            let seed = 0;
-            for (let i = 0; i < dateStr.length; i++) seed += dateStr.charCodeAt(i);
-            const dailyIndex = (seed * 9301 + 49297) % allWords.length;
-            
-            setWord(allWords[dailyIndex])
+            // Нова игра
+            setWord(targetWord)
             setStreak(currentStreak) 
             setAttempts(5)
+            setGuesses([])
+            setWon(false)
+            setGameOver(false)
+            setUsedLetters(new Set())
+            setMessage("")
         }
       } catch (e) {
-        console.error("Error loading words", e);
-        setMessage("Error loading dictionary.");
+        console.error("Error init game", e)
+        setMessage("Error loading game.")
       } finally {
-        setLoading(false);
+        setLoading(false)
       }
     }
     
-    if (user) {
-        initGame();
-    } else {
-        setLoading(false);
-    }
+    initGame()
   }, [user])
 
+  // Запазване на прогреса при всяка промяна
   useEffect(() => {
     if (word && user) {
       const today = new Date().toDateString()
-      const gameData = { date: today, word, guesses, won, gameOver, usedLetters: Array.from(usedLetters), streak }
+      const gameData = { 
+          date: today, 
+          word, 
+          guesses, 
+          won, 
+          gameOver, 
+          usedLetters: Array.from(usedLetters), 
+          streak 
+      }
       localStorage.setItem(getStorageKey(), JSON.stringify(gameData))
     }
   }, [word, guesses, won, gameOver, usedLetters, streak, user])
 
+  // Запазване на победата
   useEffect(() => {
       if (won && user) {
-          localStorage.setItem(getStorageKey('_streak'), streak);
-          localStorage.setItem(getStorageKey('_lastWinDate'), new Date().toDateString()); 
-
+          localStorage.setItem(getStorageKey('_streak'), streak)
+          localStorage.setItem(getStorageKey('_lastWinDate'), new Date().toDateString())
+          
           api.post('/user/streak', { streak })
-             .then(() => console.log('Streak synced with DB!'))
-             .catch(err => console.error('Failed to sync streak:', err))
+             .then(() => console.log('Streak synced'))
+             .catch(err => console.error('Sync failed', err))
       }
   }, [won, streak, user])
 
   function handleKeyDown(e) {
-    if (gameOver || loading || !user) return
+    if (gameOver || loading) return
     const key = e.key.toUpperCase()
 
     if (key === "ENTER") {
       if (currentGuess.length !== 5) { setMessage("Word must be 5 letters"); return }
-      if (!validWords.includes(currentGuess)) { setMessage("Not a valid word"); return }
+      if (!WORDS.includes(currentGuess)) { setMessage("Not in word list"); return }
 
       const newGuesses = [...guesses, currentGuess]
       setGuesses(newGuesses)
@@ -140,7 +158,7 @@ export default function Games() {
         setGameOver(true)
         setStreak(0)
         localStorage.setItem(getStorageKey('_streak'), 0)
-        api.post('/user/streak', { streak: 0 });
+        api.post('/user/streak', { streak: 0 }).catch(console.error)
         setMessage(`Game over! The word was: ${word}`)
         return
       }
@@ -154,7 +172,7 @@ export default function Games() {
       setCurrentGuess((prev) => prev + key)
     }
   }
-  
+
   function handleKeyClick(letter) { if (!gameOver && currentGuess.length < 5) setCurrentGuess(prev => prev + letter) }
   function handleBackspace() { if(!gameOver) setCurrentGuess(prev => prev.slice(0, -1)); setMessage("") }
   function handleSubmit() { if(!gameOver) handleKeyDown({ key: "Enter" }) }
@@ -173,10 +191,9 @@ export default function Games() {
   useEffect(() => {
     window.addEventListener("keydown", handleKeyDown)
     return () => window.removeEventListener("keydown", handleKeyDown)
-  }, [currentGuess, gameOver, word, guesses, usedLetters, validWords, user])
+  }, [currentGuess, gameOver, word, guesses, usedLetters, user])
 
-
-  if (loading || !user) return <div className="page"><p>Loading...</p></div>
+  if (loading) return <div className="page"><p>Loading game...</p></div>
 
   return (
     <div className="page" style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
@@ -207,7 +224,6 @@ export default function Games() {
         </div>
       )}
 
-      {/* Grid */}
       <div style={{ display: "grid", gap: 8, margin: "24px 0" }}>
         {guesses.map((guess, rowIdx) => (
           <div key={rowIdx} style={{ display: "flex", gap: 8, justifyContent: "center" }}>
@@ -225,7 +241,6 @@ export default function Games() {
         )}
       </div>
 
-      {/* Keyboard */}
       {!gameOver && (
         <div style={{ display: "flex", flexDirection: "column", gap: 8, alignItems: "center", marginTop: 24, maxWidth: 500 }}>
           {[["Q", "W", "E", "R", "T", "Y", "U", "I", "O", "P"], ["A", "S", "D", "F", "G", "H", "J", "K", "L"], ["Z", "X", "C", "V", "B", "N", "M"]].map((row, rowIdx) => (

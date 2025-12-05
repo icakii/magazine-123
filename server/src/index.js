@@ -1,5 +1,5 @@
 // ================================================================
-// SERVER/INDEX.JS - MASTER FILE
+// SERVER/INDEX.JS - FINAL VERSION (WITH DB FIX)
 // ================================================================
 
 require('dotenv').config(); 
@@ -37,7 +37,7 @@ const transporter = nodemailer.createTransport({
   } 
 });
 
-// --- 2. STRIPE WEBHOOK (Must be before JSON parser) ---
+// --- 2. STRIPE WEBHOOK ---
 app.post('/api/stripe-webhook', express.raw({ type: 'application/json' }), async (req, res) => {
   const sig = req.headers['stripe-signature'];
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
@@ -61,10 +61,7 @@ app.post('/api/stripe-webhook', express.raw({ type: 'application/json' }), async
         
         try {
             await db.query('UPDATE subscriptions SET plan = $1 WHERE email = $2', [plan, customerEmail]);
-            console.log(`✅ Subscription updated: ${customerEmail} -> ${plan}`);
-        } catch (dbErr) { 
-            console.error('DB UPDATE ERROR:', dbErr); 
-        }
+        } catch (dbErr) { console.error('DB UPDATE ERROR:', dbErr); }
       }
   }
   res.json({ received: true }); 
@@ -108,7 +105,45 @@ function signToken(payload) {
 // API ROUTES
 // =========================================================================
 
-// --- NEWSLETTER (DB Connected) ---
+// --- 🔥 MAGIC DB FIX ROUTE (ИЗПЪЛНИ ТОВА ВЕДНЪЖ) ---
+app.get('/api/fix-db', async (req, res) => {
+  try {
+    // 1. Добавяме колоните за статиите (ако липсват)
+    await db.query(`ALTER TABLE articles ADD COLUMN IF NOT EXISTS is_premium BOOLEAN DEFAULT FALSE;`);
+    await db.query(`ALTER TABLE articles ADD COLUMN IF NOT EXISTS link_to TEXT;`);
+    await db.query(`ALTER TABLE articles ADD COLUMN IF NOT EXISTS time TEXT;`);
+    
+    // 2. Създаваме таблицата за списанията
+    await db.query(`
+      CREATE TABLE IF NOT EXISTS magazine_issues (
+          id SERIAL PRIMARY KEY,
+          issue_number TEXT,
+          month TEXT,
+          year INTEGER,
+          is_locked BOOLEAN DEFAULT TRUE,
+          cover_url TEXT,
+          pages JSONB,
+          created_at TIMESTAMP DEFAULT NOW()
+      );
+    `);
+
+    // 3. Създаваме таблицата за Newsletter
+    await db.query(`
+      CREATE TABLE IF NOT EXISTS newsletter_subscribers (
+          id SERIAL PRIMARY KEY,
+          email TEXT UNIQUE NOT NULL,
+          created_at TIMESTAMP DEFAULT NOW()
+      );
+    `);
+
+    res.send("✅ УСПЕХ! Базата данни е поправена! Сега Error 500 трябва да изчезне.");
+  } catch (e) {
+    res.status(500).send("ГРЕШКА при поправка: " + e.message);
+  }
+});
+// -----------------------------------------------------------
+
+// --- NEWSLETTER ---
 app.post('/api/newsletter/subscribe', async (req, res) => {
     const { email } = req.body;
     if (!email) return res.status(400).json({ error: "Email required" });
@@ -142,11 +177,10 @@ app.post('/api/newsletter/send', adminMiddleware, async (req, res) => {
     } catch (err) { res.status(500).json({ error: "Failed to send emails" }); }
 });
 
-// --- MAGAZINES (DB Connected) ---
+// --- MAGAZINES ---
 app.get('/api/magazines', async (req, res) => {
     try {
         const { rows } = await db.query('SELECT * FROM magazine_issues ORDER BY year DESC, month DESC');
-        // Map database columns to frontend camelCase
         const mapped = rows.map(row => ({
             id: row.id,
             issueNumber: row.issue_number,
@@ -154,7 +188,7 @@ app.get('/api/magazines', async (req, res) => {
             year: row.year,
             isLocked: row.is_locked,
             coverUrl: row.cover_url,
-            pages: row.pages // JSONB column comes as array
+            pages: row.pages 
         }));
         res.json(mapped);
     } catch (err) { res.status(500).json({ error: err.message }); }
@@ -193,7 +227,7 @@ app.delete('/api/magazines/:id', adminMiddleware, async (req, res) => {
     } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// --- ARTICLES (Fixed PUT 500 Error) ---
+// --- ARTICLES ---
 app.get("/api/articles", async (req, res) => {
   try {
     const { category } = req.query;
@@ -239,7 +273,6 @@ app.put('/api/articles/:id', adminMiddleware, async (req, res) => {
   const { title, text, author, date, imageUrl, category, excerpt, isPremium, linkTo, time } = req.body;
 
   try {
-    // FIX: Using COALESCE or ensuring boolean for is_premium
     const result = await db.query(
         `UPDATE articles 
          SET title=$1, text=$2, author=$3, date=$4, image_url=$5, category=$6, excerpt=$7, is_premium=$8, link_to=$9, time=$10
@@ -275,9 +308,7 @@ app.post("/api/auth/register", async (req, res) => {
     const hash = await bcrypt.hash(password, 10);
     const token = crypto.randomBytes(32).toString('hex');
     
-    // Create User
     await db.query('INSERT INTO users (email, display_name, password_hash, created_at, confirmation_token, is_confirmed) VALUES ($1, $2, $3, NOW(), $4, false)', [email, displayName, hash, token]);
-    // Create Free Subscription
     await db.query('INSERT INTO subscriptions (email, plan) VALUES ($1, $2)', [email, 'free']);
     
     const confirmationUrl = `${APP_URL}/confirm?token=${token}`;
@@ -330,7 +361,6 @@ app.get('/api/user/me', authMiddleware, async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// --- RESET PASSWORD & 2FA ---
 app.post('/api/auth/reset-password-request', async (req, res) => {
     const { email } = req.body;
     try {
@@ -378,7 +408,6 @@ app.post('/api/auth/verify-2fa', async (req, res) => {
     } catch (e) { res.status(500).json({ error: "Error" }); }
 });
 
-// --- USER FEATURES ---
 app.get('/api/subscriptions', authMiddleware, async (req, res) => {
     const { rows } = await db.query('SELECT plan FROM subscriptions WHERE email = $1', [req.user.email]);
     res.json(rows);

@@ -4,19 +4,10 @@ import { useState, useEffect } from "react"
 import { api } from "../lib/api"
 import { useAuth } from "../hooks/useAuth"
 
-// Списък с думи директно тук, за да не чакаме зареждане от интернет
-const WORDS = [
-  "APPLE", "BEACH", "BRAIN", "BREAD", "BRUSH", "CHAIR", "CHEST", "CHORD", "CLICK", "CLOCK", 
-  "CLOUD", "DANCE", "DIARY", "DRINK", "DRIVE", "EARTH", "FEAST", "FIELD", "FRUIT", "GLASS", 
-  "GRAPE", "GREEN", "GHOST", "HEART", "HOUSE", "JUICE", "LIGHT", "LEMON", "MELON", "MONEY", 
-  "MUSIC", "NIGHT", "OCEAN", "PARTY", "PIZZA", "PHONE", "PILOT", "PLANE", "PLANT", "PLATE", 
-  "POWER", "RADIO", "RIVER", "ROBOT", "SHIRT", "SHOES", "SKIRT", "SMILE", "SNAKE", "SPACE", 
-  "SPOON", "STORM", "TABLE", "TOAST", "TIGER", "TRAIN", "WATER", "WATCH", "WHALE", "WORLD", 
-  "WRITE", "YOUTH", "ZEBRA", "ALERT", "BAKER", "CANDY", "DREAM", "EAGLE", "FLAME", "GAMES"
-];
-
 export default function Games() {
   const { user } = useAuth()
+  
+  // Game State
   const [word, setWord] = useState("")
   const [guesses, setGuesses] = useState([])
   const [currentGuess, setCurrentGuess] = useState("")
@@ -26,23 +17,47 @@ export default function Games() {
   const [usedLetters, setUsedLetters] = useState(new Set())
   const [streak, setStreak] = useState(0)
   const [attempts, setAttempts] = useState(5)
-  const [loading, setLoading] = useState(true)
+
+  // Dictionary State (Новите променливи)
+  const [allWords, setAllWords] = useState(new Set()) // Бърза проверка
+  const [possibleAnswers, setPossibleAnswers] = useState([]) // Списък за избиране
+  const [loadingGame, setLoadingGame] = useState(true)
+  const [dictionaryLoaded, setDictionaryLoaded] = useState(false)
 
   // Уникален ключ за всеки потребител
   const getStorageKey = (suffix = '') => `gameData_${user?.email || 'guest'}${suffix}`;
 
+  // 1. ЗАРЕЖДАНЕ НА РЕЧНИКА (Това липсваше в твоя код)
   useEffect(() => {
-    // Ако няма юзър, спираме (AuthGuard ще ни пренасочи, но за всеки случай)
-    if (!user) {
-        setLoading(false)
-        return
+    async function loadDictionary() {
+      try {
+        // Fetch-ваме файла, който създаде със скрипта
+        const response = await fetch('/dictionary.json');
+        if (!response.ok) throw new Error("Failed to load dictionary");
+        
+        const data = await response.json();
+        
+        // Правим Set за мигновена проверка (O(1))
+        setAllWords(new Set(data)); 
+        setPossibleAnswers(data);   
+        setDictionaryLoaded(true);
+      } catch (error) {
+        console.error("Dictionary error:", error);
+        setMessage("Error loading word database.");
+      }
     }
+    loadDictionary();
+  }, []);
+
+  // 2. Инициализация на играта (чакаме user И речника)
+  useEffect(() => {
+    if (!user || !dictionaryLoaded) return;
 
     async function initGame() {
       try {
         const today = new Date().toDateString()
         
-        // 1. Проверка за streak
+        // Проверка за streak
         const storedStreak = parseInt(localStorage.getItem(getStorageKey('_streak')) || 0)
         const lastWinDateStr = localStorage.getItem(getStorageKey('_lastWinDate'))
         let currentStreak = storedStreak
@@ -59,15 +74,15 @@ export default function Games() {
             }
         }
 
-        // 2. Избиране на дума за деня
-        // Използваме датата като "seed", за да е еднаква думата за всички днес
+        // Избиране на дума (вече от пълния списък possibleAnswers)
         const dateStr = new Date().toISOString().slice(0, 10)
         let seed = 0
         for (let i = 0; i < dateStr.length; i++) seed += dateStr.charCodeAt(i)
-        const dailyIndex = (seed * 9301 + 49297) % WORDS.length
-        const targetWord = WORDS[dailyIndex]
+        
+        const dailyIndex = (seed * 9301 + 49297) % possibleAnswers.length
+        const targetWord = possibleAnswers[dailyIndex]
 
-        // 3. Проверка за запазена игра
+        // Проверка за запазена игра
         const savedData = localStorage.getItem(getStorageKey())
         const parsedData = savedData ? JSON.parse(savedData) : {}
 
@@ -83,7 +98,6 @@ export default function Games() {
           if(parsedData.gameOver) setMessage(`Game over! Word: ${parsedData.word}`)
           if(parsedData.won) setMessage("Already solved today!")
         } else {
-            // Нова игра
             setWord(targetWord)
             setStreak(currentStreak) 
             setAttempts(5)
@@ -95,18 +109,18 @@ export default function Games() {
         }
       } catch (e) {
         console.error("Error init game", e)
-        setMessage("Error loading game.")
+        setMessage("Error initializing game logic.")
       } finally {
-        setLoading(false)
+        setLoadingGame(false)
       }
     }
     
     initGame()
-  }, [user])
+  }, [user, dictionaryLoaded, possibleAnswers]);
 
-  // Запазване на прогреса при всяка промяна
+  // Запазване на прогреса
   useEffect(() => {
-    if (word && user) {
+    if (word && user && !loadingGame) {
       const today = new Date().toDateString()
       const gameData = { 
           date: today, 
@@ -119,7 +133,7 @@ export default function Games() {
       }
       localStorage.setItem(getStorageKey(), JSON.stringify(gameData))
     }
-  }, [word, guesses, won, gameOver, usedLetters, streak, user])
+  }, [word, guesses, won, gameOver, usedLetters, streak, user, loadingGame])
 
   // Запазване на победата
   useEffect(() => {
@@ -134,12 +148,14 @@ export default function Games() {
   }, [won, streak, user])
 
   function handleKeyDown(e) {
-    if (gameOver || loading) return
+    if (gameOver || loadingGame || !dictionaryLoaded) return
     const key = e.key.toUpperCase()
 
     if (key === "ENTER") {
       if (currentGuess.length !== 5) { setMessage("Word must be 5 letters"); return }
-      if (!WORDS.includes(currentGuess)) { setMessage("Not in word list"); return }
+      
+      // ТУК Е КЛЮЧЪТ: Проверяваме в огромния Set, не в малкия Array
+      if (!allWords.has(currentGuess)) { setMessage("Not in word list"); return }
 
       const newGuesses = [...guesses, currentGuess]
       setGuesses(newGuesses)
@@ -191,9 +207,19 @@ export default function Games() {
   useEffect(() => {
     window.addEventListener("keydown", handleKeyDown)
     return () => window.removeEventListener("keydown", handleKeyDown)
-  }, [currentGuess, gameOver, word, guesses, usedLetters, user])
+  }, [currentGuess, gameOver, word, guesses, usedLetters, user, loadingGame, dictionaryLoaded])
 
-  if (loading) return <div className="page"><p>Loading game...</p></div>
+  // Показваме лоудинг докато речникът се зареди
+  if (loadingGame || !dictionaryLoaded) {
+     return (
+        <div className="page" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '50vh' }}>
+          <div style={{ textAlign: 'center' }}>
+              <div className="loading-spinner"></div>
+              <p style={{ marginTop: '10px' }}>Loading dictionary...</p>
+          </div>
+        </div>
+     )
+  }
 
   return (
     <div className="page" style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>

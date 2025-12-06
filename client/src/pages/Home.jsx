@@ -47,29 +47,35 @@ export default function Home() {
           <div className="grid">
             {featured.map(f => (
               <div key={f.id} className="col-6">
-                 {/* ТУК Е ПРОМЯНАТА: 
-                     1. Добавен textAlign: 'center' за центриране
-                     2. Добавена логика за бутона (линк или модал)
-                 */}
-                 <div className="card" style={{ textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center" }}>
-                    {f.imageUrl && <img src={f.imageUrl} style={{width:'100%', height: 200, objectFit:'cover', borderRadius:8, marginBottom:12}} alt={f.title} />}
+                 {/* КАРТА с ЦЕНТРИРАНЕ */}
+                 <div className="card" style={{ textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", height: "100%" }}>
                     
-                    <h4 style={{ marginBottom: 15 }}>{f.title}</h4>
-                    {/* Показваме част от текста ако има, но по-дискретно */}
-                    {f.excerpt && <p className="text-muted" style={{ marginBottom: 15 }}>{f.excerpt}</p>}
-                    
-                    {/* ЛОГИКА ЗА БУТОНА */}
-                    {f.customLink ? (
-                        /* Ако има Custom Link (напр. /gallery), ползваме Link или <a> */
-                        <a href={f.customLink} className="btn outline">
-                             {f.buttonText || "Read More"}
-                        </a>
-                    ) : (
-                        /* Ако няма линк, отваряме Модала */
-                        <button className="btn outline" onClick={() => setSelectedArticle(f)}>
-                             {f.buttonText || "Read More"}
-                        </button>
+                    {f.imageUrl && (
+                        <img 
+                            src={f.imageUrl} 
+                            style={{width:'100%', height: 200, objectFit:'cover', borderRadius:8, marginBottom:15}} 
+                            alt={f.title} 
+                        />
                     )}
+                    
+                    <h4 style={{ marginBottom: 12 }}>{f.title}</h4>
+                    
+                    {f.excerpt && <p style={{color: "#666", fontSize: "0.95rem", marginBottom: 15}}>{f.excerpt}</p>}
+                    
+                    {/* ЛОГИКА ЗА БУТОНА: Линк или Модал */}
+                    <div style={{ marginTop: "auto" }}>
+                        {f.customLink ? (
+                            /* Ако има линк */
+                            <a href={f.customLink} className="btn outline">
+                                {f.buttonText || "Open Link"}
+                            </a>
+                        ) : (
+                            /* Ако няма линк - отваря модал */
+                            <button className="btn outline" onClick={() => setSelectedArticle(f)}>
+                                {f.buttonText || "Read More"}
+                            </button>
+                        )}
+                    </div>
                  </div>
               </div>
             ))}

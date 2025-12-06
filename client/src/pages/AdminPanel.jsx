@@ -4,17 +4,13 @@ import { useState, useEffect } from "react"
 import { api } from "../lib/api"
 import { useAuth } from "../hooks/useAuth"
 
+// --- ТВОИТЕ НАСТРОЙКИ ---
 const CLOUDINARY_URL = "https://api.cloudinary.com/v1_1/dwezdx5zn/image/upload";
 const UPLOAD_PRESET = "ml_default"; 
-
 const ADMIN_EMAILS = ["icaki06@gmail.com", "icaki2k@gmail.com", "mirenmagazine@gmail.com"]
+// ------------------------
 
-const ARTICLE_CATEGORIES = [
-  "Sports", "E-Sports", "Photography", "Lifestyle", "Art", 
-  "Music", "Movies & Series", "Business", "Science", 
-  "Culture", "Health & Fitness", "Travel"
-]
-
+const ARTICLE_CATEGORIES = ["Sports", "E-Sports", "Photography", "Lifestyle", "Art", "Music", "Movies & Series", "Business", "Science", "Culture", "Health & Fitness", "Travel"];
 const MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"];
 
 export default function AdminPanel() {
@@ -64,7 +60,7 @@ export default function AdminPanel() {
     } catch (err) { console.error(err) }
   }
 
-  // --- IMAGE UPLOAD FUNCTION ---
+  // --- IMAGE UPLOAD ---
   async function handleImageUpload(e, type) {
     const file = e.target.files[0];
     if (!file) return;
@@ -82,11 +78,8 @@ export default function AdminPanel() {
             if (type === 'cover') {
                 setMagForm(prev => ({ ...prev, coverUrl: data.secure_url }));
             } else if (type === 'page') {
-                // ТУК Е ПРОМЯНАТА: Добавяме към масива, вместо да го презаписваме
-                setMagForm(prev => ({ 
-                    ...prev, 
-                    pages: [...prev.pages, data.secure_url] 
-                }));
+                // ДОБАВЯМЕ КЪМ МАСИВА (не заместваме)
+                setMagForm(prev => ({ ...prev, pages: [...prev.pages, data.secure_url] }));
             } else {
                 setArticleForm(prev => ({ ...prev, imageUrl: data.secure_url }));
             }
@@ -97,12 +90,11 @@ export default function AdminPanel() {
         setMsg("Upload failed."); 
     } finally { 
         setUploading(false); 
-        // Изчистваме input-а, за да може да се качи същия файл пак ако трябва
-        e.target.value = null; 
+        e.target.value = null; // Ресет на инпута, за да можеш да качиш същия файл пак
     }
   }
 
-  // Функция за изтриване на конкретна страница
+  // Премахване на страница от списанието
   function removePage(indexToRemove) {
       setMagForm(prev => ({
           ...prev,
@@ -115,18 +107,29 @@ export default function AdminPanel() {
     e.preventDefault()
     try {
       if (activeTab === "magazine") {
-         const dataToSave = { ...magForm, isLocked: Boolean(magForm.isLocked) }
+         // Уверяваме се, че данните са правилни типове
+         const dataToSave = { 
+             ...magForm, 
+             year: parseInt(magForm.year) || 2025, // Задължително число за базата
+             isLocked: Boolean(magForm.isLocked)
+         }
          if (editingId) await api.put(`/magazines/${editingId}`, dataToSave);
          else await api.post('/magazines', dataToSave);
          setMsg("Magazine saved!");
       } else {
-         const dataToSave = { ...articleForm, category: activeTab, author: user.displayName || "Admin" }
+         const dataToSave = { 
+             ...articleForm, 
+             category: activeTab, 
+             author: user.displayName || "Admin" 
+         }
          if (editingId) await api.put(`/articles/${editingId}`, dataToSave);
          else await api.post("/articles", dataToSave);
          setMsg("Article saved!");
       }
+      // Изчакваме малко и ресетваме
       setTimeout(() => { resetForms(); loadData(); }, 1000)
     } catch (err) { 
+        console.error(err);
         setMsg("Error: " + (err.response?.data?.message || err.message)); 
     }
   }
@@ -151,14 +154,19 @@ export default function AdminPanel() {
 
   function handleEdit(item) {
     setEditingId(item.id)
-    if (activeTab === "magazine") {
+    // Ако редактираме, сменяме таба автоматично
+    if (item.category && item.category !== activeTab && activeTab !== "magazine") {
+        setActiveTab(item.category)
+    }
+
+    if (activeTab === "magazine" || item.pages !== undefined) {
        setMagForm({
            issueNumber: item.issueNumber || "",
            month: item.month || "January",
            year: item.year || 2025,
            isLocked: !!item.isLocked,
            coverUrl: item.coverUrl || "",
-           pages: item.pages || [] // Уверяваме се, че е масив
+           pages: Array.isArray(item.pages) ? item.pages : [] 
        })
     } else {
        setArticleForm({
@@ -228,27 +236,36 @@ export default function AdminPanel() {
           <form onSubmit={handleSave} className="form">
             {activeTab === "magazine" ? (
                <div>
-                   {/* MAGAZINE FORM */}
+                   {/* MAGAZINE HEADER */}
                    <div style={{display:'flex', gap: 10, marginBottom: 10}}>
-                       <input className="input" placeholder="Issue # (e.g. 005)" value={magForm.issueNumber} onChange={e=>setMagForm({...magForm, issueNumber: e.target.value})} style={{flex:1}} />
-                       
-                       <select className="input" value={magForm.month} onChange={e=>setMagForm({...magForm, month: e.target.value})} style={{flex:1}}>
-                           {MONTHS.map(m=><option key={m} value={m}>{m}</option>)}
-                       </select>
-                       
-                       <input className="input" type="number" placeholder="Year" value={magForm.year} onChange={e=>setMagForm({...magForm, year: e.target.value})} style={{flex:1}} />
+                       <div style={{flex:1}}>
+                           <label style={{fontSize:"0.8rem", fontWeight:"bold"}}>Issue #</label>
+                           <input className="input" placeholder="005" value={magForm.issueNumber} onChange={e=>setMagForm({...magForm, issueNumber: e.target.value})} style={{width:"100%"}} />
+                       </div>
+                       <div style={{flex:1}}>
+                           <label style={{fontSize:"0.8rem", fontWeight:"bold"}}>Month</label>
+                           <select className="input" value={magForm.month} onChange={e=>setMagForm({...magForm, month: e.target.value})} style={{width:"100%"}}>
+                               {MONTHS.map(m=><option key={m} value={m}>{m}</option>)}
+                           </select>
+                       </div>
+                       <div style={{flex:1}}>
+                           <label style={{fontSize:"0.8rem", fontWeight:"bold"}}>Year</label>
+                           <input className="input" type="number" placeholder="2025" value={magForm.year} onChange={e=>setMagForm({...magForm, year: e.target.value})} style={{width:"100%"}} />
+                       </div>
                    </div>
                    
                    {/* COVER UPLOAD */}
                    <div style={{marginBottom: 20, padding: 10, border: "1px solid #ddd", background: "#f9f9f9"}}>
                        <label style={{fontWeight:"bold", display:"block", marginBottom: 5}}>1. Cover Image</label>
                        <input type="file" onChange={(e) => handleImageUpload(e, 'cover')} accept="image/*" disabled={uploading} />
-                       {magForm.coverUrl && <img src={magForm.coverUrl} style={{height: 100, marginTop: 10, display: "block", borderRadius: 5}} />}
+                       {magForm.coverUrl && <img src={magForm.coverUrl} style={{height: 120, marginTop: 10, display: "block", borderRadius: 5, border:"1px solid #ccc"}} />}
                    </div>
 
                    {/* PAGES UPLOAD (MULTI) */}
                    <div style={{marginBottom: 20, padding: 10, border: "1px solid #ddd", background: "#f9f9f9"}}>
-                       <label style={{fontWeight:"bold", display:"block", marginBottom: 5}}>2. Magazine Pages ({magForm.pages.length})</label>
+                       <label style={{fontWeight:"bold", display:"block", marginBottom: 5}}>
+                           2. Magazine Pages ({magForm.pages.length})
+                       </label>
                        
                        {/* Визуализация на качените страници */}
                        <div style={{display:"flex", flexWrap:"wrap", gap: 10, marginBottom: 15}}>
@@ -258,31 +275,47 @@ export default function AdminPanel() {
                                    <button 
                                       type="button" 
                                       onClick={() => removePage(i)} 
+                                      title="Remove page"
                                       style={{
-                                          position:"absolute", top: -5, right: -5, 
-                                          background:"red", color:"white", 
+                                          position:"absolute", top: -8, right: -8, 
+                                          background:"#e63946", color:"white", 
                                           border:"none", borderRadius: "50%", 
-                                          width: 20, height: 20, cursor:"pointer", fontWeight: "bold"
+                                          width: 24, height: 24, cursor:"pointer", fontWeight: "bold",
+                                          display: "flex", alignItems: "center", justifyContent: "center"
                                       }}
                                    >
-                                    X
+                                    ×
                                    </button>
-                                   <div style={{textAlign: "center", fontSize: "0.7rem", marginTop: 2}}>Page {i+1}</div>
+                                   <div style={{textAlign: "center", fontSize: "0.7rem", marginTop: 2, fontWeight:"bold"}}>Pg {i+1}</div>
                                </div>
                            ))}
                        </div>
                        
                        {/* БУТОН ЗА ДОБАВЯНЕ НА НОВА СТРАНИЦА */}
                        <div style={{borderTop: "1px dashed #ccc", paddingTop: 10}}>
-                           <label style={{display: "block", marginBottom: 5, color: "#e63946", fontWeight: "bold"}}>+ Add New Page</label>
-                           <input type="file" onChange={(e) => handleImageUpload(e, 'page')} accept="image/*" disabled={uploading} />
-                           {uploading && <span style={{marginLeft: 10}}>Uploading... ⏳</span>}
+                           <label 
+                               style={{
+                                   display: "inline-block", 
+                                   padding: "8px 16px",
+                                   background: "#e63946",
+                                   color: "white",
+                                   borderRadius: "4px",
+                                   cursor: "pointer",
+                                   fontWeight: "bold"
+                               }}
+                           >
+                               + Add Page
+                               <input type="file" onChange={(e) => handleImageUpload(e, 'page')} accept="image/*" style={{display:"none"}} disabled={uploading} />
+                           </label>
+                           {uploading && <span style={{marginLeft: 10, fontWeight:"bold"}}>Uploading... ⏳</span>}
                        </div>
                    </div>
 
-                   <label style={{display: "flex", alignItems: "center", gap: 5, cursor: "pointer"}}>
-                       <input type="checkbox" checked={magForm.isLocked} onChange={e => setMagForm({...magForm, isLocked: e.target.checked})} />
-                       Premium Locked?
+                   <label style={{display: "flex", alignItems: "center", gap: 5, cursor: "pointer", marginTop: 10}}>
+                       <input type="checkbox" checked={magForm.isLocked} onChange={e => setMagForm({...magForm, isLocked: e.target.checked})} style={{width:18, height:18}} />
+                       <span style={{fontWeight:"bold", color: magForm.isLocked ? "#e63946" : "green"}}>
+                           {magForm.isLocked ? "🔒 Premium Locked" : "🔓 Free for Everyone"}
+                       </span>
                    </label>
                </div>
             ) : (
@@ -330,7 +363,7 @@ export default function AdminPanel() {
         <div className="stack">
             {items.map(item => (
                 <div key={item.id} className="card inline" style={{ display: "flex", justifyContent: 'space-between', padding: 10, borderBottom: "1px solid #eee" }}>
-                    <span><strong>{item.title || `Issue ${item.issueNumber}`}</strong></span>
+                    <span><strong>{item.title || `Issue #${item.issueNumber}`}</strong> ({item.month || item.date})</span>
                     <div>
                         <button onClick={() => handleEdit(item)} style={{marginRight:10}}>✏️</button>
                         <button onClick={() => handleDelete(item.id)} style={{color:"red"}}>🗑️</button>

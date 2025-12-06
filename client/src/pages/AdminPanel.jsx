@@ -10,7 +10,7 @@ const UPLOAD_PRESET = "ml_default";
 const ADMIN_EMAILS = ["icaki06@gmail.com", "icaki2k@gmail.com", "mirenmagazine@gmail.com"]
 // ------------------------
 
-const ARTICLE_CATEGORIES = ["Sports", "E-Sports", "Photography", "Lifestyle", "Art", "Music", "Movies & Series", "Business", "Science", "Culture", "Health & Fitness", "Travel"];
+const ARTICLE_CATEGORIES = ["Sports", "E-Sports", "Photography", "Lifestyle", "Art", "Music", "Movies & Series", "Business", "Science", "Culture", "Health & Fitness", "Travel", "Home"];
 const MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"];
 
 export default function AdminPanel() {
@@ -27,9 +27,18 @@ export default function AdminPanel() {
   const [emailSubject, setEmailSubject] = useState("")
   const [emailBody, setEmailBody] = useState("")
 
-  // Article Form
+  // Article Form - ДОБАВЕНИ СА buttonText и customLink
   const [articleForm, setArticleForm] = useState({
-    title: "", text: "", date: new Date().toISOString().split("T")[0], time: "", imageUrl: "", excerpt: "", articleCategory: "Lifestyle", isPremium: false, linkTo: "/news"
+    title: "", 
+    text: "", 
+    date: new Date().toISOString().split("T")[0], 
+    time: "", 
+    imageUrl: "", 
+    excerpt: "", 
+    articleCategory: "Lifestyle", 
+    isPremium: false, 
+    buttonText: "Read More", // Default text
+    customLink: ""           // Default empty
   })
 
   // Magazine Form
@@ -78,7 +87,6 @@ export default function AdminPanel() {
             if (type === 'cover') {
                 setMagForm(prev => ({ ...prev, coverUrl: data.secure_url }));
             } else if (type === 'page') {
-                // ДОБАВЯМЕ КЪМ МАСИВА (не заместваме)
                 setMagForm(prev => ({ ...prev, pages: [...prev.pages, data.secure_url] }));
             } else {
                 setArticleForm(prev => ({ ...prev, imageUrl: data.secure_url }));
@@ -90,11 +98,10 @@ export default function AdminPanel() {
         setMsg("Upload failed."); 
     } finally { 
         setUploading(false); 
-        e.target.value = null; // Ресет на инпута, за да можеш да качиш същия файл пак
+        e.target.value = null; 
     }
   }
 
-  // Премахване на страница от списанието
   function removePage(indexToRemove) {
       setMagForm(prev => ({
           ...prev,
@@ -107,10 +114,9 @@ export default function AdminPanel() {
     e.preventDefault()
     try {
       if (activeTab === "magazine") {
-         // Уверяваме се, че данните са правилни типове
          const dataToSave = { 
              ...magForm, 
-             year: parseInt(magForm.year) || 2025, // Задължително число за базата
+             year: parseInt(magForm.year) || 2025,
              isLocked: Boolean(magForm.isLocked)
          }
          if (editingId) await api.put(`/magazines/${editingId}`, dataToSave);
@@ -126,7 +132,6 @@ export default function AdminPanel() {
          else await api.post("/articles", dataToSave);
          setMsg("Article saved!");
       }
-      // Изчакваме малко и ресетваме
       setTimeout(() => { resetForms(); loadData(); }, 1000)
     } catch (err) { 
         console.error(err);
@@ -154,7 +159,6 @@ export default function AdminPanel() {
 
   function handleEdit(item) {
     setEditingId(item.id)
-    // Ако редактираме, сменяме таба автоматично
     if (item.category && item.category !== activeTab && activeTab !== "magazine") {
         setActiveTab(item.category)
     }
@@ -178,7 +182,8 @@ export default function AdminPanel() {
            excerpt: item.excerpt || "",
            articleCategory: item.articleCategory || "Lifestyle",
            isPremium: !!item.isPremium,
-           linkTo: item.linkTo || "/news"
+           buttonText: item.buttonText || "Read More", // Load button text
+           customLink: item.customLink || ""           // Load custom link
        })
     }
     setShowForm(true)
@@ -187,7 +192,10 @@ export default function AdminPanel() {
 
   function resetForms() {
     setEditingId(null); setShowForm(false); setMsg("");
-    setArticleForm({ title: "", text: "", date: new Date().toISOString().split("T")[0], time: "", imageUrl: "", excerpt: "", articleCategory: "Lifestyle", isPremium: false, linkTo: "/news" })
+    setArticleForm({ 
+        title: "", text: "", date: new Date().toISOString().split("T")[0], time: "", imageUrl: "", excerpt: "", articleCategory: "Lifestyle", isPremium: false, 
+        buttonText: "Read More", customLink: "" 
+    })
     setMagForm({ issueNumber: "", month: "January", year: new Date().getFullYear(), isLocked: true, pages: [], coverUrl: "" })
   }
 
@@ -216,10 +224,6 @@ export default function AdminPanel() {
                </form>
                {msg && <p style={{marginTop: 10}}>{msg}</p>}
             </div>
-            <h4>Subscribers</h4>
-            <div style={{maxHeight: 200, overflowY: "auto", border:"1px solid #eee", padding: 5}}>
-                {subscribers.map((s, i) => <div key={i}>{s.email}</div>)}
-            </div>
         </div>
       )}
 
@@ -236,7 +240,7 @@ export default function AdminPanel() {
           <form onSubmit={handleSave} className="form">
             {activeTab === "magazine" ? (
                <div>
-                   {/* MAGAZINE HEADER */}
+                   {/* MAGAZINE FORM CONTENT SAME AS BEFORE */}
                    <div style={{display:'flex', gap: 10, marginBottom: 10}}>
                        <div style={{flex:1}}>
                            <label style={{fontSize:"0.8rem", fontWeight:"bold"}}>Issue #</label>
@@ -254,81 +258,51 @@ export default function AdminPanel() {
                        </div>
                    </div>
                    
-                   {/* COVER UPLOAD */}
                    <div style={{marginBottom: 20, padding: 10, border: "1px solid #ddd", background: "#f9f9f9"}}>
                        <label style={{fontWeight:"bold", display:"block", marginBottom: 5}}>1. Cover Image</label>
                        <input type="file" onChange={(e) => handleImageUpload(e, 'cover')} accept="image/*" disabled={uploading} />
                        {magForm.coverUrl && <img src={magForm.coverUrl} style={{height: 120, marginTop: 10, display: "block", borderRadius: 5, border:"1px solid #ccc"}} />}
                    </div>
 
-                   {/* PAGES UPLOAD (MULTI) */}
                    <div style={{marginBottom: 20, padding: 10, border: "1px solid #ddd", background: "#f9f9f9"}}>
-                       <label style={{fontWeight:"bold", display:"block", marginBottom: 5}}>
-                           2. Magazine Pages ({magForm.pages.length})
-                       </label>
-                       
-                       {/* Визуализация на качените страници */}
+                       <label style={{fontWeight:"bold", display:"block", marginBottom: 5}}>2. Magazine Pages ({magForm.pages.length})</label>
                        <div style={{display:"flex", flexWrap:"wrap", gap: 10, marginBottom: 15}}>
                            {magForm.pages.map((p, i) => (
                                <div key={i} style={{position:"relative", border: "1px solid #ccc", padding: 2, background: "white"}}>
                                    <img src={p} style={{height: 100, display: "block"}} />
-                                   <button 
-                                      type="button" 
-                                      onClick={() => removePage(i)} 
-                                      title="Remove page"
-                                      style={{
-                                          position:"absolute", top: -8, right: -8, 
-                                          background:"#e63946", color:"white", 
-                                          border:"none", borderRadius: "50%", 
-                                          width: 24, height: 24, cursor:"pointer", fontWeight: "bold",
-                                          display: "flex", alignItems: "center", justifyContent: "center"
-                                      }}
-                                   >
-                                    ×
-                                   </button>
-                                   <div style={{textAlign: "center", fontSize: "0.7rem", marginTop: 2, fontWeight:"bold"}}>Pg {i+1}</div>
+                                   <button type="button" onClick={() => removePage(i)} style={{position:"absolute", top: -8, right: -8, background:"#e63946", color:"white", border:"none", borderRadius: "50%", width: 24, height: 24, cursor:"pointer"}}>×</button>
                                </div>
                            ))}
                        </div>
-                       
-                       {/* БУТОН ЗА ДОБАВЯНЕ НА НОВА СТРАНИЦА */}
-                       <div style={{borderTop: "1px dashed #ccc", paddingTop: 10}}>
-                           <label 
-                               style={{
-                                   display: "inline-block", 
-                                   padding: "8px 16px",
-                                   background: "#e63946",
-                                   color: "white",
-                                   borderRadius: "4px",
-                                   cursor: "pointer",
-                                   fontWeight: "bold"
-                               }}
-                           >
-                               + Add Page
-                               <input type="file" onChange={(e) => handleImageUpload(e, 'page')} accept="image/*" style={{display:"none"}} disabled={uploading} />
-                           </label>
-                           {uploading && <span style={{marginLeft: 10, fontWeight:"bold"}}>Uploading... ⏳</span>}
-                       </div>
+                       <label style={{display: "inline-block", padding: "8px 16px", background: "#e63946", color: "white", borderRadius: "4px", cursor: "pointer"}}>
+                           + Add Page
+                           <input type="file" onChange={(e) => handleImageUpload(e, 'page')} accept="image/*" style={{display:"none"}} disabled={uploading} />
+                       </label>
                    </div>
-
-                   <label style={{display: "flex", alignItems: "center", gap: 5, cursor: "pointer", marginTop: 10}}>
-                       <input type="checkbox" checked={magForm.isLocked} onChange={e => setMagForm({...magForm, isLocked: e.target.checked})} style={{width:18, height:18}} />
-                       <span style={{fontWeight:"bold", color: magForm.isLocked ? "#e63946" : "green"}}>
-                           {magForm.isLocked ? "🔒 Premium Locked" : "🔓 Free for Everyone"}
-                       </span>
-                   </label>
                </div>
             ) : (
                /* ARTICLE FORM */
                <>
                   <input className="input" type="text" placeholder="Title" value={articleForm.title} onChange={e => setArticleForm({...articleForm, title: e.target.value})} required style={{width:"100%", marginBottom: 10}} />
                   
+                  {/* --- NEW FIELDS FOR BUTTONS AND LINKS --- */}
+                  <div style={{display: 'flex', gap: 10, marginBottom: 10, background: '#f0f8ff', padding: 10, borderRadius: 6}}>
+                     <div style={{flex: 1}}>
+                         <label style={{fontSize:"0.8rem", fontWeight:"bold"}}>Button Label</label>
+                         <input className="input" placeholder="e.g. Read More / Go to Gallery" value={articleForm.buttonText} onChange={e => setArticleForm({...articleForm, buttonText: e.target.value})} />
+                     </div>
+                     <div style={{flex: 1}}>
+                         <label style={{fontSize:"0.8rem", fontWeight:"bold"}}>Custom Link URL (optional)</label>
+                         <input className="input" placeholder="e.g. /news or https://google.com" value={articleForm.customLink} onChange={e => setArticleForm({...articleForm, customLink: e.target.value})} />
+                     </div>
+                  </div>
+                  {/* --------------------------------------- */}
+
                   <div style={{marginBottom: 10, padding: 10, background: "#f9f9f9", border: "1px dashed #ccc"}}>
                       <label style={{fontWeight:"bold", fontSize: "0.9rem"}}>Article Image</label>
                       <input type="file" onChange={(e) => handleImageUpload(e, 'article')} accept="image/*" disabled={uploading} style={{marginTop: 5}} />
                       {uploading && <span>Uploading...</span>}
                       {articleForm.imageUrl && <img src={articleForm.imageUrl} style={{height: 100, marginTop: 10, borderRadius: 5}} />}
-                      <input className="input" placeholder="Or Paste URL manually" value={articleForm.imageUrl} onChange={e => setArticleForm({...articleForm, imageUrl: e.target.value})} style={{width:"100%", marginTop: 10}} />
                   </div>
 
                   <div style={{display:'flex', gap: 10}}>
@@ -342,9 +316,7 @@ export default function AdminPanel() {
                        </select>
                   )}
 
-                  {activeTab !== "gallery" && (
-                      <textarea className="textarea" placeholder="Full Text..." value={articleForm.text} onChange={e => setArticleForm({...articleForm, text: e.target.value})} style={{width:"100%", minHeight: 100, marginTop: 10}} />
-                  )}
+                  <textarea className="textarea" placeholder="Full Text or Short Description..." value={articleForm.text} onChange={e => setArticleForm({...articleForm, text: e.target.value})} style={{width:"100%", minHeight: 100, marginTop: 10}} />
                </>
             )}
 

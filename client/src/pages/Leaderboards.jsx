@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { api } from "../lib/api"
-import { Link } from "react-router-dom" // Импортираме Link
+import { Link } from "react-router-dom" 
 
 export default function Leaderboards() {
   const [data, setData] = useState([])
@@ -26,15 +26,34 @@ export default function Leaderboards() {
     }
   }
 
+  // --- СТИЛИЗАЦИЯ ЗА АБОНАМЕНТИТЕ ---
   function getPlanStyle(plan) {
-    if (plan === "yearly") return { color: "#d4a017", background: "linear-gradient(90deg, rgba(212, 160, 23, 0.15), transparent)", borderLeft: "4px solid #d4a017", fontWeight: "bold" }
-    if (plan === "monthly") return { color: "#4a90e2", background: "rgba(74, 144, 226, 0.05)", borderLeft: "4px solid #4a90e2", fontWeight: "600" }
-    return { color: "var(--text)", borderLeft: "4px solid transparent" }
+    if (plan === "yearly") {
+        return { 
+            color: "#d4a017", // Златисто-оранжев текст
+            background: "linear-gradient(90deg, rgba(255, 215, 0, 0.15), transparent)", // Лек златен фон
+            borderLeft: "4px solid #FFD700", // Златен бордюр отляво
+            fontWeight: "bold" 
+        }
+    }
+    if (plan === "monthly") {
+        return { 
+            color: "#007bff", // Наситено синьо
+            background: "linear-gradient(90deg, rgba(0, 123, 255, 0.1), transparent)", // Лек син фон
+            borderLeft: "4px solid #007bff", // Син бордюр отляво
+            fontWeight: "600" 
+        }
+    }
+    // За всички останали (Free users)
+    return { 
+        color: "var(--text)", 
+        borderLeft: "4px solid transparent" 
+    }
   }
 
   function getPlanIcon(plan) {
-    if (plan === "yearly") return "👑"
-    if (plan === "monthly") return "⭐"
+    if (plan === "yearly") return " 👑" // Корона за годишни
+    if (plan === "monthly") return " ⭐" // Звезда за месечни
     return ""
   }
 
@@ -46,10 +65,9 @@ export default function Leaderboards() {
     <div className="page">
       <h2 className="headline" style={{ textAlign: "center", marginBottom: 30 }}>Leaderboards 🏆</h2>
 
-      {/* ПРОМЯНА: Link вместо бутон, за да работи навигацията */}
       <div style={{ display: "flex", justifyContent: "center", marginBottom: 30, gap: 10 }}>
         <Link 
-            to="/games" // Смени с пътя към твоята игра, ако е различен
+            to="/games" 
             className="btn primary"
             style={{ textDecoration: 'none' }}
         >
@@ -72,7 +90,13 @@ export default function Leaderboards() {
             return (
               <div key={index} style={{ display: "flex", padding: "16px 10px", alignItems: "center", borderBottom: "1px solid var(--nav-border)", borderRadius: "0 8px 8px 0", ...style }}>
                 <div style={{ width: "50px", textAlign: "center", fontWeight: "bold", fontSize: "1.2rem", color: "var(--text-muted)" }}>{index + 1}</div>
-                <div style={{ flex: 1, fontSize: "1.1rem" }}>{player.displayName || player.email} {getPlanIcon(player.plan)}</div>
+                
+                {/* Тук се прилага цветът на името и иконата */}
+                <div style={{ flex: 1, fontSize: "1.1rem" }}>
+                    {player.displayName || player.email} 
+                    {getPlanIcon(player.plan)}
+                </div>
+                
                 <div style={{ width: "80px", textAlign: "center", fontWeight: "bold", fontSize: "1.2rem", color: "var(--success)" }}>{player.streak} 🔥</div>
               </div>
             )

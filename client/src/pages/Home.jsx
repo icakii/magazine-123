@@ -6,6 +6,7 @@ import NewsletterManager from "../components/NewsletterManager"
 import { useAuth } from "../hooks/useAuth"
 import { t } from "../lib/i18n"
 import { api } from "../lib/api"
+import { Link } from "react-router-dom" // Или 'next/link' ако си с Next.js
 
 export default function Home() {
   const { user } = useAuth()
@@ -46,11 +47,29 @@ export default function Home() {
           <div className="grid">
             {featured.map(f => (
               <div key={f.id} className="col-6">
-                 <div className="card">
+                 {/* ТУК Е ПРОМЯНАТА: 
+                     1. Добавен textAlign: 'center' за центриране
+                     2. Добавена логика за бутона (линк или модал)
+                 */}
+                 <div className="card" style={{ textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center" }}>
                     {f.imageUrl && <img src={f.imageUrl} style={{width:'100%', height: 200, objectFit:'cover', borderRadius:8, marginBottom:12}} alt={f.title} />}
-                    <h4>{f.title}</h4>
-                    <p>{f.excerpt}</p>
-                    <button className="btn outline" onClick={() => setSelectedArticle(f)}>Read More</button>
+                    
+                    <h4 style={{ marginBottom: 15 }}>{f.title}</h4>
+                    {/* Показваме част от текста ако има, но по-дискретно */}
+                    {f.excerpt && <p className="text-muted" style={{ marginBottom: 15 }}>{f.excerpt}</p>}
+                    
+                    {/* ЛОГИКА ЗА БУТОНА */}
+                    {f.customLink ? (
+                        /* Ако има Custom Link (напр. /gallery), ползваме Link или <a> */
+                        <a href={f.customLink} className="btn outline">
+                             {f.buttonText || "Read More"}
+                        </a>
+                    ) : (
+                        /* Ако няма линк, отваряме Модала */
+                        <button className="btn outline" onClick={() => setSelectedArticle(f)}>
+                             {f.buttonText || "Read More"}
+                        </button>
+                    )}
                  </div>
               </div>
             ))}
@@ -62,7 +81,7 @@ export default function Home() {
         <div className="modal-backdrop" onClick={() => setSelectedArticle(null)}>
           <div className="modal-content" onClick={e => e.stopPropagation()}>
             <button className="modal-close" onClick={() => setSelectedArticle(null)}>×</button>
-            <h2 className="headline">{selectedArticle.title}</h2>
+            <h2 className="headline" style={{textAlign:"center"}}>{selectedArticle.title}</h2>
             {selectedArticle.imageUrl && <img src={selectedArticle.imageUrl} style={{width:'100%', borderRadius:8, marginBottom:20}} alt={selectedArticle.title} />}
             <div className="modal-text">{selectedArticle.text}</div>
           </div>

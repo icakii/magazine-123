@@ -17,8 +17,6 @@ export default function Leaderboards() {
     setLoading(true)
     try {
       const res = await api.get(`/leaderboard?game=${game}`)
-      // Ако искаш да видиш дали идва "plan", натисни F12 в браузъра и виж конзолата
-      console.log("Leaderboard Data:", res.data) 
       setData(res.data || [])
     } catch (err) {
       console.error(err)
@@ -27,11 +25,8 @@ export default function Leaderboards() {
     }
   }
 
-  // --- ТУК Е ЛОГИКАТА ЗА ЦВЕТОВЕТЕ ---
+  // ФУНКЦИЯ ЗА СТИЛА - ПРОВЕРЯВА ДИРЕКТНО ДАЛИ Е yearly ИЛИ monthly
   function getPlanStyle(plan) {
-    if (!plan) return { color: "var(--text)", borderLeft: "4px solid transparent" }
-
-    // Проверяваме точно за думите "yearly" и "monthly"
     if (plan === "yearly") {
         return { 
             color: "#d4a017", 
@@ -65,7 +60,7 @@ export default function Leaderboards() {
     <div className="page">
       <h2 className="headline" style={{ textAlign: "center", marginBottom: 30 }}>Leaderboards 🏆</h2>
 
-      <div style={{ display: "flex", justifyContent: "center", marginBottom: 30 }}>
+      <div style={{ display: "flex", justifyContent: "center", marginBottom: 30, gap: 10 }}>
         <Link to="/games" className="btn primary" style={{ textDecoration: 'none' }}>
           Play Daily Word Game
         </Link>
@@ -79,7 +74,7 @@ export default function Leaderboards() {
         </div>
 
         {visibleData.length === 0 ? (
-          <p style={{ textAlign: "center", padding: 20 }}>No records yet.</p>
+          <p style={{ textAlign: "center", padding: 20 }} className="text-muted">No records yet.</p>
         ) : (
           visibleData.map((player, index) => {
             const style = getPlanStyle(player.plan)
@@ -88,8 +83,7 @@ export default function Leaderboards() {
                 <div style={{ width: "50px", textAlign: "center", fontWeight: "bold", fontSize: "1.2rem", opacity: 0.7 }}>{index + 1}</div>
                 
                 <div style={{ flex: 1, fontSize: "1.1rem" }}>
-                    {/* Визуализираме името и иконата */}
-                    {player.displayName || player.username || player.email || "Player"} 
+                    {player.displayName || player.username || player.email} 
                     {getPlanIcon(player.plan)}
                 </div>
                 

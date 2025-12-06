@@ -1,3 +1,4 @@
+// client/src/pages/Leaderboards.jsx
 "use client"
 
 import { useEffect, useState } from "react"
@@ -25,50 +26,92 @@ export default function Leaderboards() {
     }
   }
 
-  // СТИЛ
-  function getPlanStyle(plan) {
+  // --- BADGE СТИЛ ЗА ИМЕТО СПОРЕД ПЛАНА ---
+  function getPlanBadgeStyle(plan) {
     if (plan === "yearly") {
-        return { 
-            color: "#d4a017", 
-            background: "linear-gradient(90deg, rgba(212, 160, 23, 0.15), transparent)", 
-            borderLeft: "4px solid #d4a017", 
-            fontWeight: "bold" 
-        }
+      return {
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 6,
+        padding: "4px 10px",
+        borderRadius: 9999,
+        backgroundColor: "#fff7cc",   // светло жълто
+        color: "#ff8c00",             // оранжев текст
+        fontWeight: 700,
+      }
     }
+
     if (plan === "monthly") {
-        return { 
-            color: "#4a90e2", 
-            background: "rgba(74, 144, 226, 0.05)", 
-            borderLeft: "4px solid #4a90e2", 
-            fontWeight: "600" 
-        }
+      return {
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 6,
+        padding: "4px 10px",
+        borderRadius: 9999,
+        backgroundColor: "#e3f0ff",   // светло син фон
+        color: "#1f5fbf",             // син текст
+        fontWeight: 600,
+      }
     }
-    return { color: "var(--text)", borderLeft: "4px solid transparent" }
+
+    // free / няма абонамент
+    return {}
   }
 
-  // ИКОНА
+  // --- ЕМОДЖИ СПОРЕД ПЛАНА ---
   function getPlanIcon(plan) {
     if (plan === "yearly") return " 👑"
     if (plan === "monthly") return " ⭐"
     return ""
   }
 
-  if (loading) return <div className="page"><p>Loading rankings...</p></div>
+  if (loading) {
+    return (
+      <div className="page">
+        <p>Loading rankings.</p>
+      </div>
+    )
+  }
 
   const visibleData = data.slice(0, 10)
 
   return (
     <div className="page">
-      <h2 className="headline" style={{ textAlign: "center", marginBottom: 30 }}>Leaderboards 🏆</h2>
+      <h2
+        className="headline"
+        style={{ textAlign: "center", marginBottom: 30 }}
+      >
+        Leaderboards 🏆
+      </h2>
 
-      <div style={{ display: "flex", justifyContent: "center", marginBottom: 30, gap: 10 }}>
-        <Link to="/games" className="btn primary" style={{ textDecoration: 'none' }}>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "center",
+          marginBottom: 30,
+          gap: 10,
+        }}
+      >
+        <Link
+          to="/games"
+          className="btn primary"
+          style={{ textDecoration: "none" }}
+        >
           Play Daily Word Game
         </Link>
       </div>
 
       <div className="card stack">
-        <div style={{ display: "flex", padding: "10px", borderBottom: "1px solid var(--nav-border)", fontWeight: "bold", opacity: 0.7 }}>
+        {/* header row */}
+        <div
+          style={{
+            display: "flex",
+            padding: "10px",
+            borderBottom: "1px solid var(--nav-border)",
+            fontWeight: "bold",
+            opacity: 0.7,
+          }}
+        >
           <div style={{ width: "50px", textAlign: "center" }}>#</div>
           <div style={{ flex: 1 }}>Player</div>
           <div style={{ width: "80px", textAlign: "center" }}>Streak</div>
@@ -78,15 +121,56 @@ export default function Leaderboards() {
           <p style={{ textAlign: "center", padding: 20 }}>No records yet.</p>
         ) : (
           visibleData.map((player, index) => {
-            const style = getPlanStyle(player.plan)
+            const name =
+              player.displayName ||
+              player.username ||
+              player.email ||
+              "Unknown"
+
             return (
-              <div key={index} style={{ display: "flex", padding: "16px 10px", alignItems: "center", borderBottom: "1px solid var(--nav-border)", borderRadius: "0 8px 8px 0", ...style }}>
-                <div style={{ width: "50px", textAlign: "center", fontWeight: "bold", fontSize: "1.2rem", opacity: 0.7 }}>{index + 1}</div>
-                <div style={{ flex: 1, fontSize: "1.1rem" }}>
-                    {player.displayName || player.username || player.email} 
-                    {getPlanIcon(player.plan)}
+              <div
+                key={player.userId || index}
+                style={{
+                  display: "flex",
+                  padding: "16px 10px",
+                  alignItems: "center",
+                  borderBottom: "1px solid var(--nav-border)",
+                  borderRadius: "0 8px 8px 0",
+                }}
+              >
+                {/* позиция */}
+                <div
+                  style={{
+                    width: "50px",
+                    textAlign: "center",
+                    fontWeight: "bold",
+                    fontSize: "1.2rem",
+                    opacity: 0.7,
+                  }}
+                >
+                  {index + 1}
                 </div>
-                <div style={{ width: "80px", textAlign: "center", fontWeight: "bold", fontSize: "1.2rem", color: "var(--success)" }}>{player.streak} 🔥</div>
+
+                {/* име + badge */}
+                <div style={{ flex: 1, fontSize: "1.1rem" }}>
+                  <span style={getPlanBadgeStyle(player.plan)}>
+                    {name}
+                    {getPlanIcon(player.plan)}
+                  </span>
+                </div>
+
+                {/* streak */}
+                <div
+                  style={{
+                    width: "80px",
+                    textAlign: "center",
+                    fontWeight: "bold",
+                    fontSize: "1.2rem",
+                    color: "var(--success)",
+                  }}
+                >
+                  {player.streak} 🔥
+                </div>
               </div>
             )
           })

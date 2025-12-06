@@ -299,6 +299,7 @@ app.delete('/api/magazines/:id', adminMiddleware, async (req, res) => {
 // ---------------------------------------------------------------
 // 📰 ARTICLES (с buttonText + customLink)
 // ---------------------------------------------------------------
+// --- ARTICLES ---
 app.get("/api/articles", async (req, res) => {
   try {
     const { category } = req.query;
@@ -324,9 +325,10 @@ app.get("/api/articles", async (req, res) => {
       articleCategory: row.category,
       excerpt: row.excerpt,
       isPremium: row.is_premium,
+      // 👇 важно: това гледа Home.jsx / AdminPanel.jsx
       buttonText: row.button_text || "Read More",
       customLink: row.link_to || "",
-      time: row.time || "",
+      time: row.time || ""
     }));
 
     res.json(mappedRows);
@@ -348,13 +350,13 @@ app.post("/api/articles", adminMiddleware, async (req, res) => {
     isPremium,
     buttonText,
     customLink,
-    time,
+    time
   } = req.body;
 
   try {
     const { rows } = await db.query(
-      `INSERT INTO articles
-       (title, text, author, date, image_url, category, excerpt, is_premium, button_text, link_to, time)
+      `INSERT INTO articles 
+       (title, text, author, date, image_url, category, excerpt, is_premium, button_text, link_to, time) 
        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
        RETURNING *`,
       [
@@ -365,10 +367,10 @@ app.post("/api/articles", adminMiddleware, async (req, res) => {
         imageUrl,
         category,
         excerpt,
-        !!isPremium,
+        isPremium || false,
         buttonText || "Read More",
         customLink || null,
-        time || null,
+        time || null
       ]
     );
 
@@ -379,7 +381,7 @@ app.post("/api/articles", adminMiddleware, async (req, res) => {
   }
 });
 
-app.put("/api/articles/:id", adminMiddleware, async (req, res) => {
+app.put('/api/articles/:id', adminMiddleware, async (req, res) => {
   const { id } = req.params;
   const {
     title,
@@ -392,15 +394,23 @@ app.put("/api/articles/:id", adminMiddleware, async (req, res) => {
     isPremium,
     buttonText,
     customLink,
-    time,
+    time
   } = req.body;
 
   try {
     const result = await db.query(
-      `UPDATE articles
-       SET title=$1, text=$2, author=$3, date=$4, image_url=$5,
-           category=$6, excerpt=$7, is_premium=$8,
-           button_text=$9, link_to=$10, time=$11
+      `UPDATE articles 
+       SET title=$1,
+           text=$2,
+           author=$3,
+           date=$4,
+           image_url=$5,
+           category=$6,
+           excerpt=$7,
+           is_premium=$8,
+           button_text=$9,
+           link_to=$10,
+           time=$11
        WHERE id=$12
        RETURNING *`,
       [
@@ -411,11 +421,11 @@ app.put("/api/articles/:id", adminMiddleware, async (req, res) => {
         imageUrl,
         category,
         excerpt,
-        !!isPremium,
+        isPremium || false,
         buttonText || "Read More",
         customLink || null,
         time || null,
-        id,
+        id
       ]
     );
 
@@ -435,9 +445,11 @@ app.delete("/api/articles/:id", adminMiddleware, async (req, res) => {
     await db.query('DELETE FROM articles WHERE id = $1', [req.params.id]);
     res.json({ ok: true });
   } catch (err) {
+    console.error("DELETE /api/articles/:id error:", err);
     res.status(500).json({ error: err.message });
   }
 });
+
 
 // ---------------------------------------------------------------
 // 🔐 AUTH ROUTES

@@ -10,7 +10,7 @@ export default function Events() {
   const [selectedArticle, setSelectedArticle] = useState(null)
   const [reminderIds, setReminderIds] = useState(new Set())
 
-  // Зареждаме самите events
+  // Зареждаме евентите
   useEffect(() => {
     api
       .get("/articles?category=events")
@@ -18,7 +18,7 @@ export default function Events() {
       .catch(() => {})
   }, [])
 
-  // Зареждаме кои events имат reminder за текущия user
+  // Зареждаме кои евенти имат reminder за текущия user
   useEffect(() => {
     if (!user) {
       setReminderIds(new Set())
@@ -66,6 +66,29 @@ export default function Events() {
     }
   }
 
+  // малки helper стилове за iOS switch
+  const switchTrackStyle = (enabled, disabled) => ({
+    width: 46,
+    height: 26,
+    borderRadius: 999,
+    backgroundColor: disabled ? "#d1d1d6" : enabled ? "#34c759" : "#d1d1d6",
+    position: "relative",
+    transition: "background-color 0.2s ease",
+    boxShadow: "inset 0 0 1px rgba(0,0,0,0.3)",
+  })
+
+  const switchThumbStyle = (enabled) => ({
+    position: "absolute",
+    top: 2,
+    left: enabled ? 22 : 2,
+    width: 22,
+    height: 22,
+    borderRadius: "50%",
+    backgroundColor: "#ffffff",
+    boxShadow: "0 1px 3px rgba(0,0,0,0.35)",
+    transition: "left 0.2s ease",
+  })
+
   return (
     <div className="page hero-bg">
       <h2 className="headline">Events</h2>
@@ -77,6 +100,7 @@ export default function Events() {
         {articles.map((article) => {
           const isLocked = article.isPremium && !hasSubscription
           const reminderEnabled = reminderIds.has(article.id)
+          const reminderDisabled = isLocked || !user
 
           return (
             <div key={article.id} className="col-6">
@@ -180,6 +204,7 @@ export default function Events() {
                     justifyContent: "space-between",
                     alignItems: "center",
                     marginTop: "auto",
+                    gap: 12,
                   }}
                 >
                   <button
@@ -190,26 +215,29 @@ export default function Events() {
                     Read More
                   </button>
 
-                  {/* Reminder toggle – само за отключени и логнати */}
-                  <button
-                    type="button"
-                    onClick={() => !isLocked && handleToggleReminder(article.id)}
-                    disabled={isLocked || !user}
+                  {/* iOS-style reminder toggle */}
+                  <div
+                    onClick={() =>
+                      !reminderDisabled && handleToggleReminder(article.id)
+                    }
                     style={{
-                      borderRadius: 999,
-                      border: "1px solid #ccc",
-                      padding: "6px 12px",
-                      background: reminderEnabled ? "#e63946" : "#f5f5f5",
-                      color: reminderEnabled ? "white" : "#333",
-                      fontSize: "0.85rem",
                       display: "flex",
                       alignItems: "center",
-                      gap: 6,
-                      cursor: isLocked || !user ? "not-allowed" : "pointer",
+                      gap: 8,
+                      cursor: reminderDisabled ? "not-allowed" : "pointer",
+                      opacity: reminderDisabled ? 0.5 : 1,
                     }}
                   >
-                    {reminderEnabled ? "⏰ Reminder ON" : "⏰ Reminder OFF"}
-                  </button>
+                    <div
+                      style={switchTrackStyle(
+                        reminderEnabled,
+                        reminderDisabled
+                      )}
+                    >
+                      <div style={switchThumbStyle(reminderEnabled)} />
+                    </div>
+                    <span style={{ fontSize: "0.9rem" }}>Reminder</span>
+                  </div>
                 </div>
               </div>
             </div>

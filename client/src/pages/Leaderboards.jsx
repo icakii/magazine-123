@@ -25,7 +25,7 @@ export default function Leaderboards() {
     }
   }
 
-  // ФУНКЦИЯ ЗА СТИЛА - ПРОВЕРЯВА ДИРЕКТНО ДАЛИ Е yearly ИЛИ monthly
+  // СТИЛ
   function getPlanStyle(plan) {
     if (plan === "yearly") {
         return { 
@@ -46,6 +46,7 @@ export default function Leaderboards() {
     return { color: "var(--text)", borderLeft: "4px solid transparent" }
   }
 
+  // ИКОНА
   function getPlanIcon(plan) {
     if (plan === "yearly") return " 👑"
     if (plan === "monthly") return " ⭐"
@@ -74,19 +75,17 @@ export default function Leaderboards() {
         </div>
 
         {visibleData.length === 0 ? (
-          <p style={{ textAlign: "center", padding: 20 }} className="text-muted">No records yet.</p>
+          <p style={{ textAlign: "center", padding: 20 }}>No records yet.</p>
         ) : (
           visibleData.map((player, index) => {
             const style = getPlanStyle(player.plan)
             return (
               <div key={index} style={{ display: "flex", padding: "16px 10px", alignItems: "center", borderBottom: "1px solid var(--nav-border)", borderRadius: "0 8px 8px 0", ...style }}>
                 <div style={{ width: "50px", textAlign: "center", fontWeight: "bold", fontSize: "1.2rem", opacity: 0.7 }}>{index + 1}</div>
-                
                 <div style={{ flex: 1, fontSize: "1.1rem" }}>
                     {player.displayName || player.username || player.email} 
                     {getPlanIcon(player.plan)}
                 </div>
-                
                 <div style={{ width: "80px", textAlign: "center", fontWeight: "bold", fontSize: "1.2rem", color: "var(--success)" }}>{player.streak} 🔥</div>
               </div>
             )

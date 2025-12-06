@@ -8,7 +8,6 @@ import { useAuth } from "../hooks/useAuth"
 const CLOUDINARY_URL = "https://api.cloudinary.com/v1_1/dwezdx5zn/image/upload";
 const UPLOAD_PRESET = "ml_default"; 
 const ADMIN_EMAILS = ["icaki06@gmail.com", "icaki2k@gmail.com", "mirenmagazine@gmail.com"]
-// ------------------------
 
 const ARTICLE_CATEGORIES = ["Sports", "E-Sports", "Photography", "Lifestyle", "Art", "Music", "Movies & Series", "Business", "Science", "Culture", "Health & Fitness", "Travel", "Home"];
 const MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"];
@@ -27,7 +26,7 @@ export default function AdminPanel() {
   const [emailSubject, setEmailSubject] = useState("")
   const [emailBody, setEmailBody] = useState("")
 
-  // Article Form - Върната оригинална структура + новите полета
+  // Article Form
   const [articleForm, setArticleForm] = useState({
     title: "", 
     text: "", 
@@ -37,9 +36,8 @@ export default function AdminPanel() {
     excerpt: "", 
     articleCategory: "Lifestyle", 
     isPremium: false, 
-    linkTo: "/news",
-    // НОВИТЕ ПОЛЕТА
-    buttonText: "Read More",
+    // ТЕЗИ ПОЛЕТА ТРЯБВА ДА СЕ ПАЗЯТ
+    buttonText: "Read More", 
     customLink: ""
   })
 
@@ -128,7 +126,10 @@ export default function AdminPanel() {
          const dataToSave = { 
              ...articleForm, 
              category: activeTab, 
-             author: user.displayName || "Admin" 
+             author: user.displayName || "Admin",
+             // ИЗРИЧНО ИЗПРАЩАМЕ БУТОНИТЕ
+             buttonText: articleForm.buttonText,
+             customLink: articleForm.customLink
          }
          if (editingId) await api.put(`/articles/${editingId}`, dataToSave);
          else await api.post("/articles", dataToSave);
@@ -159,6 +160,7 @@ export default function AdminPanel() {
     } catch (e) { setMsg("Error sending emails."); }
   }
 
+  // --- ТУК Е ВАЖНАТА ЧАСТ ЗА EDIT ---
   function handleEdit(item) {
     setEditingId(item.id)
     if (item.category && item.category !== activeTab && activeTab !== "magazine") {
@@ -175,6 +177,7 @@ export default function AdminPanel() {
            pages: Array.isArray(item.pages) ? item.pages : [] 
        })
     } else {
+       // КОГАТО НАТИСНЕШ EDIT, ТОВА ЗАРЕЖДА ДАННИТЕ
        setArticleForm({
            title: item.title || "",
            text: item.text || "",
@@ -184,9 +187,8 @@ export default function AdminPanel() {
            excerpt: item.excerpt || "",
            articleCategory: item.articleCategory || "Lifestyle",
            isPremium: !!item.isPremium,
-           linkTo: item.linkTo || "/news",
-           // ЗАРЕЖДАМЕ НОВИТЕ ПОЛЕТА
-           buttonText: item.buttonText || "Read More",
+           // АКО БАЗАТА ВРЪЩА buttonText, ГО СЛАГАМЕ. АКО НЕ - Read More
+           buttonText: item.buttonText || "Read More", 
            customLink: item.customLink || ""
        })
     }
@@ -197,7 +199,7 @@ export default function AdminPanel() {
   function resetForms() {
     setEditingId(null); setShowForm(false); setMsg("");
     setArticleForm({ 
-        title: "", text: "", date: new Date().toISOString().split("T")[0], time: "", imageUrl: "", excerpt: "", articleCategory: "Lifestyle", isPremium: false, linkTo: "/news",
+        title: "", text: "", date: new Date().toISOString().split("T")[0], time: "", imageUrl: "", excerpt: "", articleCategory: "Lifestyle", isPremium: false,
         buttonText: "Read More", customLink: "" 
     })
     setMagForm({ issueNumber: "", month: "January", year: new Date().getFullYear(), isLocked: true, pages: [], coverUrl: "" })
@@ -228,10 +230,6 @@ export default function AdminPanel() {
                </form>
                {msg && <p style={{marginTop: 10}}>{msg}</p>}
             </div>
-            <h4>Subscribers</h4>
-            <div style={{maxHeight: 200, overflowY: "auto", border:"1px solid #eee", padding: 5}}>
-                {subscribers.map((s, i) => <div key={i}>{s.email}</div>)}
-            </div>
         </div>
       )}
 
@@ -248,7 +246,7 @@ export default function AdminPanel() {
           <form onSubmit={handleSave} className="form">
             {activeTab === "magazine" ? (
                <div>
-                   {/* MAGAZINE HEADER */}
+                   {/* MAGAZINE UI */}
                    <div style={{display:'flex', gap: 10, marginBottom: 10}}>
                        <div style={{flex:1}}>
                            <label style={{fontSize:"0.8rem", fontWeight:"bold"}}>Issue #</label>
@@ -282,20 +280,7 @@ export default function AdminPanel() {
                            {magForm.pages.map((p, i) => (
                                <div key={i} style={{position:"relative", border: "1px solid #ccc", padding: 2, background: "white"}}>
                                    <img src={p} style={{height: 100, display: "block"}} />
-                                   <button 
-                                      type="button" 
-                                      onClick={() => removePage(i)} 
-                                      style={{
-                                          position:"absolute", top: -8, right: -8, 
-                                          background:"#e63946", color:"white", 
-                                          border:"none", borderRadius: "50%", 
-                                          width: 24, height: 24, cursor:"pointer",
-                                          display: "flex", alignItems: "center", justifyContent: "center"
-                                      }}
-                                   >
-                                    ×
-                                   </button>
-                                   <div style={{textAlign: "center", fontSize: "0.7rem", marginTop: 2, fontWeight:"bold"}}>Pg {i+1}</div>
+                                   <button type="button" onClick={() => removePage(i)} style={{position:"absolute", top: -8, right: -8, background:"#e63946", color:"white", border:"none", borderRadius: "50%", width: 24, height: 24, cursor:"pointer"}}>×</button>
                                </div>
                            ))}
                        </div>
@@ -304,7 +289,6 @@ export default function AdminPanel() {
                                + Add Page
                                <input type="file" onChange={(e) => handleImageUpload(e, 'page')} accept="image/*" style={{display:"none"}} disabled={uploading} />
                            </label>
-                           {uploading && <span style={{marginLeft: 10, fontWeight:"bold"}}>Uploading... ⏳</span>}
                        </div>
                    </div>
 
@@ -320,8 +304,8 @@ export default function AdminPanel() {
                <>
                   <input className="input" type="text" placeholder="Title" value={articleForm.title} onChange={e => setArticleForm({...articleForm, title: e.target.value})} required style={{width:"100%", marginBottom: 10}} />
                   
-                  {/* --- НОВИ ПОЛЕТА ЗА БУТОНИ - СЛОЖЕНИ ТУК, ДА СЕ ВИЖДАТ ЗА ВСИЧКИ СТАТИИ --- */}
-                  <div style={{display: 'flex', gap: 10, marginBottom: 10, background: '#f0f8ff', padding: 10, borderRadius: 6}}>
+                  {/* --- ПОЛЕТА ЗА БУТОНИ - СЕГА СЕ ПОКАЗВАТ ЗА ВСИЧКИ ТАБОВЕ --- */}
+                  <div style={{display: 'flex', gap: 10, marginBottom: 10, background: '#f0f8ff', padding: 10, borderRadius: 6, border: '1px solid #dbeafe'}}>
                      <div style={{flex: 1}}>
                          <label style={{fontSize:"0.8rem", fontWeight:"bold"}}>Button Label</label>
                          <input className="input" placeholder="Read More" value={articleForm.buttonText} onChange={e => setArticleForm({...articleForm, buttonText: e.target.value})} />
@@ -331,7 +315,7 @@ export default function AdminPanel() {
                          <input className="input" placeholder="e.g. /news or https://google.com" value={articleForm.customLink} onChange={e => setArticleForm({...articleForm, customLink: e.target.value})} />
                      </div>
                   </div>
-                  {/* --------------------------------------------------------------------- */}
+                  {/* ----------------------------------------------------- */}
 
                   <div style={{marginBottom: 10, padding: 10, background: "#f9f9f9", border: "1px dashed #ccc"}}>
                       <label style={{fontWeight:"bold", fontSize: "0.9rem"}}>Article Image</label>
@@ -343,18 +327,18 @@ export default function AdminPanel() {
 
                   <div style={{display:'flex', gap: 10}}>
                       <input className="input" type="date" value={articleForm.date} onChange={e => setArticleForm({...articleForm, date: e.target.value})} style={{flex:1}} />
-                      {/* ТОВА Е ВАЖНОТО: ПОКАЗВА СЕ САМО ЗА EVENTS */}
+                      {/* ПОКАЗВА СЕ САМО ЗА EVENTS */}
                       {activeTab === "events" && <input className="input" type="time" value={articleForm.time} onChange={e => setArticleForm({...articleForm, time: e.target.value})} style={{flex:1}} />}
                   </div>
 
-                  {/* ТОВА Е ВАЖНОТО: ПОКАЗВА СЕ САМО ЗА NEWS */}
+                  {/* ПОКАЗВА СЕ САМО ЗА NEWS */}
                   {activeTab === "news" && (
                        <select className="input" value={articleForm.articleCategory} onChange={e => setArticleForm({...articleForm, articleCategory: e.target.value})} style={{width:"100%", marginTop: 10}}>
                            {ARTICLE_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
                        </select>
                   )}
 
-                  {/* ТОВА Е ВАЖНОТО: СКРИВА СЕ ЗА GALLERY */}
+                  {/* СКРИВА СЕ ЗА GALLERY */}
                   {activeTab !== "gallery" && (
                       <textarea className="textarea" placeholder="Full Text..." value={articleForm.text} onChange={e => setArticleForm({...articleForm, text: e.target.value})} style={{width:"100%", minHeight: 100, marginTop: 10}} />
                   )}

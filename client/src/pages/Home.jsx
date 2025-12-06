@@ -1,12 +1,11 @@
 "use client"
 
 import { useEffect, useState } from "react"
-// PROMENI TEZI IMPORTI SPORED TVOYA PROEKT:
 import NewsletterManager from "../components/NewsletterManager"
 import { useAuth } from "../hooks/useAuth"
 import { t } from "../lib/i18n"
 import { api } from "../lib/api"
-import { Link } from "react-router-dom" // Или 'next/link' ако си с Next.js
+import { Link } from "react-router-dom" 
 
 export default function Home() {
   const { user } = useAuth()
@@ -23,7 +22,7 @@ export default function Home() {
   return (
     <div className="page">
       
-      {/* --- NEWSLETTER SECTION (Nai-gore) --- */}
+      {/* --- NEWSLETTER SECTION --- */}
       <NewsletterManager 
         user={user} 
         title="📩 Abonirai se za novini!" 
@@ -47,7 +46,7 @@ export default function Home() {
           <div className="grid">
             {featured.map(f => (
               <div key={f.id} className="col-6">
-                 {/* КАРТА с ЦЕНТРИРАНЕ */}
+                 {/* КАРТА С ЦЕНТРИРАН ТЕКСТ */}
                  <div className="card" style={{ textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", height: "100%" }}>
                     
                     {f.imageUrl && (
@@ -62,15 +61,15 @@ export default function Home() {
                     
                     {f.excerpt && <p style={{color: "#666", fontSize: "0.95rem", marginBottom: 15}}>{f.excerpt}</p>}
                     
-                    {/* ЛОГИКА ЗА БУТОНА: Линк или Модал */}
+                    {/* --- ТУК Е ЛОГИКАТА ЗА БУТОНА --- */}
                     <div style={{ marginTop: "auto" }}>
                         {f.customLink ? (
-                            /* Ако има линк */
+                            /* АКО ИМА ЛИНК - ПРАЩА НА ЛИНКА */
                             <a href={f.customLink} className="btn outline">
                                 {f.buttonText || "Open Link"}
                             </a>
                         ) : (
-                            /* Ако няма линк - отваря модал */
+                            /* АКО НЯМА ЛИНК - ОТВАРЯ МОДАЛА */
                             <button className="btn outline" onClick={() => setSelectedArticle(f)}>
                                 {f.buttonText || "Read More"}
                             </button>

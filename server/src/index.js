@@ -429,9 +429,26 @@ app.post('/api/create-checkout-session', authMiddleware, async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+// Leaderboard с план (free / monthly / yearly)
 app.get('/api/leaderboard', async (req, res) => {
-    const { rows } = await db.query(`SELECT display_name as "displayName", wordle_streak as streak FROM users WHERE wordle_streak > 0 ORDER BY wordle_streak DESC LIMIT 50`);
+  try {
+    const { rows } = await db.query(`
+      SELECT 
+        u.display_name AS "displayName",
+        u.wordle_streak AS streak,
+        COALESCE(s.plan, 'free') AS plan
+      FROM users u
+      LEFT JOIN subscriptions s ON s.email = u.email
+      WHERE u.wordle_streak > 0
+      ORDER BY u.wordle_streak DESC
+      LIMIT 50
+    `);
+
     res.json(rows);
+  } catch (err) {
+    console.error('LEADERBOARD ERROR:', err);
+    res.status(500).json({ error: 'Failed to load leaderboard' });
+  }
 });
 
 app.post('/api/user/streak', authMiddleware, async (req, res) => {

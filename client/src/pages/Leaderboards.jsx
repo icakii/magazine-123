@@ -26,7 +26,6 @@ export default function Leaderboards() {
     }
   }
 
-  // --- BADGE СТИЛ ЗА ИМЕТО СПОРЕД ПЛАНА ---
   function getPlanBadgeStyle(plan) {
     if (plan === "yearly") {
       return {
@@ -35,8 +34,8 @@ export default function Leaderboards() {
         gap: 6,
         padding: "4px 10px",
         borderRadius: 9999,
-        backgroundColor: "#fff7cc",   // светло жълто
-        color: "#ff8c00",             // оранжев текст
+        backgroundColor: "#fff7cc",
+        color: "#ff8c00",
         fontWeight: 700,
       }
     }
@@ -48,17 +47,15 @@ export default function Leaderboards() {
         gap: 6,
         padding: "4px 10px",
         borderRadius: 9999,
-        backgroundColor: "#e3f0ff",   // светло син фон
-        color: "#1f5fbf",             // син текст
+        backgroundColor: "#e3f0ff",
+        color: "#1f5fbf",
         fontWeight: 600,
       }
     }
 
-    // free / няма абонамент
     return {}
   }
 
-  // --- ЕМОДЖИ СПОРЕД ПЛАНА ---
   function getPlanIcon(plan) {
     if (plan === "yearly") return " 👑"
     if (plan === "monthly") return " ⭐"
@@ -102,7 +99,6 @@ export default function Leaderboards() {
       </div>
 
       <div className="card stack">
-        {/* header row */}
         <div
           style={{
             display: "flex",
@@ -138,7 +134,6 @@ export default function Leaderboards() {
                   borderRadius: "0 8px 8px 0",
                 }}
               >
-                {/* позиция */}
                 <div
                   style={{
                     width: "50px",
@@ -151,7 +146,6 @@ export default function Leaderboards() {
                   {index + 1}
                 </div>
 
-                {/* име + badge */}
                 <div style={{ flex: 1, fontSize: "1.1rem" }}>
                   <span style={getPlanBadgeStyle(player.plan)}>
                     {name}
@@ -159,7 +153,6 @@ export default function Leaderboards() {
                   </span>
                 </div>
 
-                {/* streak */}
                 <div
                   style={{
                     width: "80px",

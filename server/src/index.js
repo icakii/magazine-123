@@ -3,6 +3,7 @@
 // ================================================================
 
 require("dotenv").config()
+const rateLimit = require("express-rate-limit");
 const express = require("express")
 const cors = require("cors")
 const cookieParser = require("cookie-parser")
@@ -12,12 +13,28 @@ const nodemailer = require("nodemailer")
 const crypto = require("crypto")
 const db = require("./db")
 const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY)
+const helmet = require("helmet");
 
+
+app.use(helmet());
 const app = express()
 const PORT = process.env.PORT || 8080
 const JWT_SECRET = process.env.JWT_SECRET || "super-secret-key-change-this"
 const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:5173"
 const APP_URL = process.env.APP_URL || "http://localhost:5173"
+
+const loginLimiter = rateLimit({
+  windowMs: 10 * 60 * 1000, // 10 minutes
+  max: 10,                   // max 10 login attempts per 10 min
+  message: { error: "Too many login attempts, try again later." }
+});
+
+const contactLimiter = rateLimit({
+  windowMs: 10 * 60 * 1000,
+  max: 5,
+  message: { error: "Too many messages, try again later." }
+});
+
 
 // ---------------------------------------------------------------
 // 1. CONFIG & BASE MIDDLEWARE
@@ -29,6 +46,13 @@ const allowed = [
   process.env.FRONTEND_URL,
   'http://localhost:5173',
 ]
+
+app.use("/api/auth/login", loginLimiter);
+
+// CONTACT FORM
+app.use("/api/contact", contactLimiter);
+
+app.use("/api/auth/reset-password-request", loginLimiter);
 
 app.use(cors({
   credentials:true,
@@ -135,6 +159,17 @@ function adminMiddleware(req, res, next) {
 function signToken(payload) {
   return jwt.sign(payload, JWT_SECRET, { expiresIn: "7d" })
 }
+
+function setAuthCookie(res, token) {
+  const isProduction = process.env.NODE_ENV === 'production';
+
+  res.cookie('auth', token, {
+    httpOnly: true,
+    sameSite: isProduction ? 'none' : 'lax',
+    secure: isProduction,
+  });
+}
+
 
 // ================================================================
 // API ROUTES
@@ -659,7 +694,8 @@ app.post("/api/auth/login", async (req, res) => {
       return res.json({ ok: true, requires2fa: true })
     }
 
-    const token = signToken({ email: user.email })
+    const token = signToken({ email: user.email });
+    setAuthCookie(res, token);
     const isProduction = process.env.NODE_ENV === "production"
 
     res.cookie("auth", token, {
@@ -669,10 +705,10 @@ app.post("/api/auth/login", async (req, res) => {
     })
 
     res.json({
-      ok: true,
-      user: { email: user.email, displayName: user.display_name },
-      token,
-    })
+  ok: true,
+  user: { email: user.email, displayName: user.display_name },
+  token,
+})
   } catch (err) {
     res.status(500).json({ error: err.message })
   }
@@ -705,7 +741,9 @@ app.post("/api/auth/confirm", async (req, res) => {
       [rows[0].email]
     )
 
-    const authToken = signToken({ email: rows[0].email })
+    const authToken = signToken({ email: rows[0].email });
+    setAuthCookie(res, authToken);
+
     res.cookie("auth", authToken, { httpOnly: true })
     res.json({ ok: true, token: authToken })
   } catch (err) {
@@ -827,7 +865,9 @@ app.post("/api/auth/verify-2fa", async (req, res) => {
       [email]
     )
 
-    const token = signToken({ email: user.email })
+        const token = signToken({ email: user.email });
+    setAuthCookie(res, token);
+
     res.cookie("auth", token, { httpOnly: true })
     res.json({ ok: true, token })
   } catch (e) {

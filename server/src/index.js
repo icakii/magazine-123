@@ -287,23 +287,22 @@ app.delete('/api/magazines/:id', adminMiddleware, async (req, res) => {
 // 📰 ARTICLES (с buttonText + customLink)
 // ---------------------------------------------------------------
 // --- ARTICLES ---
-// --- ARTICLES ---
 app.get("/api/articles", async (req, res) => {
   try {
     const { category } = req.query;
-    let query = "SELECT * FROM articles";
+    let query = 'SELECT * FROM articles';
     const params = [];
 
     if (category) {
-      query += " WHERE category = $1";
+      query += ' WHERE category = $1';
       params.push(category);
     }
 
-    query += " ORDER BY date DESC";
+    query += ' ORDER BY date DESC';
 
     const { rows } = await db.query(query, params);
 
-    const mappedRows = rows.map((row) => ({
+    const mappedRows = rows.map(row => ({
       id: row.id,
       title: row.title,
       text: row.text,
@@ -313,7 +312,7 @@ app.get("/api/articles", async (req, res) => {
       articleCategory: row.category,
       excerpt: row.excerpt,
       isPremium: row.is_premium,
-      // 🔥 ТЕЗИ ДВЕ ПОЛЕТА ВЕЧЕ СЕ ВРЪЩАТ КЪМ FRONTEND
+      // 🔥 ВАЖНО: тук вече връщаме СЪЩИТЕ имена, които ползва фронтът
       buttonText: row.button_text || "Read More",
       customLink: row.link_to || "",
       time: row.time || null,
@@ -321,6 +320,7 @@ app.get("/api/articles", async (req, res) => {
 
     res.json(mappedRows);
   } catch (err) {
+    console.error("GET /api/articles error:", err);
     res.status(500).json({ error: err.message });
   }
 });
@@ -363,6 +363,7 @@ app.post("/api/articles", adminMiddleware, async (req, res) => {
 
     res.json({ ok: true, article: rows[0] });
   } catch (err) {
+    console.error("POST /api/articles error:", err);
     res.status(500).json({ error: err.message });
   }
 });
@@ -385,9 +386,18 @@ app.put("/api/articles/:id", adminMiddleware, async (req, res) => {
 
   try {
     const result = await db.query(
-      `UPDATE articles
-       SET title=$1, text=$2, author=$3, date=$4, image_url=$5, category=$6, excerpt=$7,
-           is_premium=$8, button_text=$9, link_to=$10, time=$11
+      `UPDATE articles 
+       SET title=$1,
+           text=$2,
+           author=$3,
+           date=$4,
+           image_url=$5,
+           category=$6,
+           excerpt=$7,
+           is_premium=$8,
+           button_text=$9,
+           link_to=$10,
+           time=$11
        WHERE id=$12
        RETURNING *`,
       [
@@ -412,7 +422,17 @@ app.put("/api/articles/:id", adminMiddleware, async (req, res) => {
 
     res.json(result.rows[0]);
   } catch (err) {
-    console.error("Update Error:", err);
+    console.error("PUT /api/articles/:id error:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.delete("/api/articles/:id", adminMiddleware, async (req, res) => {
+  try {
+    await db.query('DELETE FROM articles WHERE id = $1', [req.params.id]);
+    res.json({ ok: true });
+  } catch (err) {
+    console.error("DELETE /api/articles/:id error:", err);
     res.status(500).json({ error: err.message });
   }
 });

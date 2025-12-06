@@ -2,106 +2,112 @@
 // SERVER/INDEX.JS - MIREN API (FULL VERSION)
 // ================================================================
 
-require('dotenv').config();
-const express = require('express');
-const cors = require('cors');
-const cookieParser = require('cookie-parser');
-const jwt = require('jsonwebtoken');
-const bcrypt = require('bcrypt');
-const nodemailer = require('nodemailer');
-const crypto = require('crypto');
-const db = require('./db');
-const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+require("dotenv").config()
+const express = require("express")
+const cors = require("cors")
+const cookieParser = require("cookie-parser")
+const jwt = require("jsonwebtoken")
+const bcrypt = require("bcrypt")
+const nodemailer = require("nodemailer")
+const crypto = require("crypto")
+const db = require("./db")
+const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY)
 
-const app = express();
-const PORT = process.env.PORT || 8080;
-const JWT_SECRET = process.env.JWT_SECRET || 'super-secret-key-change-this';
-const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
-const APP_URL = process.env.APP_URL || 'http://localhost:5173';
+const app = express()
+const PORT = process.env.PORT || 8080
+const JWT_SECRET = process.env.JWT_SECRET || "super-secret-key-change-this"
+const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:5173"
+const APP_URL = process.env.APP_URL || "http://localhost:5173"
 
 // ---------------------------------------------------------------
 // 1. CONFIG & BASE MIDDLEWARE
 // ---------------------------------------------------------------
-app.set('trust proxy', 1); // за Render
+app.set("trust proxy", 1) // за Render
 
-app.use(cookieParser());
-app.use(cors({
-  origin: FRONTEND_URL,
-  credentials: true,
-}));
+app.use(cookieParser())
+app.use(
+  cors({
+    origin: FRONTEND_URL,
+    credentials: true,
+  })
+)
 
 // Email Transporter (Gmail)
 const transporter = nodemailer.createTransport({
-  service: 'gmail',
+  service: "gmail",
   auth: {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASS,
   },
-});
+})
 
 // ---------------------------------------------------------------
 // 2. STRIPE WEBHOOK  (трябва да е ПРЕДИ express.json())
 // ---------------------------------------------------------------
-app.post('/api/stripe-webhook', express.raw({ type: 'application/json' }), async (req, res) => {
-  const sig = req.headers['stripe-signature'];
-  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
-  let event;
+app.post(
+  "/api/stripe-webhook",
+  express.raw({ type: "application/json" }),
+  async (req, res) => {
+    const sig = req.headers["stripe-signature"]
+    const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET
+    let event
 
-  try {
-    event = stripe.webhooks.constructEvent(req.body, sig, webhookSecret);
-  } catch (err) {
-    console.error(`❌ Webhook Error: ${err.message}`);
-    return res.status(400).send(`Webhook Error: ${err.message}`);
-  }
+    try {
+      event = stripe.webhooks.constructEvent(req.body, sig, webhookSecret)
+    } catch (err) {
+      console.error(`❌ Webhook Error: ${err.message}`)
+      return res.status(400).send(`Webhook Error: ${err.message}`)
+    }
 
-  if (event.type === 'checkout.session.completed') {
-    const session = event.data.object;
-    const customerEmail = session.customer_details.email;
+    if (event.type === "checkout.session.completed") {
+      const session = event.data.object
+      const customerEmail = session.customer_details.email
 
-    if (session.payment_status === 'paid' && session.mode === 'subscription') {
-      let plan = 'free';
-      if (session.amount_total === 499) plan = 'monthly';
-      if (session.amount_total === 4999) plan = 'yearly';
+      if (session.payment_status === "paid" && session.mode === "subscription") {
+        let plan = "free"
+        if (session.amount_total === 499) plan = "monthly"
+        if (session.amount_total === 4999) plan = "yearly"
 
-      try {
-        await db.query(
-          'UPDATE subscriptions SET plan = $1 WHERE email = $2',
-          [plan, customerEmail]
-        );
-      } catch (dbErr) {
-        console.error('DB UPDATE ERROR:', dbErr);
+        try {
+          await db.query("UPDATE subscriptions SET plan = $1 WHERE email = $2", [
+            plan,
+            customerEmail,
+          ])
+        } catch (dbErr) {
+          console.error("DB UPDATE ERROR:", dbErr)
+        }
       }
     }
-  }
 
-  res.json({ received: true });
-});
+    res.json({ received: true })
+  }
+)
 
 // ---------------------------------------------------------------
 // 3. BODY PARSERS (след webhook-а)
 // ---------------------------------------------------------------
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json())
+app.use(express.urlencoded({ extended: true }))
 
 // ---------------------------------------------------------------
 // 4. AUTH HELPERS
 // ---------------------------------------------------------------
 function authMiddleware(req, res, next) {
-  let token = req.cookies['auth'];
+  let token = req.cookies["auth"]
 
   // allow Bearer token (mobile / Safari)
   if (!token && req.headers.authorization) {
-    const parts = req.headers.authorization.split(' ');
-    if (parts.length === 2 && parts[0] === 'Bearer') token = parts[1];
+    const parts = req.headers.authorization.split(" ")
+    if (parts.length === 2 && parts[0] === "Bearer") token = parts[1]
   }
 
-  if (!token) return res.status(401).json({ error: 'Unauthorized' });
+  if (!token) return res.status(401).json({ error: "Unauthorized" })
 
   try {
-    req.user = jwt.verify(token, JWT_SECRET);
-    next();
+    req.user = jwt.verify(token, JWT_SECRET)
+    next()
   } catch {
-    return res.status(401).json({ error: 'Unauthorized' });
+    return res.status(401).json({ error: "Unauthorized" })
   }
 }
 
@@ -111,16 +117,16 @@ function adminMiddleware(req, res, next) {
       "icaki06@gmail.com",
       "icaki2k@gmail.com",
       "mirenmagazine@gmail.com",
-    ];
+    ]
     if (!adminEmails.includes(req.user.email)) {
-      return res.status(403).json({ error: 'Admin access required' });
+      return res.status(403).json({ error: "Admin access required" })
     }
-    next();
-  });
+    next()
+  })
 }
 
 function signToken(payload) {
-  return jwt.sign(payload, JWT_SECRET, { expiresIn: '7d' });
+  return jwt.sign(payload, JWT_SECRET, { expiresIn: "7d" })
 }
 
 // ================================================================
@@ -130,15 +136,22 @@ function signToken(payload) {
 // ---------------------------------------------------------------
 // 🔧 MAGIC DB FIX ROUTE – ПУСНИ ГО ВЕДНЪЖ: /api/fix-db
 // ---------------------------------------------------------------
-// --- 🔥 MAGIC DB FIX ROUTE (ИЗПЪЛНИ ГО ВЕДНЪЖ НА LOCAL И НА RENDER) ---
-app.get('/api/fix-db', async (req, res) => {
+app.get("/api/fix-db", async (req, res) => {
   try {
     // 1. Колони за статиите
-    await db.query(`ALTER TABLE articles ADD COLUMN IF NOT EXISTS is_premium BOOLEAN DEFAULT FALSE;`);
-    await db.query(`ALTER TABLE articles ADD COLUMN IF NOT EXISTS time TEXT;`);
-    await db.query(`ALTER TABLE articles ADD COLUMN IF NOT EXISTS article_category TEXT;`);
-    await db.query(`ALTER TABLE articles ADD COLUMN IF NOT EXISTS reminder_enabled BOOLEAN DEFAULT FALSE;`);
-    // (link_to и button_text ги оставяме да си седят, но не ги ползваме вече)
+    await db.query(
+      `ALTER TABLE articles ADD COLUMN IF NOT EXISTS is_premium BOOLEAN DEFAULT FALSE;`
+    )
+    await db.query(
+      `ALTER TABLE articles ADD COLUMN IF NOT EXISTS time TEXT;`
+    )
+    await db.query(
+      `ALTER TABLE articles ADD COLUMN IF NOT EXISTS article_category TEXT;`
+    )
+    await db.query(
+      `ALTER TABLE articles ADD COLUMN IF NOT EXISTS reminder_enabled BOOLEAN DEFAULT FALSE;`
+    )
+    // (link_to и button_text може да си стоят, не ги ползваме вече)
 
     // 2. Таблица за списанията
     await db.query(`
@@ -152,7 +165,7 @@ app.get('/api/fix-db', async (req, res) => {
           pages JSONB,
           created_at TIMESTAMP DEFAULT NOW()
       );
-    `);
+    `)
 
     // 3. Таблица за Newsletter
     await db.query(`
@@ -161,77 +174,76 @@ app.get('/api/fix-db', async (req, res) => {
           email TEXT UNIQUE NOT NULL,
           created_at TIMESTAMP DEFAULT NOW()
       );
-    `);
+    `)
 
-    res.send("✅ УСПЕХ! Базата данни е поправена за новите полета.");
+    res.send("✅ УСПЕХ! Базата данни е поправена за новите полета.")
   } catch (e) {
-    console.error("FIX-DB ERROR:", e);
-    res.status(500).send("ГРЕШКА при поправка: " + e.message);
+    console.error("FIX-DB ERROR:", e)
+    res.status(500).send("ГРЕШКА при поправка: " + e.message)
   }
-});
-
+})
 
 // ---------------------------------------------------------------
 // 📧 NEWSLETTER
 // ---------------------------------------------------------------
-app.post('/api/newsletter/subscribe', async (req, res) => {
-  const { email } = req.body;
-  if (!email) return res.status(400).json({ error: "Email required" });
+app.post("/api/newsletter/subscribe", async (req, res) => {
+  const { email } = req.body
+  if (!email) return res.status(400).json({ error: "Email required" })
 
   try {
     await db.query(
-      'INSERT INTO newsletter_subscribers (email) VALUES ($1) ON CONFLICT (email) DO NOTHING',
+      "INSERT INTO newsletter_subscribers (email) VALUES ($1) ON CONFLICT (email) DO NOTHING",
       [email]
-    );
-    res.json({ ok: true, message: "Subscribed!" });
+    )
+    res.json({ ok: true, message: "Subscribed!" })
   } catch (err) {
-    res.status(500).json({ error: "Database error" });
+    res.status(500).json({ error: "Database error" })
   }
-});
+})
 
-app.get('/api/newsletter/subscribers', adminMiddleware, async (req, res) => {
+app.get("/api/newsletter/subscribers", adminMiddleware, async (req, res) => {
   try {
     const { rows } = await db.query(
-      'SELECT email, created_at FROM newsletter_subscribers ORDER BY created_at DESC'
-    );
-    res.json(rows);
+      "SELECT email, created_at FROM newsletter_subscribers ORDER BY created_at DESC"
+    )
+    res.json(rows)
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: err.message })
   }
-});
+})
 
-app.post('/api/newsletter/send', adminMiddleware, async (req, res) => {
-  const { subject, body } = req.body;
+app.post("/api/newsletter/send", adminMiddleware, async (req, res) => {
+  const { subject, body } = req.body
   try {
-    const { rows } = await db.query('SELECT email FROM newsletter_subscribers');
+    const { rows } = await db.query("SELECT email FROM newsletter_subscribers")
     if (rows.length === 0) {
-      return res.status(400).json({ error: "No subscribers found" });
+      return res.status(400).json({ error: "No subscribers found" })
     }
 
-    const emails = rows.map(r => r.email);
+    const emails = rows.map((r) => r.email)
 
     await transporter.sendMail({
       from: `"MIREN Newsletter" <${process.env.EMAIL_USER}>`,
       bcc: emails,
       subject,
       html: body,
-    });
+    })
 
-    res.json({ ok: true, count: emails.length });
+    res.json({ ok: true, count: emails.length })
   } catch (err) {
-    res.status(500).json({ error: "Failed to send emails" });
+    res.status(500).json({ error: "Failed to send emails" })
   }
-});
+})
 
 // ---------------------------------------------------------------
 // 📚 MAGAZINES
 // ---------------------------------------------------------------
-app.get('/api/magazines', async (req, res) => {
+app.get("/api/magazines", async (req, res) => {
   try {
     const { rows } = await db.query(
-      'SELECT * FROM magazine_issues ORDER BY year DESC, month DESC'
-    );
-    const mapped = rows.map(row => ({
+      "SELECT * FROM magazine_issues ORDER BY year DESC, month DESC"
+    )
+    const mapped = rows.map((row) => ({
       id: row.id,
       issueNumber: row.issue_number,
       month: row.month,
@@ -239,15 +251,15 @@ app.get('/api/magazines', async (req, res) => {
       isLocked: row.is_locked,
       coverUrl: row.cover_url,
       pages: row.pages,
-    }));
-    res.json(mapped);
+    }))
+    res.json(mapped)
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: err.message })
   }
-});
+})
 
-app.post('/api/magazines', adminMiddleware, async (req, res) => {
-  const { issueNumber, month, year, isLocked, coverUrl, pages } = req.body;
+app.post("/api/magazines", adminMiddleware, async (req, res) => {
+  const { issueNumber, month, year, isLocked, coverUrl, pages } = req.body
   try {
     const { rows } = await db.query(
       `INSERT INTO magazine_issues
@@ -255,78 +267,77 @@ app.post('/api/magazines', adminMiddleware, async (req, res) => {
        VALUES ($1,$2,$3,$4,$5,$6)
        RETURNING *`,
       [issueNumber, month, year, isLocked, coverUrl, JSON.stringify(pages)]
-    );
-    res.json({ ok: true, issue: rows[0] });
+    )
+    res.json({ ok: true, issue: rows[0] })
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: err.message })
   }
-});
+})
 
-app.put('/api/magazines/:id', adminMiddleware, async (req, res) => {
-  const { id } = req.params;
-  const { issueNumber, month, year, isLocked, coverUrl, pages } = req.body;
+app.put("/api/magazines/:id", adminMiddleware, async (req, res) => {
+  const { id } = req.params
+  const { issueNumber, month, year, isLocked, coverUrl, pages } = req.body
   try {
     await db.query(
       `UPDATE magazine_issues
        SET issue_number=$1, month=$2, year=$3, is_locked=$4, cover_url=$5, pages=$6
        WHERE id=$7`,
       [issueNumber, month, year, isLocked, coverUrl, JSON.stringify(pages), id]
-    );
-    res.json({ ok: true });
+    )
+    res.json({ ok: true })
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: err.message })
   }
-});
+})
 
-app.delete('/api/magazines/:id', adminMiddleware, async (req, res) => {
+app.delete("/api/magazines/:id", adminMiddleware, async (req, res) => {
   try {
-    await db.query('DELETE FROM magazine_issues WHERE id=$1', [req.params.id]);
-    res.json({ ok: true });
+    await db.query("DELETE FROM magazine_issues WHERE id=$1", [req.params.id])
+    res.json({ ok: true })
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: err.message })
   }
-});
+})
 
 // ---------------------------------------------------------------
-// 📰 ARTICLES (с buttonText + customLink)
+// 📰 ARTICLES (home / news / events / gallery)
 // ---------------------------------------------------------------
-// --- ARTICLES ---
 app.get("/api/articles", async (req, res) => {
   try {
-    const { category } = req.query;
-    let query = 'SELECT * FROM articles';
-    const params = [];
+    const { category } = req.query
+    let query = "SELECT * FROM articles"
+    const params = []
 
     // category = home | news | gallery | events
     if (category) {
-      query += ' WHERE category = $1';
-      params.push(category);
+      query += " WHERE category = $1"
+      params.push(category)
     }
 
-    query += ' ORDER BY date DESC';
+    query += " ORDER BY date DESC"
 
-    const { rows } = await db.query(query, params);
+    const { rows } = await db.query(query, params)
 
-    const mappedRows = rows.map(row => ({
+    const mappedRows = rows.map((row) => ({
       id: row.id,
       title: row.title,
       text: row.text,
       author: row.author,
       date: row.date,
       imageUrl: row.image_url,
-      articleCategory: row.article_category || "",   // за NEWS филтъра
+      articleCategory: row.article_category || "", // само за news
       excerpt: row.excerpt,
       isPremium: row.is_premium,
       time: row.time,
       reminderEnabled: row.reminder_enabled || false,
-    }));
+    }))
 
-    res.json(mappedRows);
+    res.json(mappedRows)
   } catch (err) {
-    console.error("GET /api/articles error:", err);
-    res.status(500).json({ error: err.message });
+    console.error("GET /api/articles error:", err)
+    res.status(500).json({ error: err.message })
   }
-});
+})
 
 app.post("/api/articles", adminMiddleware, async (req, res) => {
   const {
@@ -335,13 +346,20 @@ app.post("/api/articles", adminMiddleware, async (req, res) => {
     author,
     date,
     imageUrl,
-    category,         // home | news | gallery | events
-    articleCategory,  // само за news (Sports, Lifestyle...)
+    category, // home | news | gallery | events
+    articleCategory, // само за news
     excerpt,
     isPremium,
-    time,             // час за events
-    reminderEnabled,  // toggle за events
-  } = req.body;
+    time,
+    reminderEnabled,
+  } = req.body
+
+  // нормализираме по таб
+  const normalizedArticleCategory =
+    category === "news" ? articleCategory : null
+  const normalizedTime = category === "events" ? time : null
+  const normalizedReminder =
+    category === "events" ? !!reminderEnabled : false
 
   try {
     const { rows } = await db.query(
@@ -357,23 +375,23 @@ app.post("/api/articles", adminMiddleware, async (req, res) => {
         date,
         imageUrl,
         category,
-        articleCategory || null,
+        normalizedArticleCategory,
         excerpt,
         !!isPremium,
-        time || null,
-        !!reminderEnabled,
+        normalizedTime,
+        normalizedReminder,
       ]
-    );
+    )
 
-    res.json({ ok: true, article: rows[0] });
+    res.json({ ok: true, article: rows[0] })
   } catch (err) {
-    console.error("POST /api/articles error:", err);
-    res.status(500).json({ error: err.message });
+    console.error("POST /api/articles error:", err)
+    res.status(500).json({ error: err.message })
   }
-});
+})
 
 app.put("/api/articles/:id", adminMiddleware, async (req, res) => {
-  const { id } = req.params;
+  const { id } = req.params
   const {
     title,
     text,
@@ -386,7 +404,13 @@ app.put("/api/articles/:id", adminMiddleware, async (req, res) => {
     isPremium,
     time,
     reminderEnabled,
-  } = req.body;
+  } = req.body
+
+  const normalizedArticleCategory =
+    category === "news" ? articleCategory : null
+  const normalizedTime = category === "events" ? time : null
+  const normalizedReminder =
+    category === "events" ? !!reminderEnabled : false
 
   try {
     const result = await db.query(
@@ -403,339 +427,338 @@ app.put("/api/articles/:id", adminMiddleware, async (req, res) => {
         date,
         imageUrl,
         category,
-        articleCategory || null,
+        normalizedArticleCategory,
         excerpt,
         !!isPremium,
-        time || null,
-        !!reminderEnabled,
+        normalizedTime,
+        normalizedReminder,
         id,
       ]
-    );
+    )
 
     if (result.rows.length === 0) {
-      return res.status(404).json({ message: "Article not found" });
+      return res.status(404).json({ message: "Article not found" })
     }
 
-    res.json(result.rows[0]);
+    res.json(result.rows[0])
   } catch (err) {
-    console.error("PUT /api/articles/:id error:", err);
-    res.status(500).json({ error: err.message });
+    console.error("PUT /api/articles/:id error:", err)
+    res.status(500).json({ error: err.message })
   }
-});
+})
 
 app.delete("/api/articles/:id", adminMiddleware, async (req, res) => {
   try {
-    await db.query('DELETE FROM articles WHERE id = $1', [req.params.id]);
-    res.json({ ok: true });
+    await db.query("DELETE FROM articles WHERE id = $1", [req.params.id])
+    res.json({ ok: true })
   } catch (err) {
-    console.error("DELETE /api/articles/:id error:", err);
-    res.status(500).json({ error: err.message });
+    console.error("DELETE /api/articles/:id error:", err)
+    res.status(500).json({ error: err.message })
   }
-});
-
+})
 
 // ---------------------------------------------------------------
 // 🔐 AUTH ROUTES
 // ---------------------------------------------------------------
 app.post("/api/auth/register", async (req, res) => {
-  const { email, password, displayName } = req.body;
+  const { email, password, displayName } = req.body
   if (!email || !password || !displayName) {
-    return res.status(400).json({ error: "Missing fields" });
+    return res.status(400).json({ error: "Missing fields" })
   }
 
   try {
     const userCheck = await db.query(
-      'SELECT * FROM users WHERE email = $1',
+      "SELECT * FROM users WHERE email = $1",
       [email]
-    );
+    )
     if (userCheck.rows.length > 0) {
-      return res.status(409).json({ error: "Email taken" });
+      return res.status(409).json({ error: "Email taken" })
     }
 
     const nameCheck = await db.query(
-      'SELECT * FROM users WHERE display_name = $1',
+      "SELECT * FROM users WHERE display_name = $1",
       [displayName]
-    );
+    )
     if (nameCheck.rows.length > 0) {
-      return res.status(409).json({ error: "Display name taken" });
+      return res.status(409).json({ error: "Display name taken" })
     }
 
-    const hash = await bcrypt.hash(password, 10);
-    const token = crypto.randomBytes(32).toString('hex');
+    const hash = await bcrypt.hash(password, 10)
+    const token = crypto.randomBytes(32).toString("hex")
 
     await db.query(
-      'INSERT INTO users (email, display_name, password_hash, created_at, confirmation_token, is_confirmed) VALUES ($1,$2,$3,NOW(),$4,false)',
+      "INSERT INTO users (email, display_name, password_hash, created_at, confirmation_token, is_confirmed) VALUES ($1,$2,$3,NOW(),$4,false)",
       [email, displayName, hash, token]
-    );
-    await db.query(
-      'INSERT INTO subscriptions (email, plan) VALUES ($1,$2)',
-      [email, 'free']
-    );
+    )
+    await db.query("INSERT INTO subscriptions (email, plan) VALUES ($1,$2)", [
+      email,
+      "free",
+    ])
 
-    const confirmationUrl = `${APP_URL}/confirm?token=${token}`;
+    const confirmationUrl = `${APP_URL}/confirm?token=${token}`
     await transporter.sendMail({
       from: '"MIREN" <mirenmagazine@gmail.com>',
       to: email,
-      subject: 'Confirm Account',
+      subject: "Confirm Account",
       html: `<a href="${confirmationUrl}">Click to Confirm Email</a>`,
-    });
+    })
 
-    res.status(201).json({ ok: true, message: "Check email!" });
+    res.status(201).json({ ok: true, message: "Check email!" })
   } catch (err) {
-    res.status(500).json({ error: "Registration failed" });
+    res.status(500).json({ error: "Registration failed" })
   }
-});
+})
 
-app.post('/api/auth/login', async (req, res) => {
-  const { email, password } = req.body;
+app.post("/api/auth/login", async (req, res) => {
+  const { email, password } = req.body
 
   try {
     const { rows } = await db.query(
-      'SELECT * FROM users WHERE email = $1',
+      "SELECT * FROM users WHERE email = $1",
       [email]
-    );
-    const user = rows[0];
-    if (!user) return res.status(404).json({ error: 'User not found' });
+    )
+    const user = rows[0]
+    if (!user) return res.status(404).json({ error: "User not found" })
 
-    const ok = await bcrypt.compare(password, user.password_hash);
-    if (!ok) return res.status(401).json({ error: 'Wrong password' });
+    const ok = await bcrypt.compare(password, user.password_hash)
+    if (!ok) return res.status(401).json({ error: "Wrong password" })
 
     if (!user.is_confirmed) {
-      return res.status(403).json({ error: 'Confirm email first' });
+      return res.status(403).json({ error: "Confirm email first" })
     }
 
     if (user.two_fa_enabled) {
-      return res.json({ ok: true, requires2fa: true });
+      return res.json({ ok: true, requires2fa: true })
     }
 
-    const token = signToken({ email: user.email });
-    const isProduction = process.env.NODE_ENV === 'production';
+    const token = signToken({ email: user.email })
+    const isProduction = process.env.NODE_ENV === "production"
 
-    res.cookie('auth', token, {
+    res.cookie("auth", token, {
       httpOnly: true,
-      sameSite: isProduction ? 'none' : 'lax',
+      sameSite: isProduction ? "none" : "lax",
       secure: isProduction,
-    });
+    })
 
     res.json({
       ok: true,
       user: { email: user.email, displayName: user.display_name },
       token,
-    });
+    })
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: err.message })
   }
-});
+})
 
-app.post('/api/auth/logout', (req, res) => {
-  const isProduction = process.env.NODE_ENV === 'production';
-  res.clearCookie('auth', {
+app.post("/api/auth/logout", (req, res) => {
+  const isProduction = process.env.NODE_ENV === "production"
+  res.clearCookie("auth", {
     httpOnly: true,
-    sameSite: isProduction ? 'none' : 'lax',
+    sameSite: isProduction ? "none" : "lax",
     secure: isProduction,
-  });
-  res.json({ ok: true });
-});
+  })
+  res.json({ ok: true })
+})
 
-app.post('/api/auth/confirm', async (req, res) => {
-  const { token } = req.body;
+app.post("/api/auth/confirm", async (req, res) => {
+  const { token } = req.body
 
   try {
     const { rows } = await db.query(
-      'SELECT * FROM users WHERE confirmation_token = $1',
+      "SELECT * FROM users WHERE confirmation_token = $1",
       [token]
-    );
+    )
     if (!rows[0]) {
-      return res.status(404).json({ error: "Invalid token" });
+      return res.status(404).json({ error: "Invalid token" })
     }
 
     await db.query(
-      'UPDATE users SET is_confirmed = true, confirmation_token = NULL WHERE email = $1',
+      "UPDATE users SET is_confirmed = true, confirmation_token = NULL WHERE email = $1",
       [rows[0].email]
-    );
+    )
 
-    const authToken = signToken({ email: rows[0].email });
-    res.cookie('auth', authToken, { httpOnly: true });
-    res.json({ ok: true, token: authToken });
+    const authToken = signToken({ email: rows[0].email })
+    res.cookie("auth", authToken, { httpOnly: true })
+    res.json({ ok: true, token: authToken })
   } catch (err) {
-    res.status(500).json({ error: "Error" });
+    res.status(500).json({ error: "Error" })
   }
-});
+})
 
-app.get('/api/user/me', authMiddleware, async (req, res) => {
+app.get("/api/user/me", authMiddleware, async (req, res) => {
   try {
     const { rows } = await db.query(
-      'SELECT email, display_name, last_username_change, two_fa_enabled FROM users WHERE email = $1',
+      "SELECT email, display_name, last_username_change, two_fa_enabled FROM users WHERE email = $1",
       [req.user.email]
-    );
-    if (!rows[0]) return res.status(404).json({ error: 'User not found' });
+    )
+    if (!rows[0]) return res.status(404).json({ error: "User not found" })
 
     res.json({
       email: rows[0].email,
       displayName: rows[0].display_name,
       twoFaEnabled: rows[0].two_fa_enabled,
-    });
+    })
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: err.message })
   }
-});
+})
 
 // --- reset password ---
-app.post('/api/auth/reset-password-request', async (req, res) => {
-  const { email } = req.body;
+app.post("/api/auth/reset-password-request", async (req, res) => {
+  const { email } = req.body
 
   try {
-    const token = crypto.randomBytes(32).toString('hex');
-    const expiry = new Date(Date.now() + 3600000); // 1h
+    const token = crypto.randomBytes(32).toString("hex")
+    const expiry = new Date(Date.now() + 3600000) // 1h
 
     await db.query(
-      'UPDATE users SET reset_password_token = $1, reset_password_expires = $2 WHERE email = $3',
+      "UPDATE users SET reset_password_token = $1, reset_password_expires = $2 WHERE email = $3",
       [token, expiry, email]
-    );
+    )
 
-    const url = `${APP_URL}/reset-password?token=${token}`;
+    const url = `${APP_URL}/reset-password?token=${token}`
     await transporter.sendMail({
       to: email,
-      subject: 'Reset Password',
+      subject: "Reset Password",
       html: `<a href="${url}">Reset Here</a>`,
-    });
+    })
 
-    res.json({ ok: true });
+    res.json({ ok: true })
   } catch (e) {
-    res.status(500).json({ error: "Error" });
+    res.status(500).json({ error: "Error" })
   }
-});
+})
 
-app.post('/api/auth/reset-password', async (req, res) => {
-  const { token, newPassword } = req.body;
+app.post("/api/auth/reset-password", async (req, res) => {
+  const { token, newPassword } = req.body
 
   try {
     const { rows } = await db.query(
-      'SELECT * FROM users WHERE reset_password_token = $1 AND reset_password_expires > NOW()',
+      "SELECT * FROM users WHERE reset_password_token = $1 AND reset_password_expires > NOW()",
       [token]
-    );
-    if (!rows[0]) return res.status(400).json({ error: "Invalid token" });
+    )
+    if (!rows[0]) return res.status(400).json({ error: "Invalid token" })
 
-    const hash = await bcrypt.hash(newPassword, 10);
+    const hash = await bcrypt.hash(newPassword, 10)
     await db.query(
-      'UPDATE users SET password_hash = $1, reset_password_token = NULL, reset_password_expires = NULL WHERE email = $2',
+      "UPDATE users SET password_hash = $1, reset_password_token = NULL, reset_password_expires = NULL WHERE email = $2",
       [hash, rows[0].email]
-    );
+    )
 
-    res.json({ ok: true });
+    res.json({ ok: true })
   } catch (e) {
-    res.status(500).json({ error: "Error" });
+    res.status(500).json({ error: "Error" })
   }
-});
+})
 
 // --- 2FA ---
-app.post('/api/auth/send-2fa', async (req, res) => {
-  const { email } = req.body;
+app.post("/api/auth/send-2fa", async (req, res) => {
+  const { email } = req.body
 
   try {
-    const code = crypto.randomInt(100000, 999999).toString();
-    const expiry = new Date(Date.now() + 10 * 60 * 1000);
+    const code = crypto.randomInt(100000, 999999).toString()
+    const expiry = new Date(Date.now() + 10 * 60 * 1000)
 
     await db.query(
-      'UPDATE users SET two_fa_code = $1, two_fa_expiry = $2 WHERE email = $3',
+      "UPDATE users SET two_fa_code = $1, two_fa_expiry = $2 WHERE email = $3",
       [code, expiry, email]
-    );
+    )
 
     await transporter.sendMail({
       to: email,
-      subject: '2FA Code',
+      subject: "2FA Code",
       html: `Code: ${code}`,
-    });
+    })
 
-    res.json({ ok: true });
+    res.json({ ok: true })
   } catch (e) {
-    res.status(500).json({ error: "Error" });
+    res.status(500).json({ error: "Error" })
   }
-});
+})
 
-app.post('/api/auth/verify-2fa', async (req, res) => {
-  const { email, code } = req.body;
+app.post("/api/auth/verify-2fa", async (req, res) => {
+  const { email, code } = req.body
 
   try {
     const { rows } = await db.query(
-      'SELECT * FROM users WHERE email = $1',
+      "SELECT * FROM users WHERE email = $1",
       [email]
-    );
-    const user = rows[0];
-    if (!user) return res.status(404).json({ error: "User not found" });
+    )
+    const user = rows[0]
+    if (!user) return res.status(404).json({ error: "User not found" })
 
     if (
       user.two_fa_code !== code ||
       new Date() > new Date(user.two_fa_expiry)
     ) {
-      return res.status(401).json({ error: "Invalid/Expired" });
+      return res.status(401).json({ error: "Invalid/Expired" })
     }
 
     await db.query(
-      'UPDATE users SET two_fa_enabled = true, two_fa_code = NULL WHERE email = $1',
+      "UPDATE users SET two_fa_enabled = true, two_fa_code = NULL WHERE email = $1",
       [email]
-    );
+    )
 
-    const token = signToken({ email: user.email });
-    res.cookie('auth', token, { httpOnly: true });
-    res.json({ ok: true, token });
+    const token = signToken({ email: user.email })
+    res.cookie("auth", token, { httpOnly: true })
+    res.json({ ok: true, token })
   } catch (e) {
-    res.status(500).json({ error: "Error" });
+    res.status(500).json({ error: "Error" })
   }
-});
+})
 
 // ---------------------------------------------------------------
 // 💳 SUBSCRIPTIONS & STRIPE CHECKOUT
 // ---------------------------------------------------------------
-app.get('/api/subscriptions', authMiddleware, async (req, res) => {
+app.get("/api/subscriptions", authMiddleware, async (req, res) => {
   const { rows } = await db.query(
-    'SELECT plan FROM subscriptions WHERE email = $1',
+    "SELECT plan FROM subscriptions WHERE email = $1",
     [req.user.email]
-  );
-  res.json(rows);
-});
+  )
+  res.json(rows)
+})
 
-app.post('/api/create-checkout-session', authMiddleware, async (req, res) => {
-  const { plan } = req.body;
-  const userEmail = req.user.email;
+app.post("/api/create-checkout-session", authMiddleware, async (req, res) => {
+  const { plan } = req.body
+  const userEmail = req.user.email
 
-  let priceData;
-  if (plan === 'monthly') {
+  let priceData
+  if (plan === "monthly") {
     priceData = {
-      product_data: { name: 'Monthly' },
+      product_data: { name: "Monthly" },
       unit_amount: 499,
-      currency: 'eur',
-      recurring: { interval: 'month' },
-    };
+      currency: "eur",
+      recurring: { interval: "month" },
+    }
   } else {
     priceData = {
-      product_data: { name: 'Yearly' },
+      product_data: { name: "Yearly" },
       unit_amount: 4999,
-      currency: 'eur',
-      recurring: { interval: 'year' },
-    };
+      currency: "eur",
+      recurring: { interval: "year" },
+    }
   }
 
   try {
     const session = await stripe.checkout.sessions.create({
-      payment_method_types: ['card'],
-      mode: 'subscription',
+      payment_method_types: ["card"],
+      mode: "subscription",
       line_items: [{ price_data: priceData, quantity: 1 }],
       customer_email: userEmail,
       success_url: `${APP_URL}/profile?payment_success=true`,
       cancel_url: `${APP_URL}/subscriptions`,
-    });
+    })
 
-    res.json({ url: session.url });
+    res.json({ url: session.url })
   } catch (e) {
-    res.status(500).json({ error: e.message });
+    res.status(500).json({ error: e.message })
   }
-});
+})
 
 // ---------------------------------------------------------------
 // 🏆 LEADERBOARD + WORDLE STREAK
 // ---------------------------------------------------------------
-app.get('/api/leaderboard', async (req, res) => {
+app.get("/api/leaderboard", async (req, res) => {
   try {
     const { rows } = await db.query(`
       SELECT
@@ -747,40 +770,40 @@ app.get('/api/leaderboard', async (req, res) => {
       WHERE u.wordle_streak > 0
       ORDER BY u.wordle_streak DESC
       LIMIT 50
-    `);
+    `)
 
-    res.json(rows);
+    res.json(rows)
   } catch (err) {
-    console.error("LEADERBOARD ERROR:", err);
-    res.status(500).json({ error: "Failed to load leaderboard" });
+    console.error("LEADERBOARD ERROR:", err)
+    res.status(500).json({ error: "Failed to load leaderboard" })
   }
-});
+})
 
-app.post('/api/user/streak', authMiddleware, async (req, res) => {
-  await db.query(
-    'UPDATE users SET wordle_streak = $1 WHERE email = $2',
-    [req.body.streak, req.user.email]
-  );
-  res.json({ ok: true });
-});
+app.post("/api/user/streak", authMiddleware, async (req, res) => {
+  await db.query("UPDATE users SET wordle_streak = $1 WHERE email = $2", [
+    req.body.streak,
+    req.user.email,
+  ])
+  res.json({ ok: true })
+})
 
 // ---------------------------------------------------------------
 // 📩 CONTACT FORM
 // ---------------------------------------------------------------
-app.post('/api/contact', async (req, res) => {
-  const { email, message } = req.body;
+app.post("/api/contact", async (req, res) => {
+  const { email, message } = req.body
   await transporter.sendMail({
     from: email,
     to: process.env.EMAIL_USER,
-    subject: 'Contact',
+    subject: "Contact",
     text: message,
-  });
-  res.json({ ok: true });
-});
+  })
+  res.json({ ok: true })
+})
 
 // ---------------------------------------------------------------
 // START SERVER
 // ---------------------------------------------------------------
 app.listen(PORT, () => {
-  console.log(`API running on http://localhost:${PORT}`);
-});
+  console.log(`API running on http://localhost:${PORT}`)
+})

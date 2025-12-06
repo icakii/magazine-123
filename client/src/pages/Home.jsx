@@ -40,47 +40,65 @@ export default function Home() {
       </div>
 
       {/* Featured Section */}
-      {featured.length > 0 && (
-        <div className="stack">
-          <h3 className="headline">Featured</h3>
-          <div className="grid">
-            {featured.map(f => (
-              <div key={f.id} className="col-6">
-                 {/* КАРТА С ЦЕНТРИРАН ТЕКСТ */}
-                 <div className="card" style={{ textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", height: "100%" }}>
-                    
-                    {f.imageUrl && (
-                        <img 
-                            src={f.imageUrl} 
-                            style={{width:'100%', height: 200, objectFit:'cover', borderRadius:8, marginBottom:15}} 
-                            alt={f.title} 
-                        />
-                    )}
-                    
-                    <h4 style={{ marginBottom: 12 }}>{f.title}</h4>
-                    
-                    {f.excerpt && <p style={{color: "#666", fontSize: "0.95rem", marginBottom: 15}}>{f.excerpt}</p>}
-                    
-                    {/* --- ТУК Е ЛОГИКАТА ЗА БУТОНА --- */}
-                    <div style={{ marginTop: "auto" }}>
-                        {f.customLink ? (
-                            /* АКО ИМА ЛИНК - ПРАЩА НА ЛИНКА */
-                            <a href={f.customLink} className="btn outline">
-                                {f.buttonText || "Open Link"}
-                            </a>
-                        ) : (
-                            /* АКО НЯМА ЛИНК - ОТВАРЯ МОДАЛА */
-                            <button className="btn outline" onClick={() => setSelectedArticle(f)}>
-                                {f.buttonText || "Read More"}
-                            </button>
-                        )}
-                    </div>
-                 </div>
-              </div>
-            ))}
+{featured.length > 0 && (
+  <div className="stack">
+    <h3 className="headline">Featured</h3>
+    <div className="grid">
+      {featured.map(f => (
+        <div key={f.id} className="col-6">
+          <div
+            className="card"
+            style={{
+              textAlign: "center",
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              height: "100%",
+            }}
+          >
+            {f.imageUrl && (
+              <img
+                src={f.imageUrl}
+                style={{
+                  width: "100%",
+                  height: 200,
+                  objectFit: "cover",
+                  borderRadius: 8,
+                  marginBottom: 15,
+                }}
+                alt={f.title}
+              />
+            )}
+
+            <h4 style={{ marginBottom: 12 }}>{f.title}</h4>
+
+            {f.excerpt && (
+              <p
+                style={{
+                  color: "#666",
+                  fontSize: "0.95rem",
+                  marginBottom: 15,
+                }}
+              >
+                {f.excerpt}
+              </p>
+            )}
+
+            <div style={{ marginTop: "auto" }}>
+              <button
+                className="btn outline"
+                onClick={() => setSelectedArticle(f)}
+              >
+                Read More
+              </button>
+            </div>
           </div>
         </div>
-      )}
+      ))}
+    </div>
+  </div>
+)}
+
 
       {selectedArticle && (
         <div className="modal-backdrop" onClick={() => setSelectedArticle(null)}>

@@ -130,15 +130,17 @@ function signToken(payload) {
 // ---------------------------------------------------------------
 // 🔧 MAGIC DB FIX ROUTE – ПУСНИ ГО ВЕДНЪЖ: /api/fix-db
 // ---------------------------------------------------------------
+// --- 🔥 MAGIC DB FIX ROUTE (ИЗПЪЛНИ ГО ВЕДНЪЖ НА LOCAL И НА RENDER) ---
 app.get('/api/fix-db', async (req, res) => {
   try {
-    // 1. Добавяме колоните за статиите (ако липсват)
+    // 1. Колони за статиите
     await db.query(`ALTER TABLE articles ADD COLUMN IF NOT EXISTS is_premium BOOLEAN DEFAULT FALSE;`);
-    await db.query(`ALTER TABLE articles ADD COLUMN IF NOT EXISTS button_text TEXT;`);
-    await db.query(`ALTER TABLE articles ADD COLUMN IF NOT EXISTS link_to TEXT;`);
     await db.query(`ALTER TABLE articles ADD COLUMN IF NOT EXISTS time TEXT;`);
-    
-    // 2. Създаваме таблицата за списанията
+    await db.query(`ALTER TABLE articles ADD COLUMN IF NOT EXISTS article_category TEXT;`);
+    await db.query(`ALTER TABLE articles ADD COLUMN IF NOT EXISTS reminder_enabled BOOLEAN DEFAULT FALSE;`);
+    // (link_to и button_text ги оставяме да си седят, но не ги ползваме вече)
+
+    // 2. Таблица за списанията
     await db.query(`
       CREATE TABLE IF NOT EXISTS magazine_issues (
           id SERIAL PRIMARY KEY,
@@ -152,7 +154,7 @@ app.get('/api/fix-db', async (req, res) => {
       );
     `);
 
-    // 3. Създаваме таблицата за Newsletter
+    // 3. Таблица за Newsletter
     await db.query(`
       CREATE TABLE IF NOT EXISTS newsletter_subscribers (
           id SERIAL PRIMARY KEY,
@@ -161,11 +163,13 @@ app.get('/api/fix-db', async (req, res) => {
       );
     `);
 
-    res.send("✅ УСПЕХ! Базата данни е поправена! Сега Error 500 трябва да изчезне.");
+    res.send("✅ УСПЕХ! Базата данни е поправена за новите полета.");
   } catch (e) {
+    console.error("FIX-DB ERROR:", e);
     res.status(500).send("ГРЕШКА при поправка: " + e.message);
   }
 });
+
 
 // ---------------------------------------------------------------
 // 📧 NEWSLETTER
@@ -293,6 +297,7 @@ app.get("/api/articles", async (req, res) => {
     let query = 'SELECT * FROM articles';
     const params = [];
 
+    // category = home | news | gallery | events
     if (category) {
       query += ' WHERE category = $1';
       params.push(category);
@@ -309,13 +314,11 @@ app.get("/api/articles", async (req, res) => {
       author: row.author,
       date: row.date,
       imageUrl: row.image_url,
-      articleCategory: row.category,
+      articleCategory: row.article_category || "",   // за NEWS филтъра
       excerpt: row.excerpt,
       isPremium: row.is_premium,
-      // 🔥 ВАЖНО: тук вече връщаме СЪЩИТЕ имена, които ползва фронтът
-      buttonText: row.button_text || "Read More",
-      customLink: row.link_to || "",
-      time: row.time || null,
+      time: row.time,
+      reminderEnabled: row.reminder_enabled || false,
     }));
 
     res.json(mappedRows);
@@ -332,18 +335,19 @@ app.post("/api/articles", adminMiddleware, async (req, res) => {
     author,
     date,
     imageUrl,
-    category,
+    category,         // home | news | gallery | events
+    articleCategory,  // само за news (Sports, Lifestyle...)
     excerpt,
     isPremium,
-    buttonText,
-    customLink,
-    time,
+    time,             // час за events
+    reminderEnabled,  // toggle за events
   } = req.body;
 
   try {
     const { rows } = await db.query(
-      `INSERT INTO articles 
-       (title, text, author, date, image_url, category, excerpt, is_premium, button_text, link_to, time) 
+      `INSERT INTO articles
+       (title, text, author, date, image_url, category, article_category,
+        excerpt, is_premium, time, reminder_enabled)
        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
        RETURNING *`,
       [
@@ -353,11 +357,11 @@ app.post("/api/articles", adminMiddleware, async (req, res) => {
         date,
         imageUrl,
         category,
+        articleCategory || null,
         excerpt,
-        isPremium || false,
-        buttonText || "Read More",
-        customLink || null,
+        !!isPremium,
         time || null,
+        !!reminderEnabled,
       ]
     );
 
@@ -377,27 +381,19 @@ app.put("/api/articles/:id", adminMiddleware, async (req, res) => {
     date,
     imageUrl,
     category,
+    articleCategory,
     excerpt,
     isPremium,
-    buttonText,
-    customLink,
     time,
+    reminderEnabled,
   } = req.body;
 
   try {
     const result = await db.query(
-      `UPDATE articles 
-       SET title=$1,
-           text=$2,
-           author=$3,
-           date=$4,
-           image_url=$5,
-           category=$6,
-           excerpt=$7,
-           is_premium=$8,
-           button_text=$9,
-           link_to=$10,
-           time=$11
+      `UPDATE articles
+       SET title=$1, text=$2, author=$3, date=$4, image_url=$5,
+           category=$6, article_category=$7,
+           excerpt=$8, is_premium=$9, time=$10, reminder_enabled=$11
        WHERE id=$12
        RETURNING *`,
       [
@@ -407,11 +403,11 @@ app.put("/api/articles/:id", adminMiddleware, async (req, res) => {
         date,
         imageUrl,
         category,
+        articleCategory || null,
         excerpt,
-        isPremium || false,
-        buttonText || "Read More",
-        customLink || null,
+        !!isPremium,
         time || null,
+        !!reminderEnabled,
         id,
       ]
     );
@@ -436,7 +432,6 @@ app.delete("/api/articles/:id", adminMiddleware, async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
-
 
 
 // ---------------------------------------------------------------

@@ -25,12 +25,19 @@ const APP_URL = process.env.APP_URL || "http://localhost:5173"
 app.set("trust proxy", 1) // за Render
 
 app.use(cookieParser())
-app.use(
-  cors({
-    origin: FRONTEND_URL,
-    credentials: true,
-  })
-)
+const allowed = [
+  process.env.FRONTEND_URL,
+  'http://localhost:5173',
+]
+
+app.use(cors({
+  credentials:true,
+  origin:(origin,cb)=>{
+    if(!origin || allowed.includes(origin)) cb(null,true)
+    else cb(new Error("Not allowed by CORS")) 
+  }
+}))
+
 
 // Email Transporter (Gmail)
 const transporter = nodemailer.createTransport({

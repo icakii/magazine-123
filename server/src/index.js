@@ -132,50 +132,37 @@ function signToken(payload) {
 // ---------------------------------------------------------------
 app.get('/api/fix-db', async (req, res) => {
   try {
-    // 1) Допълнителни колони в articles
-    await db.query(`
-      ALTER TABLE articles
-      ADD COLUMN IF NOT EXISTS is_premium BOOLEAN DEFAULT FALSE;
-    `);
-    await db.query(`
-      ALTER TABLE articles
-      ADD COLUMN IF NOT EXISTS link_to TEXT;
-    `);
-    await db.query(`
-      ALTER TABLE articles
-      ADD COLUMN IF NOT EXISTS time TEXT;
-    `);
-    await db.query(`
-      ALTER TABLE articles
-      ADD COLUMN IF NOT EXISTS button_text TEXT;
-    `);
-
-    // 2) Таблица за списанията
+    // 1. Добавяме колоните за статиите (ако липсват)
+    await db.query(`ALTER TABLE articles ADD COLUMN IF NOT EXISTS is_premium BOOLEAN DEFAULT FALSE;`);
+    await db.query(`ALTER TABLE articles ADD COLUMN IF NOT EXISTS button_text TEXT;`);
+    await db.query(`ALTER TABLE articles ADD COLUMN IF NOT EXISTS link_to TEXT;`);
+    await db.query(`ALTER TABLE articles ADD COLUMN IF NOT EXISTS time TEXT;`);
+    
+    // 2. Създаваме таблицата за списанията
     await db.query(`
       CREATE TABLE IF NOT EXISTS magazine_issues (
-        id SERIAL PRIMARY KEY,
-        issue_number TEXT,
-        month TEXT,
-        year INTEGER,
-        is_locked BOOLEAN DEFAULT TRUE,
-        cover_url TEXT,
-        pages JSONB,
-        created_at TIMESTAMP DEFAULT NOW()
+          id SERIAL PRIMARY KEY,
+          issue_number TEXT,
+          month TEXT,
+          year INTEGER,
+          is_locked BOOLEAN DEFAULT TRUE,
+          cover_url TEXT,
+          pages JSONB,
+          created_at TIMESTAMP DEFAULT NOW()
       );
     `);
 
-    // 3) Таблица за newsletter
+    // 3. Създаваме таблицата за Newsletter
     await db.query(`
       CREATE TABLE IF NOT EXISTS newsletter_subscribers (
-        id SERIAL PRIMARY KEY,
-        email TEXT UNIQUE NOT NULL,
-        created_at TIMESTAMP DEFAULT NOW()
+          id SERIAL PRIMARY KEY,
+          email TEXT UNIQUE NOT NULL,
+          created_at TIMESTAMP DEFAULT NOW()
       );
     `);
 
     res.send("✅ УСПЕХ! Базата данни е поправена! Сега Error 500 трябва да изчезне.");
   } catch (e) {
-    console.error("FIX-DB ERROR:", e);
     res.status(500).send("ГРЕШКА при поправка: " + e.message);
   }
 });
@@ -300,22 +287,23 @@ app.delete('/api/magazines/:id', adminMiddleware, async (req, res) => {
 // 📰 ARTICLES (с buttonText + customLink)
 // ---------------------------------------------------------------
 // --- ARTICLES ---
+// --- ARTICLES ---
 app.get("/api/articles", async (req, res) => {
   try {
     const { category } = req.query;
-    let query = 'SELECT * FROM articles';
+    let query = "SELECT * FROM articles";
     const params = [];
 
     if (category) {
-      query += ' WHERE category = $1';
+      query += " WHERE category = $1";
       params.push(category);
     }
 
-    query += ' ORDER BY date DESC';
+    query += " ORDER BY date DESC";
 
     const { rows } = await db.query(query, params);
 
-    const mappedRows = rows.map(row => ({
+    const mappedRows = rows.map((row) => ({
       id: row.id,
       title: row.title,
       text: row.text,
@@ -325,15 +313,14 @@ app.get("/api/articles", async (req, res) => {
       articleCategory: row.category,
       excerpt: row.excerpt,
       isPremium: row.is_premium,
-      // 👇 важно: това гледа Home.jsx / AdminPanel.jsx
+      // 🔥 ТЕЗИ ДВЕ ПОЛЕТА ВЕЧЕ СЕ ВРЪЩАТ КЪМ FRONTEND
       buttonText: row.button_text || "Read More",
       customLink: row.link_to || "",
-      time: row.time || ""
+      time: row.time || null,
     }));
 
     res.json(mappedRows);
   } catch (err) {
-    console.error("GET /api/articles error:", err);
     res.status(500).json({ error: err.message });
   }
 });
@@ -350,7 +337,7 @@ app.post("/api/articles", adminMiddleware, async (req, res) => {
     isPremium,
     buttonText,
     customLink,
-    time
+    time,
   } = req.body;
 
   try {
@@ -370,18 +357,17 @@ app.post("/api/articles", adminMiddleware, async (req, res) => {
         isPremium || false,
         buttonText || "Read More",
         customLink || null,
-        time || null
+        time || null,
       ]
     );
 
     res.json({ ok: true, article: rows[0] });
   } catch (err) {
-    console.error("POST /api/articles error:", err);
     res.status(500).json({ error: err.message });
   }
 });
 
-app.put('/api/articles/:id', adminMiddleware, async (req, res) => {
+app.put("/api/articles/:id", adminMiddleware, async (req, res) => {
   const { id } = req.params;
   const {
     title,
@@ -394,23 +380,14 @@ app.put('/api/articles/:id', adminMiddleware, async (req, res) => {
     isPremium,
     buttonText,
     customLink,
-    time
+    time,
   } = req.body;
 
   try {
     const result = await db.query(
-      `UPDATE articles 
-       SET title=$1,
-           text=$2,
-           author=$3,
-           date=$4,
-           image_url=$5,
-           category=$6,
-           excerpt=$7,
-           is_premium=$8,
-           button_text=$9,
-           link_to=$10,
-           time=$11
+      `UPDATE articles
+       SET title=$1, text=$2, author=$3, date=$4, image_url=$5, category=$6, excerpt=$7,
+           is_premium=$8, button_text=$9, link_to=$10, time=$11
        WHERE id=$12
        RETURNING *`,
       [
@@ -425,7 +402,7 @@ app.put('/api/articles/:id', adminMiddleware, async (req, res) => {
         buttonText || "Read More",
         customLink || null,
         time || null,
-        id
+        id,
       ]
     );
 
@@ -435,20 +412,11 @@ app.put('/api/articles/:id', adminMiddleware, async (req, res) => {
 
     res.json(result.rows[0]);
   } catch (err) {
-    console.error("PUT /api/articles/:id error:", err);
+    console.error("Update Error:", err);
     res.status(500).json({ error: err.message });
   }
 });
 
-app.delete("/api/articles/:id", adminMiddleware, async (req, res) => {
-  try {
-    await db.query('DELETE FROM articles WHERE id = $1', [req.params.id]);
-    res.json({ ok: true });
-  } catch (err) {
-    console.error("DELETE /api/articles/:id error:", err);
-    res.status(500).json({ error: err.message });
-  }
-});
 
 
 // ---------------------------------------------------------------

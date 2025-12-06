@@ -1,4 +1,3 @@
-// client/src/pages/AdminPanel.jsx
 "use client"
 
 import { useState, useEffect } from "react"
@@ -54,7 +53,6 @@ export default function AdminPanel() {
     imageUrl: "",
     articleCategory: "Lifestyle", // само за news
     isPremium: false,
-    reminderEnabled: false,       // за events
   })
 
   // Magazine Form
@@ -152,10 +150,8 @@ export default function AdminPanel() {
         }
         setMsg("Magazine saved!")
       } else if (activeTab === "newsletter") {
-        // няма save тук
         return
       } else {
-        // ARTICLE SAVE
         const payload = {
           title: articleForm.title,
           text: activeTab === "gallery" ? "" : articleForm.text,
@@ -166,7 +162,6 @@ export default function AdminPanel() {
           category: activeTab, // home | news | events | gallery
           articleCategory: activeTab === "news" ? articleForm.articleCategory : null,
           isPremium: articleForm.isPremium,
-          reminderEnabled: activeTab === "events" ? articleForm.reminderEnabled : false,
           author: user.displayName || "Admin",
         }
 
@@ -236,7 +231,6 @@ export default function AdminPanel() {
     } else if (activeTab === "newsletter") {
       return
     } else {
-      // article
       setArticleForm({
         title: item.title || "",
         text: item.text || "",
@@ -246,7 +240,6 @@ export default function AdminPanel() {
         imageUrl: item.imageUrl || "",
         articleCategory: item.articleCategory || "Lifestyle",
         isPremium: !!item.isPremium,
-        reminderEnabled: !!item.reminderEnabled,
       })
     }
 
@@ -267,7 +260,6 @@ export default function AdminPanel() {
       imageUrl: "",
       articleCategory: "Lifestyle",
       isPremium: false,
-      reminderEnabled: false,
     })
     setMagForm({
       issueNumber: "",
@@ -284,7 +276,6 @@ export default function AdminPanel() {
     return <div className="page"><p>Access denied.</p></div>
   }
 
-  // -------------- RENDER --------------
   return (
     <div className="page">
       <h2 className="headline">Admin Panel</h2>
@@ -647,7 +638,7 @@ export default function AdminPanel() {
                   </select>
                 )}
 
-                {/* Short text (excerpt) & Long text */}
+                {/* Short text & Long text (без gallery) */}
                 {activeTab !== "gallery" && (
                   <>
                     <textarea
@@ -702,33 +693,6 @@ export default function AdminPanel() {
                       : "🔓 Public (free)"}
                   </span>
                 </label>
-
-                {/* Reminder toggle – само за EVENTS */}
-                {activeTab === "events" && (
-                  <label
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 6,
-                      marginTop: 6,
-                    }}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={articleForm.reminderEnabled}
-                      onChange={e =>
-                        setArticleForm(prev => ({
-                          ...prev,
-                          reminderEnabled: e.target.checked,
-                        }))
-                      }
-                    />
-                    <span>
-                      ⏰ Send reminder emails 1 day before the event (backend job
-                      по-късно)
-                    </span>
-                  </label>
-                )}
               </>
             )}
 
@@ -779,9 +743,7 @@ export default function AdminPanel() {
               }}
             >
               <span>
-                <strong>
-                  {item.title || `Issue #${item.issueNumber}`}
-                </strong>{" "}
+                <strong>{item.title || `Issue #${item.issueNumber}`}</strong>{" "}
                 {item.month || item.date}
               </span>
               <div>

@@ -151,7 +151,6 @@ app.get("/api/fix-db", async (req, res) => {
     await db.query(
       `ALTER TABLE articles ADD COLUMN IF NOT EXISTS reminder_enabled BOOLEAN DEFAULT FALSE;`
     )
-    // (link_to и button_text може да си стоят, не ги ползваме вече)
 
     // 2. Таблица за списанията
     await db.query(`
@@ -176,12 +175,24 @@ app.get("/api/fix-db", async (req, res) => {
       );
     `)
 
+    // 4. Таблица за user event reminders
+    await db.query(`
+      CREATE TABLE IF NOT EXISTS event_reminders (
+        id SERIAL PRIMARY KEY,
+        user_email TEXT NOT NULL,
+        article_id INTEGER NOT NULL REFERENCES articles(id) ON DELETE CASCADE,
+        created_at TIMESTAMP DEFAULT NOW(),
+        UNIQUE(user_email, article_id)
+      );
+    `);
+
     res.send("✅ УСПЕХ! Базата данни е поправена за новите полета.")
   } catch (e) {
     console.error("FIX-DB ERROR:", e)
     res.status(500).send("ГРЕШКА при поправка: " + e.message)
   }
 })
+
 
 // ---------------------------------------------------------------
 // 📧 NEWSLETTER
@@ -456,6 +467,116 @@ app.delete("/api/articles/:id", adminMiddleware, async (req, res) => {
     res.status(500).json({ error: err.message })
   }
 })
+
+
+// ---------------------------------------------------------------
+// 🔔 EVENT REMINDERS (per user)
+// ---------------------------------------------------------------
+app.get("/api/events/reminders", authMiddleware, async (req, res) => {
+  try {
+    const { rows } = await db.query(
+      "SELECT article_id FROM event_reminders WHERE user_email = $1",
+      [req.user.email]
+    )
+    res.json({ articleIds: rows.map(r => r.article_id) })
+  } catch (err) {
+    console.error("GET /api/events/reminders error:", err)
+    res.status(500).json({ error: err.message })
+  }
+})
+
+app.post("/api/events/:id/reminder", authMiddleware, async (req, res) => {
+  const eventId = parseInt(req.params.id, 10)
+  const { enabled } = req.body
+
+  if (!eventId) {
+    return res.status(400).json({ error: "Invalid event id" })
+  }
+
+  try {
+    if (enabled) {
+      // включваме reminder
+      await db.query(
+        `INSERT INTO event_reminders (user_email, article_id)
+         VALUES ($1, $2)
+         ON CONFLICT (user_email, article_id) DO NOTHING`,
+        [req.user.email, eventId]
+      )
+    } else {
+      // изключваме reminder
+      await db.query(
+        `DELETE FROM event_reminders
+         WHERE user_email = $1 AND article_id = $2`,
+        [req.user.email, eventId]
+      )
+    }
+
+    res.json({ ok: true, enabled: !!enabled })
+  } catch (err) {
+    console.error("POST /api/events/:id/reminder error:", err)
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// ---------------------------------------------------------------
+// ⏰ SEND REMINDER EMAILS (call this once per day)
+// ---------------------------------------------------------------
+app.post("/api/events/send-reminders", async (req, res) => {
+  try {
+    const tomorrow = new Date()
+    tomorrow.setDate(tomorrow.getDate() + 1)
+    const dateStr = tomorrow.toISOString().split("T")[0]
+
+    const { rows } = await db.query(
+      `
+      SELECT a.id, a.title, a.date, a.time, r.user_email
+      FROM articles a
+      JOIN event_reminders r ON r.article_id = a.id
+      WHERE a.category = 'events' AND a.date = $1
+    `,
+      [dateStr]
+    )
+
+    if (rows.length === 0) {
+      return res.json({ ok: true, sent: 0 })
+    }
+
+    // групираме по email
+    const byEmail = {}
+    for (const row of rows) {
+      if (!byEmail[row.user_email]) byEmail[row.user_email] = []
+      byEmail[row.user_email].push(row)
+    }
+
+    let sentCount = 0
+
+    for (const [email, events] of Object.entries(byEmail)) {
+      const htmlList = events
+        .map(
+          (ev) => `
+        <li>
+          <strong>${ev.title}</strong><br/>
+          Date: ${ev.date}${ev.time ? " " + ev.time : ""}
+        </li>`
+        )
+        .join("")
+
+      await transporter.sendMail({
+        to: email,
+        subject: "MIREN - Event reminder for tomorrow",
+        html: `<p>You have upcoming events tomorrow:</p><ul>${htmlList}</ul>`,
+      })
+
+      sentCount++
+    }
+
+    res.json({ ok: true, sent: sentCount })
+  } catch (err) {
+    console.error("EVENT REMINDER SEND ERROR:", err)
+    res.status(500).json({ error: err.message })
+  }
+})
+
 
 // ---------------------------------------------------------------
 // 🔐 AUTH ROUTES

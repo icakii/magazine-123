@@ -110,6 +110,7 @@ export default function AdminPanel() {
   }
 
   // --- SAVE ---
+    // --- SAVE ---
   async function handleSave(e) {
     e.preventDefault()
     try {
@@ -123,19 +124,34 @@ export default function AdminPanel() {
          else await api.post('/magazines', dataToSave);
          setMsg("Magazine saved!");
       } else {
+         // ДАННИ ЗА СТАТИЯ
          const dataToSave = { 
-             ...articleForm, 
-             category: activeTab, 
+             title: articleForm.title,
+             text: articleForm.text,
              author: user.displayName || "Admin",
-             // ИЗРИЧНО ИЗПРАЩАМЕ БУТОНИТЕ
-             buttonText: articleForm.buttonText,
-             customLink: articleForm.customLink
+             date: articleForm.date,
+             imageUrl: articleForm.imageUrl,
+             category: activeTab,
+             excerpt: articleForm.excerpt,
+             isPremium: articleForm.isPremium,
+             time: articleForm.time,
+             // ВАЖНО: тук мапваме към бекенда
+             linkTo: articleForm.customLink || null,
+             buttonText: articleForm.buttonText || null
          }
-         if (editingId) await api.put(`/articles/${editingId}`, dataToSave);
-         else await api.post("/articles", dataToSave);
+
+         if (editingId) {
+           await api.put(`/articles/${editingId}`, dataToSave);
+         } else {
+           await api.post("/articles", dataToSave);
+         }
          setMsg("Article saved!");
       }
-      setTimeout(() => { resetForms(); loadData(); }, 1000)
+
+      setTimeout(() => { 
+        resetForms(); 
+        loadData(); 
+      }, 1000)
     } catch (err) { 
         console.error(err);
         setMsg("Error: " + (err.response?.data?.message || err.message)); 

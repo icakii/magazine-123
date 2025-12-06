@@ -112,6 +112,7 @@ app.get('/api/fix-db', async (req, res) => {
     await db.query(`ALTER TABLE articles ADD COLUMN IF NOT EXISTS is_premium BOOLEAN DEFAULT FALSE;`);
     await db.query(`ALTER TABLE articles ADD COLUMN IF NOT EXISTS link_to TEXT;`);
     await db.query(`ALTER TABLE articles ADD COLUMN IF NOT EXISTS time TEXT;`);
+    await db.query(`ALTER TABLE articles ADD COLUMN IF NOT EXISTS button_text TEXT;`);
     
     // 2. Създаваме таблицата за списанията
     await db.query(`
@@ -141,6 +142,7 @@ app.get('/api/fix-db', async (req, res) => {
     res.status(500).send("ГРЕШКА при поправка: " + e.message);
   }
 });
+
 // -----------------------------------------------------------
 
 // --- NEWSLETTER ---
@@ -228,12 +230,18 @@ app.delete('/api/magazines/:id', adminMiddleware, async (req, res) => {
 });
 
 // --- ARTICLES ---
+// --- ARTICLES ---
 app.get("/api/articles", async (req, res) => {
   try {
     const { category } = req.query;
     let query = 'SELECT * FROM articles';
     let params = [];
-    if (category) { query += ' WHERE category = $1'; params.push(category); }
+
+    if (category) { 
+      query += ' WHERE category = $1'; 
+      params.push(category); 
+    }
+
     query += ' ORDER BY date DESC';
     const { rows } = await db.query(query, params);
     
@@ -247,37 +255,93 @@ app.get("/api/articles", async (req, res) => {
         articleCategory: row.category,
         excerpt: row.excerpt,
         isPremium: row.is_premium,
-        linkTo: row.link_to,
+        // НОВИТЕ ПОЛЕТА
+        buttonText: row.button_text,
+        customLink: row.link_to,
         time: row.time
     }));
     res.json(mappedRows);
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { 
+    res.status(500).json({ error: err.message }); 
+  }
 });
 
 app.post("/api/articles", adminMiddleware, async (req, res) => {
-  const { title, text, author, date, imageUrl, category, excerpt, isPremium, linkTo, time } = req.body;
+  const { 
+    title, 
+    text, 
+    author, 
+    date, 
+    imageUrl, 
+    category, 
+    excerpt, 
+    isPremium, 
+    linkTo, 
+    time,
+    buttonText
+  } = req.body;
+
   try {
     const { rows } = await db.query(
       `INSERT INTO articles 
-       (title, text, author, date, image_url, category, excerpt, is_premium, link_to, time) 
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) 
+       (title, text, author, date, image_url, category, excerpt, is_premium, link_to, time, button_text) 
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) 
        RETURNING *`,
-      [title, text, author || "MIREN", date, imageUrl, category, excerpt, isPremium || false, linkTo, time]
+      [
+        title, 
+        text, 
+        author || "MIREN", 
+        date, 
+        imageUrl, 
+        category, 
+        excerpt, 
+        isPremium || false, 
+        linkTo, 
+        time,
+        buttonText
+      ]
     );
     res.json({ ok: true, article: rows[0] });
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { 
+    res.status(500).json({ error: err.message }); 
+  }
 });
 
 app.put('/api/articles/:id', adminMiddleware, async (req, res) => {
   const { id } = req.params;
-  const { title, text, author, date, imageUrl, category, excerpt, isPremium, linkTo, time } = req.body;
+  const { 
+    title, 
+    text, 
+    author, 
+    date, 
+    imageUrl, 
+    category, 
+    excerpt, 
+    isPremium, 
+    linkTo, 
+    time,
+    buttonText
+  } = req.body;
 
   try {
     const result = await db.query(
         `UPDATE articles 
-         SET title=$1, text=$2, author=$3, date=$4, image_url=$5, category=$6, excerpt=$7, is_premium=$8, link_to=$9, time=$10
-         WHERE id=$11 RETURNING *`,
-        [title, text, author, date, imageUrl, category, excerpt, isPremium || false, linkTo, time, id]
+         SET title=$1, text=$2, author=$3, date=$4, image_url=$5, category=$6, excerpt=$7, is_premium=$8, link_to=$9, time=$10, button_text=$11
+         WHERE id=$12 RETURNING *`,
+        [
+          title, 
+          text, 
+          author, 
+          date, 
+          imageUrl, 
+          category, 
+          excerpt, 
+          isPremium || false, 
+          linkTo, 
+          time,
+          buttonText,
+          id
+        ]
     );
 
     if (result.rows.length === 0) return res.status(404).json({ message: "Article not found" });

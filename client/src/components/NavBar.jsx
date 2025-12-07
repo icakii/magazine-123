@@ -64,11 +64,16 @@ export default function NavBar() {
       <nav className="nav">
         <div className="nav-inner">
           <div className="nav-left">
-            <button className="hamburger" aria-label="Open menu" onClick={toggleDrawer}>
-              <span className="lines">
-                <span className="line"></span><span className="line"></span><span className="line"></span>
-              </span>
-            </button>
+            <div className="hamburger-wrapper">
+  <button className="hamburger" onClick={toggleDrawer}>
+    <div className="lines">
+      <span className="line"></span>
+      <span className="line"></span>
+      <span className="line"></span>
+    </div>
+  </button>
+</div>
+
           </div>
           
           <div className="nav-center">

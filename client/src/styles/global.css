@@ -356,16 +356,18 @@ html[data-theme="dark"] .lang-toggle {
   top: 0;
   left: 0;
   height: 100vh;
-  width: 260px;
-  background: #e0e0e0;
+  width: 280px;
+  max-width: 100vw;
+  background: var(--bg);
   overflow-y: auto;
   transform: translateX(-100%);
   transition: transform 0.3s ease;
-  z-index: 999;
+  z-index: 1100;
+  box-shadow: var(--shadow-lg);
 }
 
 html[data-theme="dark"] .drawer {
-  background: #1a1a1a;
+  background: #111;
 }
 
 .drawer.open {
@@ -536,6 +538,7 @@ html[data-theme="dark"] .drawer-item {
   gap: 0.8rem;
   flex-wrap: wrap;
 }
+
 /* ============ FORMS ============ */
 
 .input,
@@ -959,6 +962,7 @@ html[data-theme="dark"] .hero-bg::after {
   border-color: var(--game-absent);
   color: white;
 }
+
 /* Keyboard */
 .keyboard {
   width: 100%;
@@ -1179,8 +1183,10 @@ footer {
 /* Drawer better look */
 @media (max-width: 850px) {
   .drawer {
-    width: 82vw !important;
+    width: 100vw !important;
+    max-width: 100vw !important;
     padding-top: 60px;
+    border-radius: 0;
   }
 
   .drawer-item {
@@ -1257,5 +1263,38 @@ footer {
 @media (max-width: 700px) {
   .keyboard {
     max-width: 100% !important;
+  }
+}
+
+/* Navbar brand centered on mobile */
+@media (max-width: 720px) {
+  .nav-inner {
+    position: relative;
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+  }
+
+  .nav-left {
+    z-index: 2;
+  }
+
+  .nav-right {
+    z-index: 2;
+    justify-content: flex-end;
+    gap: 6px;
+  }
+
+  .nav-center {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+  }
+
+  .brand {
+    font-size: 2.1rem !important;
+    padding: 0 4px;
   }
 }

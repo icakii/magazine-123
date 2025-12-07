@@ -29,24 +29,19 @@ export default function NavBar() {
     return () => window.removeEventListener("lang:change", onLangChange)
   }, [])
 
-  // --- ТУК Е ПОПРАВКАТА ---
   async function handleLogout(e) {
     if (e) e.preventDefault()
     try { await api.post("/auth/logout") } catch {}
-    
-    // ВАЖНО: Изтриваме токена от паметта, за да не ни логне пак автоматично!
-    localStorage.removeItem('auth_token')
-    
+    localStorage.removeItem("auth_token")
     location.href = "/"
   }
-  // ------------------------
 
   function changeLang() {
     const next = lang === "bg" ? "en" : "bg"
     setLang(next)
   }
 
-  function toggleDrawer() { setOpen((o) => !o) }
+  function toggleDrawer() { setOpen(o => !o) }
   function closeDrawer() { setOpen(false) }
 
   const handleProtectedClick = (e) => {
@@ -63,53 +58,72 @@ export default function NavBar() {
     <>
       <nav className="nav">
         <div className="nav-inner">
-          <div className="nav-left">
-            <div className="hamburger-wrapper">
-  <button className="hamburger" onClick={toggleDrawer}>
-    <div className="lines">
-      <span className="line"></span>
-      <span className="line"></span>
-      <span className="line"></span>
-    </div>
-  </button>
-</div>
+          {/* TOP ROW: hamburger + logo */}
+          <div className="nav-top">
+            <div className="nav-left">
+              <button
+                className="hamburger"
+                aria-label="Open menu"
+                onClick={toggleDrawer}
+              >
+                <span className="lines">
+                  <span className="line"></span>
+                  <span className="line"></span>
+                  <span className="line"></span>
+                </span>
+              </button>
+            </div>
 
-          </div>
-          
-          <div className="nav-center">
-            <Link className="brand" to="/">
-              {t("brand")}
-            </Link>
+            <div className="nav-center">
+              <Link className="brand" to="/">
+                {t("brand")}
+              </Link>
+            </div>
           </div>
 
+          {/* SECOND ROW: buttons */}
           <div className="nav-right">
             {!loading && !user && (
               <>
-                <Link to="/register" className="btn ghost" style={{border:'none', marginRight: 5}}>{t("register")}</Link>
-                <Link to="/login" className="btn primary">{t("login")}</Link>
+                <Link
+                  to="/register"
+                  className="btn ghost"
+                  style={{ border: "none", marginRight: 5 }}
+                >
+                  {t("register")}
+                </Link>
+                <Link to="/login" className="btn primary">
+                  {t("login")}
+                </Link>
               </>
             )}
-            
+
             {user && (
               <form onSubmit={handleLogout} style={{ display: "inline" }}>
-                <button className="btn secondary" type="submit">{t("logout")}</button>
+                <button className="btn secondary" type="submit">
+                  {t("logout")}
+                </button>
               </form>
             )}
-            
-            <button className="theme-toggle" onClick={toggleTheme} style={{marginLeft: 8}}>
+
+            <button className="theme-toggle" onClick={toggleTheme} style={{ marginLeft: 8 }}>
               {t("theme")}
             </button>
-            <button className="lang-toggle" onClick={changeLang} style={{marginLeft: 8}}>
+            <button className="lang-toggle" onClick={changeLang} style={{ marginLeft: 8 }}>
               {lang.toUpperCase()}
             </button>
           </div>
         </div>
       </nav>
 
-      <div className={`drawer-backdrop ${open ? "open" : ""}`} onClick={closeDrawer} />
+      {/* Backdrop */}
+      <div
+        className={`drawer-backdrop ${open ? "open" : ""}`}
+        onClick={closeDrawer}
+      />
 
+      {/* SLIDE MENU */}
       <aside className={`drawer ${open ? "open" : ""}`} aria-hidden={!open}>
-        
         <nav className="drawer-list">
           <Link className="drawer-item" to="/" onClick={closeDrawer}>Home</Link>
           <Link className="drawer-item" to="/news" onClick={handleProtectedClick}>News</Link>
@@ -117,38 +131,67 @@ export default function NavBar() {
           <Link className="drawer-item" to="/gallery" onClick={handleProtectedClick}>Gallery</Link>
           <Link className="drawer-item" to="/games" onClick={handleProtectedClick}>Games</Link>
           <Link className="drawer-item" to="/e-magazine" onClick={handleProtectedClick}>E-Magazine</Link>
-          
+
           <Link className="drawer-item" to="/about" onClick={closeDrawer}>{t("about")}</Link>
           <Link className="drawer-item" to="/contact" onClick={closeDrawer}>{t("contact")}</Link>
           <Link className="drawer-item" to="/subscriptions" onClick={closeDrawer}>{t("subscriptions")}</Link>
           <Link className="drawer-item" to="/help" onClick={closeDrawer}>{t("help")}</Link>
 
-          <div style={{ flex: 1 }} /> 
           <div className="drawer-sep" />
 
-          <Link className="drawer-item" to="/profile" onClick={closeDrawer}>{t("profile")}</Link>
-          
+          <Link className="drawer-item" to="/profile" onClick={closeDrawer}>
+            {t("profile")}
+          </Link>
+
           {isAdmin && (
-            <Link className="drawer-item" to="/admin" onClick={closeDrawer} style={{ color: 'var(--primary)', fontWeight:'bold' }}>
+            <Link
+              className="drawer-item"
+              to="/admin"
+              onClick={closeDrawer}
+              style={{ color: "var(--primary)", fontWeight: "bold" }}
+            >
               ⚙️ Admin Panel
             </Link>
           )}
         </nav>
       </aside>
 
+      {/* Modal when content is protected */}
       {showLoginModal && (
         <div className="modal-backdrop" onClick={() => setShowLoginModal(false)}>
-          <div className="modal-content" onClick={e => e.stopPropagation()} style={{textAlign: 'center', maxWidth: '400px'}}>
-            <button className="modal-close" onClick={() => setShowLoginModal(false)}>×</button>
-            <div style={{fontSize: '3rem', marginBottom: '10px'}}>🔒</div>
-            <h2 className="headline" style={{fontSize: '1.8rem'}}>Access Restricted</h2>
-            <p style={{marginBottom: '20px', color: 'gray'}}>
-              You must be a registered member to access this content. <br/>
+          <div
+            className="modal-content"
+            onClick={(e) => e.stopPropagation()}
+            style={{ textAlign: "center", maxWidth: "400px" }}
+          >
+            <button className="modal-close" onClick={() => setShowLoginModal(false)}>
+              ×
+            </button>
+            <div style={{ fontSize: "3rem", marginBottom: "10px" }}>🔒</div>
+            <h2 className="headline" style={{ fontSize: "1.8rem" }}>
+              Access Restricted
+            </h2>
+            <p style={{ marginBottom: "20px", color: "gray" }}>
+              You must be a registered member to access this content. <br />
               Join MIREN today!
             </p>
-            <div style={{display: 'flex', flexDirection: 'column', gap: '10px'}}>
-              <Link to="/register" className="btn primary" onClick={() => setShowLoginModal(false)} style={{textDecoration:'none'}}>Create Account</Link>
-              <Link to="/login" className="btn ghost" onClick={() => setShowLoginModal(false)} style={{textDecoration:'none'}}>Login</Link>
+            <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+              <Link
+                to="/register"
+                className="btn primary"
+                onClick={() => setShowLoginModal(false)}
+                style={{ textDecoration: "none" }}
+              >
+                Create Account
+              </Link>
+              <Link
+                to="/login"
+                className="btn ghost"
+                onClick={() => setShowLoginModal(false)}
+                style={{ textDecoration: "none" }}
+              >
+                Login
+              </Link>
             </div>
           </div>
         </div>

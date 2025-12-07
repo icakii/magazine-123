@@ -196,14 +196,19 @@ body {
 }
 
 .nav-inner {
-  display: grid;
-  grid-template-columns: auto 1fr auto;
-  align-items: center;
-  gap: 16px;
   width: 100%;
   max-width: var(--container);
   margin: 0 auto;
-  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* първи ред – hamburger + MIREN */
+.nav-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
 
 .nav-left {
@@ -213,57 +218,19 @@ body {
 }
 
 .nav-center {
+  flex: 1;
   display: flex;
-  align-items: center;
   justify-content: center;
 }
 
+/* втори ред – бутони */
 .nav-right {
   display: flex;
   align-items: center;
-  gap: 12px;
-  justify-self: end;
-  padding-right: 8px;
-}
-
-.hamburger {
-  width: 48px;
-  height: 44px;
-  border-radius: 10px;
-  border: 1.5px solid var(--nav-border);
-  display: inline-grid;
-  place-items: center;
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.8), rgba(255, 255, 255, 0.6));
-  cursor: pointer;
-  transition: all 200ms var(--ease);
-  box-shadow: var(--shadow-sm);
-}
-
-html[data-theme="dark"] .hamburger {
-  background: linear-gradient(135deg, rgba(26, 26, 26, 0.8), rgba(26, 26, 26, 0.6));
-}
-
-.hamburger:hover {
-  background: linear-gradient(135deg, rgba(230, 57, 70, 0.12), rgba(230, 57, 70, 0.08));
-  border-color: var(--primary);
-  transform: scale(1.05);
-}
-
-.hamburger:active {
-  transform: scale(0.97);
-}
-
-.hamburger .lines {
-  display: grid;
-  gap: 5px;
-}
-
-.hamburger .line {
-  width: 28px;
-  height: 3px;
-  background: var(--nav-text);
-  border-radius: 2px;
-  transition: all 280ms var(--ease);
+  justify-content: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding-bottom: 4px;
 }
 
 .nav a {
@@ -299,6 +266,58 @@ html[data-theme="dark"] .hamburger {
   width: 100%;
 }
 
+.hamburger {
+  width: 48px;
+  height: 44px;
+  border-radius: 10px;
+  border: 1.5px solid var(--nav-border);
+  display: inline-grid;
+  place-items: center;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.8),
+    rgba(255, 255, 255, 0.6)
+  );
+  cursor: pointer;
+  transition: all 200ms var(--ease);
+  box-shadow: var(--shadow-sm);
+}
+
+html[data-theme="dark"] .hamburger {
+  background: linear-gradient(
+    135deg,
+    rgba(26, 26, 26, 0.8),
+    rgba(26, 26, 26, 0.6)
+  );
+}
+
+.hamburger:hover {
+  background: linear-gradient(
+    135deg,
+    rgba(230, 57, 70, 0.12),
+    rgba(230, 57, 70, 0.08)
+  );
+  border-color: var(--primary);
+  transform: scale(1.05);
+}
+
+.hamburger:active {
+  transform: scale(0.97);
+}
+
+.hamburger .lines {
+  display: grid;
+  gap: 5px;
+}
+
+.hamburger .line {
+  width: 28px;
+  height: 3px;
+  background: var(--nav-text);
+  border-radius: 2px;
+  transition: all 280ms var(--ease);
+}
+
 .theme-toggle,
 .lang-toggle {
   font-family: "Roboto Slab", serif;
@@ -307,7 +326,11 @@ html[data-theme="dark"] .hamburger {
   padding: 8px 12px;
   border-radius: 8px;
   border: 1.5px solid var(--nav-border);
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.8), rgba(255, 255, 255, 0.6));
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.8),
+    rgba(255, 255, 255, 0.6)
+  );
   color: var(--nav-text);
   cursor: pointer;
   min-width: 70px;
@@ -318,14 +341,22 @@ html[data-theme="dark"] .hamburger {
 
 html[data-theme="dark"] .theme-toggle,
 html[data-theme="dark"] .lang-toggle {
-  background: linear-gradient(135deg, rgba(26, 26, 26, 0.8), rgba(26, 26, 26, 0.6));
+  background: linear-gradient(
+    135deg,
+    rgba(26, 26, 26, 0.8),
+    rgba(26, 26, 26, 0.6)
+  );
   color: var(--text);
 }
 
 .theme-toggle:hover,
 .lang-toggle:hover {
   border-color: var(--primary);
-  background: linear-gradient(135deg, rgba(230, 57, 70, 0.1), rgba(230, 57, 70, 0.05));
+  background: linear-gradient(
+    135deg,
+    rgba(230, 57, 70, 0.1),
+    rgba(230, 57, 70, 0.05)
+  );
   transform: translateY(-2px);
 }
 
@@ -353,17 +384,20 @@ html[data-theme="dark"] .lang-toggle {
 
 .drawer {
   position: fixed;
-  top: 0;
+  top: var(--nav-height); /* да започва под нав бара */
   left: 0;
-  height: 100vh;
-  width: 280px;
-  max-width: 82vw;
+  height: calc(100vh - var(--nav-height));
+  width: 80vw;
+  max-width: 320px;
   background: var(--bg);
   overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
   transform: translateX(-100%);
   transition: transform 0.3s ease;
   z-index: 1100;
   box-shadow: var(--shadow-lg);
+  display: flex;
+  flex-direction: column;
 }
 
 html[data-theme="dark"] .drawer {
@@ -374,35 +408,16 @@ html[data-theme="dark"] .drawer {
   transform: translateX(0);
 }
 
-.drawer:not(.open) + .drawer-backdrop {
-  pointer-events: none !important;
-  opacity: 0 !important;
-}
-
-.drawer-header {
-  padding: 16px;
-  font-weight: 700;
-  font-family: "Oswald", "Montserrat", sans-serif;
-  font-size: 1.4rem;
-  color: #1a1a1a;
-  flex-shrink: 0;
-}
-
-html[data-theme="dark"] .drawer-header {
-  color: #f1f1f1;
-}
-
 .drawer-list {
   display: flex;
   flex-direction: column;
-  padding: 8px;
+  padding: 16px;
   gap: 6px;
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
 }
 
-/* Drawer items */
 .drawer-item {
   padding: 14px 16px;
   border-radius: 10px;
@@ -452,6 +467,21 @@ html[data-theme="dark"] .drawer-item {
   border-top: 1px solid var(--nav-border);
   flex-shrink: 0;
 }
+
+/* MOBILE TWEAKS */
+@media (max-width: 720px) {
+  .brand {
+    font-size: 2rem !important;
+  }
+
+  .nav-right .btn,
+  .nav-right .theme-toggle,
+  .nav-right .lang-toggle {
+    font-size: 0.8rem;
+    padding: 6px 10px;
+  }
+}
+
 
 /* ============ BUTTONS ============ */
 

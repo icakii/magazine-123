@@ -1299,3 +1299,45 @@ footer {
     padding: 0 4px;
   }
 }
+
+/* ============================
+   NAV BAR – MOBILE LAYOUT
+============================ */
+@media (max-width: 720px) {
+  .nav-inner {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    grid-template-rows: auto auto;
+    align-items: center;
+    row-gap: 6px;
+  }
+
+  /* Центрираме MIREN под менюто */
+  .nav-center {
+    grid-column: 1 / -1;
+    justify-content: center;
+    order: 1;
+  }
+
+  /* Бутоните вдясно – по-подредени и центрирани */
+  .nav-right {
+    justify-content: center;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+
+  .nav-right .btn,
+  .nav-right .theme-toggle,
+  .nav-right .lang-toggle {
+    font-size: 0.8rem;
+    padding: 6px 10px;
+  }
+}
+
+/* Drawer – да не има голям празен отстъп отгоре след махане на заглавието */
+@media (max-width: 850px) {
+  .drawer {
+    width: 82vw !important;
+    padding-top: 16px; /* преди беше 60px */
+  }
+}

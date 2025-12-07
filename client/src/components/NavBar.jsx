@@ -104,7 +104,6 @@ export default function NavBar() {
       <div className={`drawer-backdrop ${open ? "open" : ""}`} onClick={closeDrawer} />
 
       <aside className={`drawer ${open ? "open" : ""}`} aria-hidden={!open}>
-        <div className="drawer-header">{t("brand")}</div>
         
         <nav className="drawer-list">
           <Link className="drawer-item" to="/" onClick={closeDrawer}>Home</Link>

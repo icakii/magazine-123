@@ -1028,7 +1028,7 @@ footer {
 }
 
 
-/* ===== RESET (override) ===== */
+/* ===== RESET (само за навигацията) ===== */
 .nav,
 .nav *,
 .drawer,
@@ -1037,21 +1037,19 @@ footer {
   box-sizing: border-box;
 }
 
-/* ===== NAV BAR (desktop) ===== */
+/* ===== NAV BAR – общо ===== */
 .nav {
   position: sticky;
   top: 0;
-  z-index: 4000; /* над всичко */
-  height: var(--nav-height, 70px);
-  display: flex;
-  align-items: center;
+  z-index: 4000;
   background: var(--nav-bg, #fff);
   border-bottom: 1px solid var(--nav-border, #ddd);
-  padding: 0 16px;
+  padding: 8px 16px;
   box-shadow: var(--shadow-sm);
   backdrop-filter: blur(10px);
 }
 
+/* вътре имаш nav-top (hamburger + brand) и nav-right (бутоните) */
 .nav-inner {
   width: 100%;
   max-width: var(--container, 1400px);
@@ -1061,7 +1059,7 @@ footer {
   gap: 6px;
 }
 
-/* ред 1 – hamburger + MIREN */
+/* първи ред – hamburger + MIREN */
 .nav-top {
   display: flex;
   align-items: center;
@@ -1080,7 +1078,7 @@ footer {
   justify-content: center;
 }
 
-/* ред 2 – бутони */
+/* втори ред – Logout / Theme / EN */
 .nav-right {
   display: flex;
   align-items: center;
@@ -1090,7 +1088,7 @@ footer {
   padding-bottom: 4px;
 }
 
-/* Линкове в nav */
+/* линкове в nav */
 .nav a {
   font-family: "Roboto Slab", serif;
   font-size: 0.95rem;
@@ -1103,7 +1101,7 @@ footer {
   position: relative;
 }
 
-/* Hamburger бутон */
+/* hamburger бутон */
 .hamburger {
   width: 48px;
   height: 44px;
@@ -1124,19 +1122,20 @@ footer {
   opacity: 0;
   pointer-events: none;
   transition: opacity .3s ease;
-  z-index: 3900;
+  z-index: 4900;
 }
+
 .drawer-backdrop.open {
   opacity: 1;
   pointer-events: auto;
 }
 
-/* ===== DRAWER ===== */
+/* ===== DRAWER – покрива целия екран (без да мислим за nav height) ===== */
 .drawer {
   position: fixed;
-  top: var(--nav-height, 70px); /* започва под nav */
+  top: 0;              /* от най-горе */
   left: 0;
-  height: calc(100vh - var(--nav-height, 70px));
+  height: 100vh;       /* целия прозорец */
   width: 80vw;
   max-width: 320px;
   background: var(--bg, #fff);
@@ -1144,11 +1143,12 @@ footer {
   -webkit-overflow-scrolling: touch;
   transform: translateX(-100%);
   transition: transform .3s ease;
-  z-index: 3990;
+  z-index: 5000;       /* над nav и content */
   display: flex;
   flex-direction: column;
   box-shadow: var(--shadow-lg);
 }
+
 .drawer.open {
   transform: translateX(0);
 }
@@ -1160,7 +1160,7 @@ footer {
   gap: 6px;
 }
 
-/* линкове в drawer-а */
+/* елементите в менюто */
 .drawer-item {
   padding: 14px 16px;
   display: block;
@@ -1170,11 +1170,12 @@ footer {
   background: transparent;
   color: var(--text, #111);
 }
+
 .drawer-item:hover {
   background: rgba(230,57,70,0.08);
 }
 
-/* ===== MOBILE LAYOUT (до 720px) ===== */
+/* ===== MOBILE (≤ 720px) ===== */
 @media (max-width: 720px) {
   .brand {
     font-size: 2rem !important;
@@ -1187,17 +1188,13 @@ footer {
     gap: 6px;
   }
 
-  /* ред 1 – само hamburger вляво */
+  /* първи ред – hamburger + MIREN */
   .nav-top {
     width: 100%;
     justify-content: space-between;
   }
 
-  .nav-left {
-    width: auto;
-  }
-
-  /* ред 2 – бутони под логото, центрирани */
+  /* втори ред – бутоните под логото, центрирани */
   .nav-right {
     width: 100%;
     justify-content: center;

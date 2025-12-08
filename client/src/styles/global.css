@@ -1667,3 +1667,147 @@ html[data-theme="dark"] .lang-toggle {
     justify-content: flex-end;
   }
 }
+/* ============================
+   NAV / DRAWER STYLING & ANIMS
+   (не пипа layout)
+============================= */
+
+/* NAV LINKS – лек фон + underline анимация */
+.nav a {
+  font-family: "Roboto Slab", serif;
+  font-size: 0.95rem;
+  font-weight: 600;
+  padding: 8px 12px;
+  border-radius: 8px;
+  color: var(--nav-text, #111);
+  text-decoration: none;
+  position: relative;
+  transition: all 200ms var(--ease);
+}
+
+.nav a::after {
+  content: "";
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  width: 0;
+  height: 2px;
+  background: var(--primary);
+  transition: width 240ms var(--ease);
+}
+
+.nav a:hover {
+  background: rgba(230, 57, 70, 0.08);
+  color: var(--primary);
+  transform: translateY(-2px);
+}
+
+.nav a:hover::after {
+  width: 100%;
+}
+
+/* HAMBURGER – градиент + лек zoom при hover */
+.hamburger {
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.9),
+    rgba(255, 255, 255, 0.75)
+  );
+  border: 1.5px solid var(--nav-border);
+  box-shadow: var(--shadow-sm);
+  transition: all 200ms var(--ease);
+}
+
+html[data-theme="dark"] .hamburger {
+  background: linear-gradient(
+    135deg,
+    rgba(26, 26, 26, 0.9),
+    rgba(26, 26, 26, 0.7)
+  );
+}
+
+.hamburger:hover {
+  background: linear-gradient(
+    135deg,
+    rgba(230, 57, 70, 0.12),
+    rgba(230, 57, 70, 0.08)
+  );
+  border-color: var(--primary);
+  transform: scale(1.05);
+}
+
+.hamburger:active {
+  transform: scale(0.97);
+}
+
+.hamburger .line {
+  transition: all 280ms var(--ease);
+}
+
+/* THEME / LANG – малко по-жив hover */
+.theme-toggle:hover,
+.lang-toggle:hover {
+  border-color: var(--primary);
+  background: linear-gradient(
+    135deg,
+    rgba(230, 57, 70, 0.1),
+    rgba(230, 57, 70, 0.05)
+  );
+  transform: translateY(-1px);
+}
+
+/* DRAWER LIST & ITEMS – хубав padding + hover лента отляво */
+.drawer-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.drawer-item {
+  padding: 14px 16px;
+  border-radius: 10px;
+  font-family: "Roboto Slab", serif;
+  font-weight: 500;
+  color: var(--text, #1a1a1a);
+  text-decoration: none;
+  cursor: pointer;
+  position: relative;
+  white-space: nowrap;
+  transition: all 200ms var(--ease);
+}
+
+html[data-theme="dark"] .drawer-item {
+  color: #f1f1f1;
+}
+
+/* тънка цветна лента вляво при hover */
+.drawer-item::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3px;
+  height: 0;
+  background: var(--primary);
+  border-radius: 2px;
+  transition: height 240ms var(--ease);
+  pointer-events: none;
+}
+
+.drawer-item:hover {
+  background: rgba(230, 57, 70, 0.08);
+  color: var(--primary);
+  transform: translateX(6px);
+}
+
+.drawer-item:hover::before {
+  height: 24px;
+}
+
+/* разделител между основните линкове и профил/админ */
+.drawer-sep {
+  margin: 12px 0;
+  border-top: 1px solid var(--nav-border);
+  flex-shrink: 0;
+}

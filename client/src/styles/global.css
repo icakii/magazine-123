@@ -1629,3 +1629,41 @@ html[data-theme="dark"] .lang-toggle {
     padding: 6px 10px;
   }
 }
+/* ============================
+   DESKTOP NAV LAYOUT (≥ 721px)
+   hamburger | MIREN | buttons
+============================= */
+@media (min-width: 721px) {
+  /* navbar височина за desktop */
+  .nav {
+    height: var(--nav-height, 72px);
+  }
+
+  /* 3 колони: [hamburger] [MIREN] [buttons] */
+  .nav-inner {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+    gap: 16px;
+  }
+
+  /* правим децата на nav-top директни grid елементи */
+  .nav-top {
+    display: contents;
+  }
+
+  /* ляво – hamburger */
+  .nav-left {
+    justify-content: flex-start;
+  }
+
+  /* средата – MIREN */
+  .nav-center {
+    justify-content: center;
+  }
+
+  /* дясно – Logout / Theme / EN */
+  .nav-right {
+    justify-content: flex-end;
+  }
+}

@@ -1811,3 +1811,166 @@ html[data-theme="dark"] .drawer-item {
   border-top: 1px solid var(--nav-border);
   flex-shrink: 0;
 }
+/* ======================================
+   ✨ GLOBAL FLAVOR / ANIMATIONS
+   (safe: не променя layout, само визия)
+====================================== */
+
+/* плавен скрол за целия сайт */
+html {
+  scroll-behavior: smooth;
+}
+
+/* леко „дишане“ на страницата при зареждане */
+.page {
+  animation: pageFade 420ms var(--ease);
+}
+
+/* HERO – леко „float“ движение на фона */
+.hero-bg {
+  position: relative;
+  overflow: hidden;
+  transform-origin: center;
+  transition: transform 600ms var(--ease), box-shadow 400ms var(--ease);
+}
+
+.hero-bg:hover {
+  transform: translateY(-3px) scale(1.01);
+  box-shadow: var(--shadow-lg);
+}
+
+/* КАРТИ – малко по-жив hover */
+.card {
+  transition: transform 200ms var(--ease), box-shadow 200ms var(--ease), background 200ms var(--ease);
+}
+
+.card:hover {
+  transform: translateY(-4px) scale(1.01);
+  box-shadow: var(--shadow-md);
+  background: rgba(255,255,255,0.96);
+}
+
+/* PRIMARY бутони – лек „glow“ + ripple при клик */
+.btn.primary,
+.btn.secondary {
+  position: relative;
+  overflow: hidden;
+}
+
+.btn.primary::after,
+.btn.secondary::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(circle at center, rgba(255,255,255,0.55), transparent 60%);
+  opacity: 0;
+  transform: scale(0.3);
+  transition: opacity 200ms var(--ease), transform 200ms var(--ease);
+  pointer-events: none;
+}
+
+.btn.primary:active::after,
+.btn.secondary:active::after {
+  opacity: 1;
+  transform: scale(1);
+}
+
+/* при hover – леко подсветване */
+.btn.primary:hover,
+.btn.secondary:hover {
+  box-shadow: 0 12px 30px rgba(230,57,70,0.35);
+}
+
+/* GHOST бутони – леко „изплуване“ */
+.btn.ghost:hover {
+  transform: translateY(-2px);
+}
+
+/* Линкове в текста – underline anim */
+.page a:not(.btn):not(.drawer-item):not(.brand) {
+  position: relative;
+  text-decoration: none;
+  color: var(--primary);
+  font-weight: 600;
+}
+
+.page a:not(.btn):not(.drawer-item):not(.brand)::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: -2px;
+  width: 0;
+  height: 2px;
+  background: var(--primary);
+  transition: width 220ms var(--ease);
+}
+
+.page a:not(.btn):not(.drawer-item):not(.brand):hover::after {
+  width: 100%;
+}
+
+/* NAVBAR – леко падаща сянка, когато скролнеш надолу (чрез клас .nav--scrolled) */
+.nav {
+  transition: box-shadow 220ms var(--ease), background 220ms var(--ease);
+}
+
+.nav.nav--scrolled {
+  box-shadow: 0 6px 20px rgba(0,0,0,0.12);
+  background: rgba(255,255,255,0.96);
+}
+
+html[data-theme="dark"] .nav.nav--scrolled {
+  background: rgba(15,15,15,0.96);
+}
+
+/* DRAWER – малко по-мека поява */
+@keyframes drawerSoftEnter {
+  0% { transform: translateX(-110%) scale(0.98); opacity: 0.9; }
+  60% { transform: translateX(4%) scale(1.02); opacity: 1; }
+  100% { transform: translateX(0) scale(1); }
+}
+
+.drawer.open {
+  animation: drawerSoftEnter 360ms cubic-bezier(0.22, 0.9, 0.3, 1);
+}
+
+/* ========= Utility класове за секции ========= */
+/* Слагаш ги ръчно: className="page anim-fade-up anim-delay-1" и т.н. */
+
+.anim-fade-up {
+  opacity: 0;
+  transform: translateY(18px);
+  animation: fadeUpIn 600ms var(--ease) forwards;
+}
+
+.anim-fade-in {
+  opacity: 0;
+  animation: fadeOnly 600ms var(--ease) forwards;
+}
+
+.anim-zoom-in {
+  opacity: 0;
+  transform: scale(0.96);
+  animation: zoomIn 480ms var(--ease-bounce) forwards;
+}
+
+.anim-delay-1 { animation-delay: 120ms; }
+.anim-delay-2 { animation-delay: 240ms; }
+.anim-delay-3 { animation-delay: 360ms; }
+
+@keyframes fadeUpIn {
+  from { opacity: 0; transform: translateY(18px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeOnly {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes zoomIn {
+  0% { opacity: 0; transform: scale(0.96); }
+  60% { opacity: 1; transform: scale(1.02); }
+  100% { opacity: 1; transform: scale(1); }
+}

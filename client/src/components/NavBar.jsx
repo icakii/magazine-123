@@ -1,10 +1,10 @@
 "use client"
 
-import { Link, useNavigate } from "react-router-dom"
+import { Link } from "react-router-dom"
 import { useAuth } from "../hooks/useAuth"
 import { api } from "../lib/api"
 import { t, getLang, setLang } from "../lib/i18n"
-import { useEffect, useState } from "react"
+import { useEffect, useLayoutEffect, useRef, useState } from "react"
 
 const ADMIN_EMAILS = ["icaki06@gmail.com", "icaki2k@gmail.com", "mirenmagazine@gmail.com"]
 
@@ -16,11 +16,11 @@ function toggleTheme() {
 
 export default function NavBar() {
   const { user, loading } = useAuth()
-  const navigate = useNavigate()
   const [open, setOpen] = useState(false)
   const [lang, setLangState] = useState(getLang())
   const [showLoginModal, setShowLoginModal] = useState(false)
 
+  const navRef = useRef(null)
   const isAdmin = user && ADMIN_EMAILS.includes(user.email)
 
   useEffect(() => {
@@ -31,11 +31,31 @@ export default function NavBar() {
     return () => window.removeEventListener("lang:change", onLangChange)
   }, [])
 
+  // IMPORTANT: измерваме реалната височина на navbar-а и я даваме на CSS-а
+  useLayoutEffect(() => {
+    const el = navRef.current
+    if (!el) return
+
+    const apply = () => {
+      const h = el.offsetHeight || 72
+      document.documentElement.style.setProperty("--nav-offset", `${h}px`)
+    }
+
+    apply()
+
+    const ro = new ResizeObserver(() => apply())
+    ro.observe(el)
+    window.addEventListener("resize", apply)
+
+    return () => {
+      ro.disconnect()
+      window.removeEventListener("resize", apply)
+    }
+  }, [])
+
   async function handleLogout(e) {
     if (e) e.preventDefault()
-    try {
-      await api.post("/auth/logout")
-    } catch {}
+    try { await api.post("/auth/logout") } catch {}
     localStorage.removeItem("auth_token")
     location.href = "/"
   }
@@ -45,12 +65,8 @@ export default function NavBar() {
     setLang(next)
   }
 
-  function toggleDrawer() {
-    setOpen((o) => !o)
-  }
-  function closeDrawer() {
-    setOpen(false)
-  }
+  function toggleDrawer() { setOpen((o) => !o) }
+  function closeDrawer() { setOpen(false) }
 
   const handleProtectedClick = (e) => {
     if (!user) {
@@ -64,28 +80,30 @@ export default function NavBar() {
 
   return (
     <>
-      <nav className="nav">
+      <nav className="nav" ref={navRef}>
         <div className="nav-inner">
-          <div className="nav-left">
-            <button className="hamburger" aria-label="Open menu" onClick={toggleDrawer}>
-              <span className="lines">
-                <span className="line"></span>
-                <span className="line"></span>
-                <span className="line"></span>
-              </span>
-            </button>
-          </div>
+          <div className="nav-top">
+            <div className="nav-left">
+              <button className="hamburger" aria-label="Open menu" onClick={toggleDrawer} type="button">
+                <span className="lines">
+                  <span className="line"></span>
+                  <span className="line"></span>
+                  <span className="line"></span>
+                </span>
+              </button>
+            </div>
 
-          <div className="nav-center">
-            <Link className="brand" to="/">
-              {t("brand")}
-            </Link>
+            <div className="nav-center">
+              <Link className="brand" to="/">
+                {t("brand")}
+              </Link>
+            </div>
           </div>
 
           <div className="nav-right">
             {!loading && !user && (
               <>
-                <Link to="/register" className="btn ghost" style={{ border: "none", marginRight: 5 }}>
+                <Link to="/register" className="btn ghost" style={{ border: "none" }}>
                   {t("register")}
                 </Link>
                 <Link to="/login" className="btn primary">
@@ -102,10 +120,11 @@ export default function NavBar() {
               </form>
             )}
 
-            <button className="theme-toggle" onClick={toggleTheme} style={{ marginLeft: 8 }}>
+            <button className="theme-toggle" onClick={toggleTheme} type="button">
               {t("theme")}
             </button>
-            <button className="lang-toggle" onClick={changeLang} style={{ marginLeft: 8 }}>
+
+            <button className="lang-toggle" onClick={changeLang} type="button">
               {lang.toUpperCase()}
             </button>
           </div>
@@ -116,39 +135,17 @@ export default function NavBar() {
 
       <aside className={`drawer ${open ? "open" : ""}`} aria-hidden={!open}>
         <nav className="drawer-list">
-          <Link className="drawer-item" to="/" onClick={closeDrawer}>
-            Home
-          </Link>
+          <Link className="drawer-item" to="/" onClick={closeDrawer}>{t("home")}</Link>
+          <Link className="drawer-item" to="/news" onClick={handleProtectedClick}>{t("news")}</Link>
+          <Link className="drawer-item" to="/events" onClick={handleProtectedClick}>{t("events")}</Link>
+          <Link className="drawer-item" to="/gallery" onClick={handleProtectedClick}>{t("gallery")}</Link>
+          <Link className="drawer-item" to="/games" onClick={handleProtectedClick}>{t("games")}</Link>
+          <Link className="drawer-item" to="/e-magazine" onClick={handleProtectedClick}>{t("emag")}</Link>
 
-          <Link className="drawer-item" to="/news" onClick={handleProtectedClick}>
-            News
-          </Link>
-          <Link className="drawer-item" to="/events" onClick={handleProtectedClick}>
-            Events
-          </Link>
-          <Link className="drawer-item" to="/gallery" onClick={handleProtectedClick}>
-            Gallery
-          </Link>
-          <Link className="drawer-item" to="/games" onClick={handleProtectedClick}>
-            Games
-          </Link>
-
-          <Link className="drawer-item" to="/e-magazine" onClick={handleProtectedClick}>
-            {t("nav_emag")}
-          </Link>
-
-          <Link className="drawer-item" to="/about" onClick={closeDrawer}>
-            {t("about")}
-          </Link>
-          <Link className="drawer-item" to="/contact" onClick={closeDrawer}>
-            {t("contact")}
-          </Link>
-          <Link className="drawer-item" to="/subscriptions" onClick={closeDrawer}>
-            {t("subscriptions")}
-          </Link>
-          <Link className="drawer-item" to="/help" onClick={closeDrawer}>
-            {t("help")}
-          </Link>
+          <Link className="drawer-item" to="/about" onClick={closeDrawer}>{t("about")}</Link>
+          <Link className="drawer-item" to="/contact" onClick={closeDrawer}>{t("contact")}</Link>
+          <Link className="drawer-item" to="/subscriptions" onClick={closeDrawer}>{t("subscriptions")}</Link>
+          <Link className="drawer-item" to="/help" onClick={closeDrawer}>{t("help")}</Link>
 
           <div className="drawer-sep" />
 
@@ -167,13 +164,9 @@ export default function NavBar() {
       {showLoginModal && (
         <div className="modal-backdrop" onClick={() => setShowLoginModal(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ textAlign: "center", maxWidth: "400px" }}>
-            <button className="modal-close" onClick={() => setShowLoginModal(false)}>
-              ×
-            </button>
+            <button className="modal-close" onClick={() => setShowLoginModal(false)}>×</button>
             <div style={{ fontSize: "3rem", marginBottom: "10px" }}>🔒</div>
-            <h2 className="headline" style={{ fontSize: "1.8rem" }}>
-              Access Restricted
-            </h2>
+            <h2 className="headline" style={{ fontSize: "1.8rem" }}>Access Restricted</h2>
             <p style={{ marginBottom: "20px", color: "gray" }}>
               You must be a registered member to access this content. <br />
               Join MIREN today!

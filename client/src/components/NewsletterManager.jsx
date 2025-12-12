@@ -1,85 +1,71 @@
 "use client"
-import { useEffect, useState } from "react"
+import { useState, useEffect } from "react"
 import { api } from "../lib/api"
 import { t } from "../lib/i18n"
 
-export default function NewsletterManager({ title, text, type = "static" }) {
+export default function NewsletterManager({ user, type = "static" }) {
   const [email, setEmail] = useState("")
   const [subscribed, setSubscribed] = useState(false)
   const [isOpen, setIsOpen] = useState(false)
-  const [error, setError] = useState("")
 
-  // Popup show after 3 sec (once)
   useEffect(() => {
-    if (type !== "popup") return
-    const timer = setTimeout(() => {
-      const closed = localStorage.getItem("newsletter_closed")
-      if (!closed) setIsOpen(true)
-    }, 3000)
-    return () => clearTimeout(timer)
+    if (type === "popup") {
+      const timer = setTimeout(() => {
+        const alreadyClosed = localStorage.getItem("newsletter_closed")
+        if (!alreadyClosed) setIsOpen(true)
+      }, 3000)
+      return () => clearTimeout(timer)
+    }
   }, [type])
 
   const handleSubscribe = async (e) => {
     e.preventDefault()
     if (!email) return
-
-    setError("")
     try {
       await api.post("/newsletter/subscribe", { email })
       setSubscribed(true)
       localStorage.setItem("newsletter_closed", "true")
-      if (type === "popup") setTimeout(() => setIsOpen(false), 1400)
+      if (type === "popup") setTimeout(() => setIsOpen(false), 1500)
     } catch (err) {
-      // fallback local storage
-      try {
-        const existing = JSON.parse(localStorage.getItem("newsletter_emails") || "[]")
-        if (!existing.includes(email)) {
-          localStorage.setItem("newsletter_emails", JSON.stringify([...existing, email]))
-        }
-        setSubscribed(true)
-        localStorage.setItem("newsletter_closed", "true")
-        if (type === "popup") setTimeout(() => setIsOpen(false), 1400)
-      } catch {
-        setError(t("newsletter_error"))
+      console.error("Error subscribing", err)
+      // fallback (demo)
+      const existing = JSON.parse(localStorage.getItem("newsletter_emails") || "[]")
+      if (!existing.includes(email)) {
+        localStorage.setItem("newsletter_emails", JSON.stringify([...existing, email]))
       }
+      setSubscribed(true)
+      localStorage.setItem("newsletter_closed", "true")
+      if (type === "popup") setTimeout(() => setIsOpen(false), 1500)
     }
   }
 
-  // STATIC версии (Home)
   if (type === "static") {
     return (
       <section className="newsletter">
-        <div className="newsletter-inner">
-          <div className="newsletter-copy">
-            <h3 className="headline newsletter-title">{title}</h3>
-            <p className="newsletter-text">{text}</p>
-          </div>
+        <h3 className="newsletter-title">{t("newsletter_title")}</h3>
+        <p className="newsletter-text">{t("newsletter_text")}</p>
 
-          {subscribed ? (
-            <p className="msg success">{t("newsletter_success")}</p>
-          ) : (
-            <form className="newsletter-form" onSubmit={handleSubscribe}>
-              <input
-                type="email"
-                className="input"
-                placeholder={t("newsletter_placeholder")}
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-              />
-              <button className="btn primary" type="submit">
-                {t("newsletter_button")}
-              </button>
-            </form>
-          )}
-
-          {error ? <p className="msg danger">{error}</p> : null}
-        </div>
+        {subscribed ? (
+          <p className="newsletter-success">{t("newsletter_success")}</p>
+        ) : (
+          <form className="newsletter-form" onSubmit={handleSubscribe}>
+            <input
+              type="email"
+              className="newsletter-input"
+              placeholder={t("newsletter_placeholder")}
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+            />
+            <button className="btn primary newsletter-btn" type="submit">
+              {t("newsletter_btn")}
+            </button>
+          </form>
+        )}
       </section>
     )
   }
 
-  // POPUP версия
   if (type === "popup" && isOpen) {
     return (
       <div className="modal-backdrop">
@@ -95,17 +81,16 @@ export default function NewsletterManager({ title, text, type = "static" }) {
           </button>
 
           <h2 className="headline" style={{ marginBottom: 10 }}>
-            {title}
+            {t("newsletter_title")}
           </h2>
-
-          <p className="newsletter-text" style={{ marginBottom: 16 }}>
-            {text}
+          <p className="subhead" style={{ marginBottom: 16 }}>
+            {t("newsletter_text")}
           </p>
 
           {subscribed ? (
-            <p className="msg success">{t("newsletter_success")}</p>
+            <p className="newsletter-success">{t("newsletter_success")}</p>
           ) : (
-            <form onSubmit={handleSubscribe} className="newsletter-form" style={{ flexDirection: "column" }}>
+            <form onSubmit={handleSubscribe}>
               <input
                 type="email"
                 className="input"
@@ -113,14 +98,13 @@ export default function NewsletterManager({ title, text, type = "static" }) {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
+                style={{ marginBottom: 12 }}
               />
-              <button className="btn primary" type="submit">
-                {t("newsletter_button")}
+              <button className="btn primary" style={{ width: "100%" }} type="submit">
+                {t("newsletter_btn")}
               </button>
             </form>
           )}
-
-          {error ? <p className="msg danger">{error}</p> : null}
         </div>
       </div>
     )

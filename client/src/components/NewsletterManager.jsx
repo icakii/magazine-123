@@ -1,98 +1,126 @@
 "use client"
-import { useState, useEffect } from "react"
+import { useEffect, useState } from "react"
 import { api } from "../lib/api"
+import { t } from "../lib/i18n"
 
-export default function NewsletterManager({ user, title, text, type = "static" }) {
+export default function NewsletterManager({ title, text, type = "static" }) {
   const [email, setEmail] = useState("")
   const [subscribed, setSubscribed] = useState(false)
   const [isOpen, setIsOpen] = useState(false)
+  const [error, setError] = useState("")
 
-  // Ако е popup, показваме го след 3 секунди
+  // Popup show after 3 sec (once)
   useEffect(() => {
-    if (type === "popup") {
-      const timer = setTimeout(() => {
-        const alreadySubscribed = localStorage.getItem("newsletter_closed")
-        if (!alreadySubscribed) setIsOpen(true)
-      }, 3000)
-      return () => clearTimeout(timer)
-    }
+    if (type !== "popup") return
+    const timer = setTimeout(() => {
+      const closed = localStorage.getItem("newsletter_closed")
+      if (!closed) setIsOpen(true)
+    }, 3000)
+    return () => clearTimeout(timer)
   }, [type])
 
   const handleSubscribe = async (e) => {
     e.preventDefault()
     if (!email) return
+
+    setError("")
     try {
-      // Тук пращаме към API-то (или мокнат backend)
       await api.post("/newsletter/subscribe", { email })
       setSubscribed(true)
       localStorage.setItem("newsletter_closed", "true")
-      if (type === "popup") setTimeout(() => setIsOpen(false), 2000)
+      if (type === "popup") setTimeout(() => setIsOpen(false), 1400)
     } catch (err) {
-      console.error("Error subscribing", err)
-      // Fallback за демо цели (ако нямаш реален endpoint)
-      const existing = JSON.parse(localStorage.getItem("newsletter_emails") || "[]")
-      if (!existing.includes(email)) {
-         localStorage.setItem("newsletter_emails", JSON.stringify([...existing, email]))
+      // fallback local storage
+      try {
+        const existing = JSON.parse(localStorage.getItem("newsletter_emails") || "[]")
+        if (!existing.includes(email)) {
+          localStorage.setItem("newsletter_emails", JSON.stringify([...existing, email]))
+        }
+        setSubscribed(true)
+        localStorage.setItem("newsletter_closed", "true")
+        if (type === "popup") setTimeout(() => setIsOpen(false), 1400)
+      } catch {
+        setError(t("newsletter_error"))
       }
-      setSubscribed(true)
-      localStorage.setItem("newsletter_closed", "true")
-      if (type === "popup") setTimeout(() => setIsOpen(false), 2000)
     }
   }
 
-  // За Static версията (на Home page)
+  // STATIC версии (Home)
   if (type === "static") {
     return (
-       <div style={{ textAlign: "center", padding: "40px 20px", background: "#f4f4f4", borderRadius: 8, marginBottom: 40 }}>
-        <h3>{title}</h3>
-        <p className="text-muted" style={{ marginBottom: 20 }}>{text}</p>
-        {subscribed ? (
-          <p style={{ color: "green", fontWeight: "bold" }}>You have successfully subscribed! ✅</p>
-        ) : (
-          <form onSubmit={handleSubscribe} style={{ display: "flex", justifyContent: "center", gap: 10, maxWidth: 500, margin: "0 auto" }}>
-             <input 
-                type="email" 
-                placeholder="Your best email" 
-                value={email} 
-                onChange={e => setEmail(e.target.value)} 
-                style={{ flex: 1, padding: 10, borderRadius: 4, border: "1px solid #ccc" }} 
+      <section className="newsletter">
+        <div className="newsletter-inner">
+          <div className="newsletter-copy">
+            <h3 className="headline newsletter-title">{title}</h3>
+            <p className="newsletter-text">{text}</p>
+          </div>
+
+          {subscribed ? (
+            <p className="msg success">{t("newsletter_success")}</p>
+          ) : (
+            <form className="newsletter-form" onSubmit={handleSubscribe}>
+              <input
+                type="email"
+                className="input"
+                placeholder={t("newsletter_placeholder")}
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 required
-             />
-             <button className="btn primary" style={{ backgroundColor: "#e63946", color: "white" }}>Subscribe</button>
-          </form>
-        )}
-      </div>
+              />
+              <button className="btn primary" type="submit">
+                {t("newsletter_button")}
+              </button>
+            </form>
+          )}
+
+          {error ? <p className="msg danger">{error}</p> : null}
+        </div>
+      </section>
     )
   }
 
-  // За Popup версията
+  // POPUP версия
   if (type === "popup" && isOpen) {
     return (
       <div className="modal-backdrop">
         <div className="modal-content" style={{ textAlign: "center", maxWidth: 450 }}>
-           <button className="modal-close" onClick={() => { setIsOpen(false); localStorage.setItem("newsletter_closed", "true"); }}>×</button>
-           <h2 style={{ color: "#1a2b49", marginBottom: 10 }}>Join the Club</h2>
-           <p className="text-muted" style={{ marginBottom: 20 }}>
-             Budi v krak s nai-novoto v sveta na MIREN. Poluchavai izvestiq za novi statii i subitiq.
-           </p>
-           {subscribed ? (
-             <p style={{ color: "green", fontWeight: "bold" }}>Thank you for subscribing!</p>
-           ) : (
-             <form onSubmit={handleSubscribe}>
-               <input 
-                  type="email" 
-                  className="input"
-                  placeholder="Your best email" 
-                  value={email} 
-                  onChange={e => setEmail(e.target.value)} 
-                  style={{ width: "100%", marginBottom: 15, padding: 10 }} 
-                  required
-               />
-               <button className="btn primary" style={{ width: "100%", backgroundColor: "#e63946", color: "white" }}>
-                 Subscribe
-               </button>
-             </form>
-           )}
+          <button
+            className="modal-close"
+            onClick={() => {
+              setIsOpen(false)
+              localStorage.setItem("newsletter_closed", "true")
+            }}
+          >
+            ×
+          </button>
+
+          <h2 className="headline" style={{ marginBottom: 10 }}>
+            {title}
+          </h2>
+
+          <p className="newsletter-text" style={{ marginBottom: 16 }}>
+            {text}
+          </p>
+
+          {subscribed ? (
+            <p className="msg success">{t("newsletter_success")}</p>
+          ) : (
+            <form onSubmit={handleSubscribe} className="newsletter-form" style={{ flexDirection: "column" }}>
+              <input
+                type="email"
+                className="input"
+                placeholder={t("newsletter_placeholder")}
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
+              <button className="btn primary" type="submit">
+                {t("newsletter_button")}
+              </button>
+            </form>
+          )}
+
+          {error ? <p className="msg danger">{error}</p> : null}
         </div>
       </div>
     )

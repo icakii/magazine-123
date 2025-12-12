@@ -24,14 +24,18 @@ export default function NavBar() {
   const isAdmin = user && ADMIN_EMAILS.includes(user.email)
 
   useEffect(() => {
-    function onLangChange(e) { setLangState(e.detail.lang) }
+    function onLangChange(e) {
+      setLangState(e.detail.lang)
+    }
     window.addEventListener("lang:change", onLangChange)
     return () => window.removeEventListener("lang:change", onLangChange)
   }, [])
 
   async function handleLogout(e) {
     if (e) e.preventDefault()
-    try { await api.post("/auth/logout") } catch {}
+    try {
+      await api.post("/auth/logout")
+    } catch {}
     localStorage.removeItem("auth_token")
     location.href = "/"
   }
@@ -41,8 +45,12 @@ export default function NavBar() {
     setLang(next)
   }
 
-  function toggleDrawer() { setOpen(o => !o) }
-  function closeDrawer() { setOpen(false) }
+  function toggleDrawer() {
+    setOpen((o) => !o)
+  }
+  function closeDrawer() {
+    setOpen(false)
+  }
 
   const handleProtectedClick = (e) => {
     if (!user) {
@@ -58,38 +66,26 @@ export default function NavBar() {
     <>
       <nav className="nav">
         <div className="nav-inner">
-          {/* TOP ROW: hamburger + logo */}
-          <div className="nav-top">
-            <div className="nav-left">
-              <button
-                className="hamburger"
-                aria-label="Open menu"
-                onClick={toggleDrawer}
-              >
-                <span className="lines">
-                  <span className="line"></span>
-                  <span className="line"></span>
-                  <span className="line"></span>
-                </span>
-              </button>
-            </div>
-
-            <div className="nav-center">
-              <Link className="brand" to="/">
-                {t("brand")}
-              </Link>
-            </div>
+          <div className="nav-left">
+            <button className="hamburger" aria-label="Open menu" onClick={toggleDrawer}>
+              <span className="lines">
+                <span className="line"></span>
+                <span className="line"></span>
+                <span className="line"></span>
+              </span>
+            </button>
           </div>
 
-          {/* SECOND ROW: buttons */}
+          <div className="nav-center">
+            <Link className="brand" to="/">
+              {t("brand")}
+            </Link>
+          </div>
+
           <div className="nav-right">
             {!loading && !user && (
               <>
-                <Link
-                  to="/register"
-                  className="btn ghost"
-                  style={{ border: "none", marginRight: 5 }}
-                >
+                <Link to="/register" className="btn ghost" style={{ border: "none", marginRight: 5 }}>
                   {t("register")}
                 </Link>
                 <Link to="/login" className="btn primary">
@@ -116,26 +112,43 @@ export default function NavBar() {
         </div>
       </nav>
 
-      {/* Backdrop */}
-      <div
-        className={`drawer-backdrop ${open ? "open" : ""}`}
-        onClick={closeDrawer}
-      />
+      <div className={`drawer-backdrop ${open ? "open" : ""}`} onClick={closeDrawer} />
 
-      {/* SLIDE MENU */}
       <aside className={`drawer ${open ? "open" : ""}`} aria-hidden={!open}>
         <nav className="drawer-list">
-          <Link className="drawer-item" to="/" onClick={closeDrawer}>Home</Link>
-          <Link className="drawer-item" to="/news" onClick={handleProtectedClick}>News</Link>
-          <Link className="drawer-item" to="/events" onClick={handleProtectedClick}>Events</Link>
-          <Link className="drawer-item" to="/gallery" onClick={handleProtectedClick}>Gallery</Link>
-          <Link className="drawer-item" to="/games" onClick={handleProtectedClick}>Games</Link>
-          <Link className="drawer-item" to="/e-magazine" onClick={handleProtectedClick}>E-Magazine</Link>
+          <Link className="drawer-item" to="/" onClick={closeDrawer}>
+            Home
+          </Link>
 
-          <Link className="drawer-item" to="/about" onClick={closeDrawer}>{t("about")}</Link>
-          <Link className="drawer-item" to="/contact" onClick={closeDrawer}>{t("contact")}</Link>
-          <Link className="drawer-item" to="/subscriptions" onClick={closeDrawer}>{t("subscriptions")}</Link>
-          <Link className="drawer-item" to="/help" onClick={closeDrawer}>{t("help")}</Link>
+          <Link className="drawer-item" to="/news" onClick={handleProtectedClick}>
+            News
+          </Link>
+          <Link className="drawer-item" to="/events" onClick={handleProtectedClick}>
+            Events
+          </Link>
+          <Link className="drawer-item" to="/gallery" onClick={handleProtectedClick}>
+            Gallery
+          </Link>
+          <Link className="drawer-item" to="/games" onClick={handleProtectedClick}>
+            Games
+          </Link>
+
+          <Link className="drawer-item" to="/e-magazine" onClick={handleProtectedClick}>
+            {t("nav_emag")}
+          </Link>
+
+          <Link className="drawer-item" to="/about" onClick={closeDrawer}>
+            {t("about")}
+          </Link>
+          <Link className="drawer-item" to="/contact" onClick={closeDrawer}>
+            {t("contact")}
+          </Link>
+          <Link className="drawer-item" to="/subscriptions" onClick={closeDrawer}>
+            {t("subscriptions")}
+          </Link>
+          <Link className="drawer-item" to="/help" onClick={closeDrawer}>
+            {t("help")}
+          </Link>
 
           <div className="drawer-sep" />
 
@@ -144,26 +157,16 @@ export default function NavBar() {
           </Link>
 
           {isAdmin && (
-            <Link
-              className="drawer-item"
-              to="/admin"
-              onClick={closeDrawer}
-              style={{ color: "var(--primary)", fontWeight: "bold" }}
-            >
+            <Link className="drawer-item" to="/admin" onClick={closeDrawer} style={{ color: "var(--primary)", fontWeight: "bold" }}>
               ⚙️ Admin Panel
             </Link>
           )}
         </nav>
       </aside>
 
-      {/* Modal when content is protected */}
       {showLoginModal && (
         <div className="modal-backdrop" onClick={() => setShowLoginModal(false)}>
-          <div
-            className="modal-content"
-            onClick={(e) => e.stopPropagation()}
-            style={{ textAlign: "center", maxWidth: "400px" }}
-          >
+          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ textAlign: "center", maxWidth: "400px" }}>
             <button className="modal-close" onClick={() => setShowLoginModal(false)}>
               ×
             </button>
@@ -176,20 +179,10 @@ export default function NavBar() {
               Join MIREN today!
             </p>
             <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-              <Link
-                to="/register"
-                className="btn primary"
-                onClick={() => setShowLoginModal(false)}
-                style={{ textDecoration: "none" }}
-              >
+              <Link to="/register" className="btn primary" onClick={() => setShowLoginModal(false)} style={{ textDecoration: "none" }}>
                 Create Account
               </Link>
-              <Link
-                to="/login"
-                className="btn ghost"
-                onClick={() => setShowLoginModal(false)}
-                style={{ textDecoration: "none" }}
-              >
+              <Link to="/login" className="btn ghost" onClick={() => setShowLoginModal(false)} style={{ textDecoration: "none" }}>
                 Login
               </Link>
             </div>

@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react"
 import NewsletterManager from "../components/NewsletterManager"
 import { useAuth } from "../hooks/useAuth"
-import { t } from "../lib/i18n"
+import { getLang, t } from "../lib/i18n"
 import { api } from "../lib/api"
 import HeroIntro from "./HeroIntro"
 
@@ -11,6 +11,14 @@ export default function Home() {
   const { user, hasSubscription } = useAuth()
   const [featured, setFeatured] = useState([])
   const [selectedArticle, setSelectedArticle] = useState(null)
+
+  // ✅ rerender on language change
+  const [lang, setLangState] = useState(getLang())
+  useEffect(() => {
+    const onLangChange = (e) => setLangState(e.detail.lang)
+    window.addEventListener("lang:change", onLangChange)
+    return () => window.removeEventListener("lang:change", onLangChange)
+  }, [])
 
   useEffect(() => {
     api
@@ -21,10 +29,10 @@ export default function Home() {
 
   return (
     <>
-      {/* HERO INTRO (горното fullscreen-ish нещо) */}
+      {/* FULLSCREEN INTRO (always visible, logged or not) */}
       <HeroIntro />
 
-      {/* Main content target for scroll */}
+      {/* Main content starts here */}
       <div id="home-main-content" className="page anim-fade-up">
         <NewsletterManager user={user} type="static" />
 
@@ -94,7 +102,8 @@ export default function Home() {
                           style={{
                             position: "absolute",
                             inset: 0,
-                            background: "rgba(255,255,255,0.7)",
+                            background:
+                              "rgba(255,255,255,0.7)",
                             backdropFilter: "blur(5px)",
                             zIndex: 1,
                             display: "flex",
@@ -160,18 +169,9 @@ export default function Home() {
         )}
 
         {selectedArticle && (
-          <div
-            className="modal-backdrop"
-            onClick={() => setSelectedArticle(null)}
-          >
-            <div
-              className="modal-content"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <button
-                className="modal-close"
-                onClick={() => setSelectedArticle(null)}
-              >
+          <div className="modal-backdrop" onClick={() => setSelectedArticle(null)}>
+            <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+              <button className="modal-close" onClick={() => setSelectedArticle(null)}>
                 ×
               </button>
               <h2 className="headline" style={{ textAlign: "center" }}>

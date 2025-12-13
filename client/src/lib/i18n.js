@@ -4,18 +4,13 @@ const defaultLang =
 
 let currentLang = defaultLang
 
-const dict = {
+export const dict = {
   bg: {
     brand: "MIREN",
-
-    // Home
     home_title: "Добре дошъл в MIREN",
     home_sub: "Тук ще откриеш сигурност, стил и функционалност.",
     start: "Започни",
-    read_news: "Прочети новини",
-    featured: "Подбрани",
-
-    // Nav / menu
+    gallery: "Галерия",
     about: "За нас",
     contact: "Контакти",
     help: "Помощ",
@@ -26,39 +21,32 @@ const dict = {
     logout: "Изход",
     theme: "Тема",
     language: "Език",
+    loading: "Зареждане...",
+    footer_copy: "© 2025 MIREN. Всички права запазени.",
 
-    // Drawer labels (ако ги превеждаш)
+    // drawer/nav labels (за да не търсиш home/news/events keys)
     home: "Начало",
     news: "Новини",
     events: "Събития",
-    gallery: "Галерия",
     games: "Игри",
-    emag: "E-списание",
+    emag: "Е-списание",
 
-    // Newsletter
-    newsletter_title: "📩 Абонирай се за новини!",
-    newsletter_text:
-      "Бъди запознат с най-новото в света на Мирен. Получавай известия за нови статии и събития.",
-    newsletter_placeholder: "Имейл адрес",
-    newsletter_btn: "Абонирай се",
-    newsletter_success: "Успешно се абонира! ✅",
+    // home page labels
+    read_news: "Прочети новини",
+    featured: "Подбрани",
 
-    // Misc
-    loading: "Зареждане...",
-    footer_copy: "© 2025 MIREN. Всички права запазени.",
+    // hero intro
+    hero_kicker: "Най-новото издание",
+    hero_subtitle: "Скролни надолу за пълния сайт",
+    hero_scroll: "↓",
   },
 
   en: {
     brand: "MIREN",
-
-    // Home
     home_title: "Welcome to MIREN",
     home_sub: "Here you’ll find security, style and functionality.",
     start: "Get started",
-    read_news: "Read News",
-    featured: "Featured",
-
-    // Nav / menu
+    gallery: "Gallery",
     about: "About",
     contact: "Contacts",
     help: "Help",
@@ -69,26 +57,24 @@ const dict = {
     logout: "Logout",
     theme: "Theme",
     language: "Language",
+    loading: "Loading...",
+    footer_copy: "© 2025 MIREN. All rights reserved.",
 
-    // Drawer labels
+    // drawer/nav labels
     home: "Home",
     news: "News",
     events: "Events",
-    gallery: "Gallery",
     games: "Games",
     emag: "E-Magazine",
 
-    // Newsletter
-    newsletter_title: "📩 Subscribe to news!",
-    newsletter_text:
-      "Stay up to date with the newest in the world of Miren. Get notifications for new articles and events.",
-    newsletter_placeholder: "Email address",
-    newsletter_btn: "Subscribe",
-    newsletter_success: "You have successfully subscribed! ✅",
+    // home page labels
+    read_news: "Read News",
+    featured: "Featured",
 
-    // Misc
-    loading: "Loading...",
-    footer_copy: "© 2025 MIREN. All rights reserved.",
+    // hero intro
+    hero_kicker: "Latest issue",
+    hero_subtitle: "Swipe down for the full site",
+    hero_scroll: "↓",
   },
 }
 

@@ -94,7 +94,7 @@ export default function NavBar() {
             </div>
 
             <div className="nav-center">
-              <Link className="brand" to="/">
+              <Link className="brand" to="/home">
                 {t("brand")}
               </Link>
             </div>
@@ -135,7 +135,7 @@ export default function NavBar() {
 
       <aside className={`drawer ${open ? "open" : ""}`} aria-hidden={!open}>
         <nav className="drawer-list">
-          <Link className="drawer-item" to="/" onClick={closeDrawer}>{t("home")}</Link>
+          <Link className="drawer-item" to="/home" onClick={closeDrawer}>{t("home")}</Link>
           <Link className="drawer-item" to="/news" onClick={handleProtectedClick}>{t("news")}</Link>
           <Link className="drawer-item" to="/events" onClick={handleProtectedClick}>{t("events")}</Link>
           <Link className="drawer-item" to="/gallery" onClick={handleProtectedClick}>{t("gallery")}</Link>

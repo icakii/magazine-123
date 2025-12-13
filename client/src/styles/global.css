@@ -2905,319 +2905,197 @@ html[data-theme="dark"] .newsletter {
   }
 }
 /* =========================================================
-   HERO INTRO – FINAL OVERRIDE (anti-overlap / stable layout)
-   Append-only patch. Put at VERY BOTTOM of globals.css
+   HERO INTRO – FINAL CLEAN OVERRIDE
+   Put at VERY BOTTOM of globals.css
 ========================================================= */
 
 .hero-intro {
-  /* keep it full-bleed but stable */
-  width: 100vw !important;
-  margin-left: calc(50% - 50vw) !important;
-  margin-right: calc(50% - 50vw) !important;
+  width: 100vw;
+  margin-left: calc(50% - 50vw);
+  margin-right: calc(50% - 50vw);
 
-  /* always reserve correct space under nav */
-  min-height: calc(100vh - var(--nav-offset, 72px)) !important;
+  min-height: calc(100vh - var(--nav-offset, 72px));
+  display: flex;
+  align-items: center;
+  justify-content: center;
 
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-
-  position: relative !important;
-  overflow: hidden !important;
-  border-bottom: 1px solid var(--nav-border) !important;
-  background: var(--bg) !important;
+  position: relative;
+  overflow: hidden;
+  background: var(--bg);
+  border-bottom: 1px solid var(--nav-border);
 }
+
+/* ---------- INNER LAYOUT ---------- */
 
 .hero-intro .hero-inner {
-  width: min(1200px, 100%) !important;
-  padding: 28px 20px !important;
+  width: min(1100px, 100%);
+  padding: 32px 20px;
 
-  display: grid !important;
-  grid-template-columns: 1.15fr 0.85fr !important;
-  gap: 28px !important;
-  align-items: center !important;
-
-  position: relative !important;
-  z-index: 1 !important;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 32px;
+  align-items: center;
 }
 
-/* slightly left from center (your request), without breaking */
-@media (min-width: 901px) {
-  .hero-intro .hero-media {
-    transform: translateX(-18px) !important;
-  }
-}
+/* ---------- MEDIA (LEFT) ---------- */
 
-/* MEDIA box – prevents layout jumps and overlap */
 .hero-intro .hero-media {
-  position: relative !important;
-  z-index: 1 !important;
+  max-width: 520px;
+  margin-inline: auto;
 
-  border-radius: 18px !important;
-  overflow: hidden !important;
+  border-radius: 18px;
+  overflow: hidden;
+  background: var(--bg-muted);
+  border: 1px solid var(--nav-border);
+  box-shadow: var(--shadow-md);
 
-  border: 1px solid var(--nav-border) !important;
-  background: var(--bg-muted) !important;
-  box-shadow: var(--shadow-md) !important;
-
-  /* keeps consistent size so copy never overlaps */
-  min-height: clamp(320px, 52vh, 620px) !important;
-  display: grid !important;
-  place-items: center !important;
-
-  will-change: transform;
+  min-height: 360px;
+  display: grid;
+  place-items: center;
 }
 
 .hero-intro .hero-vfx,
 .hero-intro .hero-cover {
-  width: 100% !important;
-  height: 100% !important;
-  display: block !important;
-  object-fit: cover !important;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
 }
+
+/* ---------- COPY (RIGHT) ---------- */
 
 .hero-intro .hero-copy {
-  position: relative !important;
-  z-index: 2 !important; /* always above orbs */
-  text-align: left !important;
-
-  display: flex !important;
-  flex-direction: column !important;
-  gap: 10px !important;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  text-align: left;
 }
 
-/* Text sizing stable */
 .hero-intro .hero-kicker {
-  letter-spacing: 0.22em !important;
-  text-transform: uppercase !important;
-  font-weight: 700 !important;
-  color: var(--text-muted) !important;
-  font-size: 0.85rem !important;
-}
-
-.hero-intro .hero-title {
-  font-family: "Oswald", "Montserrat", sans-serif !important;
-  font-weight: 900 !important;
-  font-size: clamp(2.6rem, 4.6vw, 4.2rem) !important;
-  line-height: 1.02 !important;
-  margin: 0 !important;
-}
-
-.hero-intro .hero-subtitle {
-  color: var(--text-muted) !important;
-  font-size: 1.05rem !important;
-  line-height: 1.7 !important;
-  max-width: 48ch !important;
-  margin: 0 !important;
-}
-
-/* ✅ FIX: Scroll button (prevents ugly text wrap + overlap) */
-.hero-intro .hero-scroll {
-  margin-top: 14px !important;
-
-  display: inline-flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  gap: 10px !important;
-
-  padding: 12px 16px !important;
-  border-radius: 999px !important;
-
-  border: 1px solid var(--nav-border) !important;
-  background: var(--bg-elev) !important;
-  box-shadow: var(--shadow-sm) !important;
-
-  cursor: pointer !important;
-  text-align: left !important;
-
-  /* IMPORTANT: no breaking into vertical letters */
-  white-space: nowrap !important;
-}
-
-.hero-intro .hero-scroll-icon {
-  width: 34px !important;
-  height: 34px !important;
-  display: grid !important;
-  place-items: center !important;
-  border-radius: 999px !important;
-  background: rgba(230,57,70,.1) !important;
-  color: var(--primary) !important;
-  font-weight: 900 !important;
-  flex: 0 0 auto !important;
-
-  animation: heroArrowBobFixed 1.4s ease-in-out infinite !important;
-}
-
-.hero-intro .hero-scroll-label {
-  font-weight: 800 !important;
-  color: var(--text) !important;
-  line-height: 1 !important;
-}
-
-@keyframes heroArrowBobFixed {
-  0%, 100% { transform: translateY(0); opacity: .85; }
-  50% { transform: translateY(3px); opacity: 1; }
-}
-
-/* Orbs always behind content */
-.hero-intro .hero-orb {
-  z-index: 0 !important;
-  pointer-events: none !important;
-}
-
-/* Mobile – stack, center text, avoid overlap */
-@media (max-width: 900px) {
-  .hero-intro .hero-inner {
-    grid-template-columns: 1fr !important;
-    gap: 18px !important;
-  }
-
-  .hero-intro .hero-media {
-    transform: none !important;
-    min-height: clamp(260px, 40vh, 420px) !important;
-  }
-
-  .hero-intro .hero-copy {
-    text-align: center !important;
-    align-items: center !important;
-  }
-
-  .hero-intro .hero-subtitle {
-    max-width: 60ch !important;
-  }
-}
-/* =========================================================
-   HERO SNAP + FIX OVERLAPS + SUBTLE FX (append-only)
-   Put at VERY BOTTOM of globals.css
-========================================================= */
-
-/* FIX: старите правила правят .hero-scroll кръг 52x52 – ние го ОВЪРРАЙДВАМЕ твърдо */
-.hero-intro .hero-scroll,
-.hero-intro .hero-scroll * {
-  box-sizing: border-box !important;
-}
-
-.hero-intro .hero-scroll {
-  width: auto !important;
-  height: auto !important;
-  min-width: 0 !important;
-  min-height: 0 !important;
-
-  display: inline-flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  gap: 10px !important;
-
-  padding: 12px 16px !important;
-  border-radius: 999px !important;
-
-  white-space: nowrap !important;
-  line-height: 1 !important;
-
-  border: 1px solid var(--nav-border) !important;
-  background: var(--bg-elev) !important;
-  box-shadow: var(--shadow-sm) !important;
-
-  transform: none !important; /* стоп на “скачане” от други hover rules */
-}
-
-.hero-intro .hero-scroll-icon {
-  width: 34px !important;
-  height: 34px !important;
-  display: grid !important;
-  place-items: center !important;
-  border-radius: 999px !important;
-  background: rgba(230,57,70,.12) !important;
-  color: var(--primary) !important;
-  flex: 0 0 auto !important;
-  font-weight: 900 !important;
-  animation: heroArrowBob2 1.25s ease-in-out infinite !important;
-}
-
-@keyframes heroArrowBob2 {
-  0%,100% { transform: translateY(0); opacity: .85; }
-  50% { transform: translateY(3px); opacity: 1; }
-}
-
-/* HERO: малко по-стабилен grid + да не се “смачква” */
-.hero-intro .hero-inner {
-  align-items: center !important;
-}
-
-.hero-intro .hero-copy {
-  min-width: 0 !important;
-}
-
-/* Subtle appearing / disappearing microtext (не е too much) */
-.hero-intro .hero-kicker {
-  position: relative !important;
+  letter-spacing: 0.22em;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  position: relative;
 }
 
 .hero-intro .hero-kicker::after {
-  content: "  •  M!REN" !important;
-  opacity: 0.0;
+  content: " • M!REN";
   margin-left: 10px;
-  display: inline-block;
-  transform: translateY(2px);
-  animation: microReveal 4.6s ease-in-out infinite;
   color: var(--primary);
-  letter-spacing: 0.18em;
-  font-weight: 800;
+  opacity: 0;
+  animation: microReveal 5s ease-in-out infinite;
 }
 
 @keyframes microReveal {
-  0%, 25% { opacity: 0; transform: translateY(2px); filter: blur(2px); }
-  35%, 65% { opacity: .9; transform: translateY(0); filter: blur(0); }
-  75%, 100% { opacity: 0; transform: translateY(-2px); filter: blur(2px); }
+  0%,25% { opacity: 0; transform: translateY(2px); }
+  40%,65% { opacity: .9; transform: translateY(0); }
+  80%,100% { opacity: 0; transform: translateY(-2px); }
 }
 
-/* Floating particles – много леки, само за “живот” */
-.hero-intro {
-  position: relative !important;
-  overflow: hidden !important;
+.hero-intro .hero-title {
+  font-family: "Oswald","Montserrat",sans-serif;
+  font-weight: 900;
+  font-size: clamp(2.4rem, 4vw, 3.8rem);
+  line-height: 1.05;
 }
+
+.hero-intro .hero-subtitle {
+  color: var(--text-muted);
+  max-width: 46ch;
+  line-height: 1.6;
+}
+
+/* ---------- SCROLL CTA (BOTTOM CENTER) ---------- */
+
+.hero-intro .hero-scroll {
+  margin-top: 24px;
+  align-self: center;
+
+  background: transparent;
+  border: none;
+  padding: 0;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+
+  cursor: pointer;
+  box-shadow: none;
+}
+
+.hero-intro .hero-scroll-label {
+  font-weight: 700;
+  color: var(--text);
+}
+
+.hero-intro .hero-scroll-icon {
+  width: 0;
+  height: 0;
+  border-left: 8px solid transparent;
+  border-right: 8px solid transparent;
+  border-top: 12px solid var(--primary);
+
+  animation: arrowFloat 1.4s ease-in-out infinite;
+}
+
+@keyframes arrowFloat {
+  0%,100% { transform: translateY(0); opacity: .7; }
+  50% { transform: translateY(4px); opacity: 1; }
+}
+
+/* ---------- HINT TEXT ---------- */
+
+.hero-intro .hero-hint {
+  margin-top: 6px;
+  text-align: center;
+  font-size: 0.95rem;
+  color: var(--text-muted);
+}
+
+/* ---------- FLOATING FOG (SUBTLE) ---------- */
 
 .hero-intro::before,
 .hero-intro::after {
-  content: "" !important;
-  position: absolute !important;
-  inset: -20% !important;
-  pointer-events: none !important;
-  z-index: 0 !important;
-  opacity: .55 !important;
+  content: "";
+  position: absolute;
+  inset: -20%;
+  pointer-events: none;
+  z-index: 0;
 }
 
 .hero-intro::before {
   background:
-    radial-gradient(circle at 15% 25%, rgba(230,57,70,.18), transparent 38%),
-    radial-gradient(circle at 70% 15%, rgba(230,57,70,.12), transparent 42%),
-    radial-gradient(circle at 85% 70%, rgba(230,57,70,.10), transparent 45%);
-  animation: floatFog 10s ease-in-out infinite;
+    radial-gradient(circle at 20% 30%, rgba(230,57,70,.15), transparent 40%),
+    radial-gradient(circle at 80% 20%, rgba(230,57,70,.10), transparent 45%);
+  animation: fogMove 12s ease-in-out infinite;
 }
 
 .hero-intro::after {
   background:
-    radial-gradient(circle at 25% 80%, rgba(0,0,0,.06), transparent 45%),
-    radial-gradient(circle at 60% 55%, rgba(0,0,0,.04), transparent 48%);
-  animation: floatFog 13s ease-in-out infinite reverse;
+    radial-gradient(circle at 30% 80%, rgba(0,0,0,.05), transparent 45%);
+  animation: fogMove 16s ease-in-out infinite reverse;
 }
 
-@keyframes floatFog {
-  0%,100% { transform: translate(0,0) scale(1); }
-  50% { transform: translate(10px,-10px) scale(1.02); }
+@keyframes fogMove {
+  0%,100% { transform: translate(0,0); }
+  50% { transform: translate(12px,-10px); }
 }
 
-/* Частиците да са зад съдържанието */
-.hero-intro .hero-inner,
-.hero-intro .hero-media,
-.hero-intro .hero-copy {
-  position: relative !important;
-  z-index: 1 !important;
-}
+/* ---------- MOBILE ---------- */
 
-/* Мобилно: без изненади */
 @media (max-width: 900px) {
-  .hero-intro .hero-scroll {
-    justify-content: center !important;
+  .hero-intro .hero-inner {
+    grid-template-columns: 1fr;
+    text-align: center;
+  }
+
+  .hero-intro .hero-copy {
+    align-items: center;
+  }
+
+  .hero-intro .hero-subtitle {
+    max-width: 60ch;
   }
 }

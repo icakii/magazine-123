@@ -2904,3 +2904,185 @@ html[data-theme="dark"] .newsletter {
     height: clamp(260px, 40vh, 420px);
   }
 }
+/* =========================================================
+   HERO INTRO – FINAL OVERRIDE (anti-overlap / stable layout)
+   Append-only patch. Put at VERY BOTTOM of globals.css
+========================================================= */
+
+.hero-intro {
+  /* keep it full-bleed but stable */
+  width: 100vw !important;
+  margin-left: calc(50% - 50vw) !important;
+  margin-right: calc(50% - 50vw) !important;
+
+  /* always reserve correct space under nav */
+  min-height: calc(100vh - var(--nav-offset, 72px)) !important;
+
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+
+  position: relative !important;
+  overflow: hidden !important;
+  border-bottom: 1px solid var(--nav-border) !important;
+  background: var(--bg) !important;
+}
+
+.hero-intro .hero-inner {
+  width: min(1200px, 100%) !important;
+  padding: 28px 20px !important;
+
+  display: grid !important;
+  grid-template-columns: 1.15fr 0.85fr !important;
+  gap: 28px !important;
+  align-items: center !important;
+
+  position: relative !important;
+  z-index: 1 !important;
+}
+
+/* slightly left from center (your request), without breaking */
+@media (min-width: 901px) {
+  .hero-intro .hero-media {
+    transform: translateX(-18px) !important;
+  }
+}
+
+/* MEDIA box – prevents layout jumps and overlap */
+.hero-intro .hero-media {
+  position: relative !important;
+  z-index: 1 !important;
+
+  border-radius: 18px !important;
+  overflow: hidden !important;
+
+  border: 1px solid var(--nav-border) !important;
+  background: var(--bg-muted) !important;
+  box-shadow: var(--shadow-md) !important;
+
+  /* keeps consistent size so copy never overlaps */
+  min-height: clamp(320px, 52vh, 620px) !important;
+  display: grid !important;
+  place-items: center !important;
+
+  will-change: transform;
+}
+
+.hero-intro .hero-vfx,
+.hero-intro .hero-cover {
+  width: 100% !important;
+  height: 100% !important;
+  display: block !important;
+  object-fit: cover !important;
+}
+
+.hero-intro .hero-copy {
+  position: relative !important;
+  z-index: 2 !important; /* always above orbs */
+  text-align: left !important;
+
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 10px !important;
+}
+
+/* Text sizing stable */
+.hero-intro .hero-kicker {
+  letter-spacing: 0.22em !important;
+  text-transform: uppercase !important;
+  font-weight: 700 !important;
+  color: var(--text-muted) !important;
+  font-size: 0.85rem !important;
+}
+
+.hero-intro .hero-title {
+  font-family: "Oswald", "Montserrat", sans-serif !important;
+  font-weight: 900 !important;
+  font-size: clamp(2.6rem, 4.6vw, 4.2rem) !important;
+  line-height: 1.02 !important;
+  margin: 0 !important;
+}
+
+.hero-intro .hero-subtitle {
+  color: var(--text-muted) !important;
+  font-size: 1.05rem !important;
+  line-height: 1.7 !important;
+  max-width: 48ch !important;
+  margin: 0 !important;
+}
+
+/* ✅ FIX: Scroll button (prevents ugly text wrap + overlap) */
+.hero-intro .hero-scroll {
+  margin-top: 14px !important;
+
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 10px !important;
+
+  padding: 12px 16px !important;
+  border-radius: 999px !important;
+
+  border: 1px solid var(--nav-border) !important;
+  background: var(--bg-elev) !important;
+  box-shadow: var(--shadow-sm) !important;
+
+  cursor: pointer !important;
+  text-align: left !important;
+
+  /* IMPORTANT: no breaking into vertical letters */
+  white-space: nowrap !important;
+}
+
+.hero-intro .hero-scroll-icon {
+  width: 34px !important;
+  height: 34px !important;
+  display: grid !important;
+  place-items: center !important;
+  border-radius: 999px !important;
+  background: rgba(230,57,70,.1) !important;
+  color: var(--primary) !important;
+  font-weight: 900 !important;
+  flex: 0 0 auto !important;
+
+  animation: heroArrowBobFixed 1.4s ease-in-out infinite !important;
+}
+
+.hero-intro .hero-scroll-label {
+  font-weight: 800 !important;
+  color: var(--text) !important;
+  line-height: 1 !important;
+}
+
+@keyframes heroArrowBobFixed {
+  0%, 100% { transform: translateY(0); opacity: .85; }
+  50% { transform: translateY(3px); opacity: 1; }
+}
+
+/* Orbs always behind content */
+.hero-intro .hero-orb {
+  z-index: 0 !important;
+  pointer-events: none !important;
+}
+
+/* Mobile – stack, center text, avoid overlap */
+@media (max-width: 900px) {
+  .hero-intro .hero-inner {
+    grid-template-columns: 1fr !important;
+    gap: 18px !important;
+  }
+
+  .hero-intro .hero-media {
+    transform: none !important;
+    min-height: clamp(260px, 40vh, 420px) !important;
+  }
+
+  .hero-intro .hero-copy {
+    text-align: center !important;
+    align-items: center !important;
+  }
+
+  .hero-intro .hero-subtitle {
+    max-width: 60ch !important;
+  }
+}

@@ -2,9 +2,9 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { api } from "./lib/api"
-import { useAuth } from "./hooks/useAuth"
-import { t } from "./lib/i18n"
+import { api } from "../lib/api"
+import { useAuth } from "../hooks/useAuth"
+import { t } from "../lib/i18n"
 
 export default function Subscriptions() {
   const { user, loading } = useAuth()

@@ -4,7 +4,8 @@ import { useState, useEffect } from "react"
 import { api } from "../lib/api"
 import { useAuth } from "../hooks/useAuth"
 
-const CLOUDINARY_URL = "https://api.cloudinary.com/v1_1/dwezdx5zn/image/upload"
+const CLOUDINARY_IMAGE_URL = "https://api.cloudinary.com/v1_1/dwezdx5zn/image/upload"
+const CLOUDINARY_VIDEO_URL = "https://api.cloudinary.com/v1_1/dwezdx5zn/video/upload"
 const UPLOAD_PRESET = "ml_default"
 const ADMIN_EMAILS = ["icaki06@gmail.com", "icaki2k@gmail.com", "mirenmagazine@gmail.com"]
 
@@ -43,6 +44,10 @@ export default function AdminPanel() {
   const [emailSubject, setEmailSubject] = useState("")
   const [emailBody, setEmailBody] = useState("")
 
+  // HERO (VFX)
+  const [heroIssue, setHeroIssue] = useState(null)
+  const [heroVfxUrl, setHeroVfxUrl] = useState("")
+
   // Article Form
   const [articleForm, setArticleForm] = useState({
     title: "",
@@ -63,14 +68,17 @@ export default function AdminPanel() {
     isLocked: true,
     coverUrl: "",
     pages: [],
+    heroVfxUrl: "", // NEW
   })
 
-  const tabs = ["home", "news", "events", "gallery", "magazine", "newsletter"]
+  // добавяме hero tab
+  const tabs = ["home", "news", "events", "gallery", "magazine", "hero", "newsletter"]
 
   useEffect(() => {
     if (!loading && user && ADMIN_EMAILS.includes(user.email)) {
       loadData()
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loading, user, activeTab])
 
   async function loadData() {
@@ -78,6 +86,12 @@ export default function AdminPanel() {
       if (activeTab === "magazine") {
         const res = await api.get("/magazines")
         setItems(res.data || [])
+      } else if (activeTab === "hero") {
+        const res = await api.get("/magazines")
+        const list = res.data || []
+        const first = list[0] || null
+        setHeroIssue(first)
+        setHeroVfxUrl(first?.heroVfxUrl || "")
       } else if (activeTab === "newsletter") {
         const res = await api.get("/newsletter/subscribers")
         setSubscribers(res.data || [])
@@ -101,7 +115,7 @@ export default function AdminPanel() {
     formData.append("upload_preset", UPLOAD_PRESET)
 
     try {
-      const res = await fetch(CLOUDINARY_URL, {
+      const res = await fetch(CLOUDINARY_IMAGE_URL, {
         method: "POST",
         body: formData,
       })
@@ -126,6 +140,61 @@ export default function AdminPanel() {
     }
   }
 
+  // ---------------- VIDEO UPLOAD (HERO VFX) ----------------
+  async function handleHeroVideoUpload(e) {
+    const file = e.target.files[0]
+    if (!file) return
+
+    setUploading(true)
+    setMsg("")
+
+    const formData = new FormData()
+    formData.append("file", file)
+    formData.append("upload_preset", UPLOAD_PRESET)
+
+    try {
+      const res = await fetch(CLOUDINARY_VIDEO_URL, {
+        method: "POST",
+        body: formData,
+      })
+      const data = await res.json()
+
+      if (data.secure_url) {
+        setHeroVfxUrl(data.secure_url)
+        setMsg("Hero VFX video uploaded ✅ (don’t forget Save)")
+      } else {
+        setMsg("Video upload failed.")
+      }
+    } catch (error) {
+      console.error(error)
+      setMsg("Video upload failed.")
+    } finally {
+      setUploading(false)
+      e.target.value = null
+    }
+  }
+
+  async function saveHeroVfx() {
+    if (!heroIssue?.id) {
+      setMsg("No magazine issue found. Create an Issue first in Magazine tab.")
+      return
+    }
+    try {
+      setUploading(true)
+      await api.put(`/magazines/${heroIssue.id}`, {
+        ...heroIssue,
+        heroVfxUrl: heroVfxUrl || null,
+      })
+      setMsg("Hero VFX saved ✅")
+      loadData()
+    } catch (err) {
+      console.error(err)
+      setMsg("Error saving Hero VFX.")
+    } finally {
+      setUploading(false)
+    }
+  }
+
   function removePage(indexToRemove) {
     setMagForm(prev => ({
       ...prev,
@@ -142,6 +211,7 @@ export default function AdminPanel() {
           ...magForm,
           year: parseInt(magForm.year, 10) || new Date().getFullYear(),
           isLocked: !!magForm.isLocked,
+          heroVfxUrl: magForm.heroVfxUrl || null,
         }
         if (editingId) {
           await api.put(`/magazines/${editingId}`, dataToSave)
@@ -149,7 +219,7 @@ export default function AdminPanel() {
           await api.post("/magazines", dataToSave)
         }
         setMsg("Magazine saved!")
-      } else if (activeTab === "newsletter") {
+      } else if (activeTab === "newsletter" || activeTab === "hero") {
         return
       } else {
         const payload = {
@@ -227,8 +297,9 @@ export default function AdminPanel() {
         isLocked: !!item.isLocked,
         coverUrl: item.coverUrl || "",
         pages: Array.isArray(item.pages) ? item.pages : [],
+        heroVfxUrl: item.heroVfxUrl || "",
       })
-    } else if (activeTab === "newsletter") {
+    } else if (activeTab === "newsletter" || activeTab === "hero") {
       return
     } else {
       setArticleForm({
@@ -268,6 +339,7 @@ export default function AdminPanel() {
       isLocked: true,
       coverUrl: "",
       pages: [],
+      heroVfxUrl: "",
     })
   }
 
@@ -300,11 +372,86 @@ export default function AdminPanel() {
             }}
             className={`btn ${activeTab === tab ? "primary" : "ghost"}`}
             style={{ textTransform: "capitalize" }}
+            type="button"
           >
             {tab}
           </button>
         ))}
       </div>
+
+      {/* HERO TAB */}
+      {activeTab === "hero" && (
+        <div className="stack">
+          <h3>Hero Intro VFX</h3>
+          <p style={{ color: "var(--text-muted)" }}>
+            Upload a video that will show in the Home HeroIntro (autoplay, muted, loop).
+          </p>
+
+          {!heroIssue ? (
+            <div className="card" style={{ padding: 18 }}>
+              <p><strong>No magazine issue found.</strong></p>
+              <p>Create at least one issue in the <b>Magazine</b> tab first.</p>
+            </div>
+          ) : (
+            <div className="card" style={{ padding: 20 }}>
+              <div style={{ marginBottom: 10 }}>
+                Current issue: <b>{heroIssue.issueNumber}</b> {heroIssue.month} {heroIssue.year}
+              </div>
+
+              <div
+                style={{
+                  marginBottom: 12,
+                  padding: 10,
+                  background: "var(--bg-muted)",
+                  border: "1px dashed var(--nav-border)",
+                  borderRadius: 10,
+                }}
+              >
+                <label style={{ fontWeight: "bold" }}>Upload Hero Video (mp4/webm)</label>
+                <input
+                  type="file"
+                  accept="video/*"
+                  onChange={handleHeroVideoUpload}
+                  disabled={uploading}
+                  style={{ marginTop: 6, display: "block" }}
+                />
+
+                <div style={{ marginTop: 12 }}>
+                  <label style={{ fontWeight: 700, fontSize: ".9rem" }}>Or paste URL</label>
+                  <input
+                    className="input"
+                    placeholder="https://..."
+                    value={heroVfxUrl}
+                    onChange={(e) => setHeroVfxUrl(e.target.value)}
+                    style={{ marginTop: 6 }}
+                  />
+                </div>
+
+                {heroVfxUrl && (
+                  <div style={{ marginTop: 14 }}>
+                    <video
+                      src={heroVfxUrl}
+                      controls
+                      style={{ width: "100%", borderRadius: 12, border: "1px solid var(--nav-border)" }}
+                    />
+                  </div>
+                )}
+              </div>
+
+              <button
+                className="btn primary"
+                type="button"
+                onClick={saveHeroVfx}
+                disabled={uploading}
+              >
+                Save Hero VFX
+              </button>
+
+              {msg && <p style={{ marginTop: 10 }}>{msg}</p>}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Newsletter tab */}
       {activeTab === "newsletter" && (
@@ -344,7 +491,7 @@ export default function AdminPanel() {
       )}
 
       {/* Add button */}
-      {activeTab !== "newsletter" && !showForm && (
+      {activeTab !== "newsletter" && activeTab !== "hero" && !showForm && (
         <button
           onClick={() => {
             setShowForm(true)
@@ -356,13 +503,14 @@ export default function AdminPanel() {
             backgroundColor: "#e63946",
             color: "white",
           }}
+          type="button"
         >
           + Create New {activeTab === "magazine" ? "Issue" : "Article"}
         </button>
       )}
 
       {/* FORM */}
-      {showForm && activeTab !== "newsletter" && (
+      {showForm && activeTab !== "newsletter" && activeTab !== "hero" && (
         <div className="card" style={{ padding: 20, marginBottom: 20 }}>
           <h3 style={{ marginBottom: 10 }}>
             {editingId ? "Edit" : "Create New"}{" "}
@@ -688,9 +836,7 @@ export default function AdminPanel() {
                     }
                   />
                   <span>
-                    {articleForm.isPremium
-                      ? "🔒 Premium only"
-                      : "🔓 Public (free)"}
+                    {articleForm.isPremium ? "🔒 Premium only" : "🔓 Public (free)"}
                   </span>
                 </label>
               </>
@@ -729,7 +875,7 @@ export default function AdminPanel() {
       )}
 
       {/* LIST */}
-      {activeTab !== "newsletter" && (
+      {activeTab !== "newsletter" && activeTab !== "hero" && (
         <div className="stack">
           {items.map(item => (
             <div
@@ -750,12 +896,14 @@ export default function AdminPanel() {
                 <button
                   onClick={() => handleEdit(item)}
                   style={{ marginRight: 10 }}
+                  type="button"
                 >
                   ✏️
                 </button>
                 <button
                   onClick={() => handleDelete(item.id)}
                   style={{ color: "red" }}
+                  type="button"
                 >
                   🗑️
                 </button>

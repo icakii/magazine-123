@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react"
 import NewsletterManager from "../components/NewsletterManager"
 import { useAuth } from "../hooks/useAuth"
-import { getLang, t } from "../lib/i18n"
+import { t } from "../lib/i18n"
 import { api } from "../lib/api"
 import HeroIntro from "./HeroIntro"
 
@@ -11,14 +11,6 @@ export default function Home() {
   const { user, hasSubscription } = useAuth()
   const [featured, setFeatured] = useState([])
   const [selectedArticle, setSelectedArticle] = useState(null)
-
-  // ✅ rerender on language change
-  const [lang, setLangState] = useState(getLang())
-  useEffect(() => {
-    const onLangChange = (e) => setLangState(e.detail.lang)
-    window.addEventListener("lang:change", onLangChange)
-    return () => window.removeEventListener("lang:change", onLangChange)
-  }, [])
 
   useEffect(() => {
     api
@@ -28,11 +20,11 @@ export default function Home() {
   }, [])
 
   return (
-    <>
-      {/* FULLSCREEN INTRO (always visible, logged or not) */}
+    <div className="home-shell">
+      {/* FULLSCREEN HERO INTRO (always visible at top) */}
       <HeroIntro />
 
-      {/* Main content starts here */}
+      {/* MAIN SITE CONTENT */}
       <div id="home-main-content" className="page anim-fade-up">
         <NewsletterManager user={user} type="static" />
 
@@ -41,10 +33,10 @@ export default function Home() {
           style={{ padding: "40px 20px", textAlign: "center", marginBottom: 40 }}
         >
           <h1 className="headline" style={{ fontSize: "3rem" }}>
-            {user ? `Welcome, ${user.displayName}!` : t("home_title")}
+            {user ? `${t("welcome")}, ${user.displayName}!` : t("home_title")}
           </h1>
           <p className="subhead" style={{ fontSize: "1.2rem" }}>
-            {user ? "Explore our latest content." : t("home_sub")}
+            {user ? t("home_user_sub") : t("home_sub")}
           </p>
 
           <div className="btn-group mt-3" style={{ justifyContent: "center" }}>
@@ -102,8 +94,7 @@ export default function Home() {
                           style={{
                             position: "absolute",
                             inset: 0,
-                            background:
-                              "rgba(255,255,255,0.7)",
+                            background: "rgba(255,255,255,0.7)",
                             backdropFilter: "blur(5px)",
                             zIndex: 1,
                             display: "flex",
@@ -115,10 +106,10 @@ export default function Home() {
                         >
                           <span style={{ fontSize: "3rem" }}>🔒</span>
                           <p style={{ marginTop: 8, marginBottom: 12 }}>
-                            Premium content
+                            {t("premium_content")}
                           </p>
                           <a href="/subscriptions" className="btn primary">
-                            Subscribe to unlock
+                            {t("subscribe_unlock")}
                           </a>
                         </div>
                       )}
@@ -157,7 +148,7 @@ export default function Home() {
                           onClick={() => !isLocked && setSelectedArticle(f)}
                           disabled={isLocked}
                         >
-                          Read More
+                          {t("read_more")}
                         </button>
                       </div>
                     </div>
@@ -189,6 +180,6 @@ export default function Home() {
           </div>
         )}
       </div>
-    </>
+    </div>
   )
 }

@@ -212,6 +212,9 @@ app.get("/api/fix-db", async (req, res) => {
         UNIQUE(user_email, article_id)
       );
     `);
+      await db.query(
+  `ALTER TABLE magazine_issues ADD COLUMN IF NOT EXISTS hero_vfx_url TEXT;`
+);
 
     res.send("✅ УСПЕХ! Базата данни е поправена за новите полета.");
   } catch (e) {
@@ -280,15 +283,34 @@ app.get("/api/magazines", async (req, res) => {
     const { rows } = await db.query(
       "SELECT * FROM magazine_issues ORDER BY year DESC, month DESC"
     );
-    const mapped = rows.map((row) => ({
-      id: row.id,
-      issueNumber: row.issue_number,
-      month: row.month,
-      year: row.year,
-      isLocked: row.is_locked,
-      coverUrl: row.cover_url,
-      pages: row.pages,
-    }));
+    const mapped = rows.map((row) => {
+  let safePages = row.pages
+
+  // ако pages е string (примерно "['url1','url2']" или '{"0":"..."}'), пробваме да го парснем
+  if (typeof safePages === "string") {
+    try {
+      safePages = JSON.parse(safePages)
+    } catch {
+      safePages = []
+    }
+  }
+
+  // гаранция, че е масив
+  if (!Array.isArray(safePages)) safePages = []
+
+  return {
+    id: row.id,
+    issueNumber: row.issue_number,
+    month: row.month,
+    year: row.year,
+    isLocked: row.is_locked,
+    coverUrl: row.cover_url,
+    pages: safePages,
+    heroVfxUrl: row.hero_vfx_url || null,
+  }
+})
+
+
     res.json(mapped);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -296,14 +318,16 @@ app.get("/api/magazines", async (req, res) => {
 });
 
 app.post("/api/magazines", adminMiddleware, async (req, res) => {
-  const { issueNumber, month, year, isLocked, coverUrl, pages } = req.body;
+  const { issueNumber, month, year, isLocked, coverUrl, pages, heroVfxUrl } = req.body;
+
   try {
     const { rows } = await db.query(
       `INSERT INTO magazine_issues
-       (issue_number, month, year, is_locked, cover_url, pages)
-       VALUES ($1,$2,$3,$4,$5,$6)
-       RETURNING *`,
-      [issueNumber, month, year, isLocked, coverUrl, JSON.stringify(pages)]
+ (issue_number, month, year, is_locked, cover_url, pages, hero_vfx_url)
+ VALUES ($1,$2,$3,$4,$5,$6,$7)
+ RETURNING *`,
+[issueNumber, month, year, isLocked, coverUrl, JSON.stringify(pages), heroVfxUrl || null]
+
     );
     res.json({ ok: true, issue: rows[0] });
   } catch (err) {
@@ -313,13 +337,14 @@ app.post("/api/magazines", adminMiddleware, async (req, res) => {
 
 app.put("/api/magazines/:id", adminMiddleware, async (req, res) => {
   const { id } = req.params;
-  const { issueNumber, month, year, isLocked, coverUrl, pages } = req.body;
+  const { issueNumber, month, year, isLocked, coverUrl, pages, heroVfxUrl } = req.body;
   try {
     await db.query(
       `UPDATE magazine_issues
-       SET issue_number=$1, month=$2, year=$3, is_locked=$4, cover_url=$5, pages=$6
-       WHERE id=$7`,
-      [issueNumber, month, year, isLocked, coverUrl, JSON.stringify(pages), id]
+ SET issue_number=$1, month=$2, year=$3, is_locked=$4, cover_url=$5, pages=$6, hero_vfx_url=$7
+ WHERE id=$8`,
+[issueNumber, month, year, isLocked, coverUrl, JSON.stringify(pages), heroVfxUrl || null, id]
+
     );
     res.json({ ok: true });
   } catch (err) {

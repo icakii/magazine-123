@@ -1,45 +1,51 @@
-// src/lib/i18n.js
-
-const STORAGE_KEY = "lang"
-
 const defaultLang =
-  (typeof window !== "undefined" && localStorage.getItem(STORAGE_KEY)) || "bg"
+  (typeof window !== "undefined" && localStorage.getItem("lang")) || "bg"
 
-let currentLang = defaultLang === "en" ? "en" : "bg"
+let currentLang = defaultLang
 
 export const dict = {
   bg: {
     brand: "MIREN",
 
+    // HOME
     home_title: "Добре дошъл в MIREN",
     home_sub: "Тук ще откриеш сигурност, стил и функционалност.",
+    home_user_sub: "Разгледай най-новото ни съдържание.",
+    welcome: "Добре дошъл",
     start: "Започни",
     read_news: "Прочети новини",
     featured: "Подбрани",
+    read_more: "Прочети още",
+    premium_content: "Premium съдържание",
+    subscribe_unlock: "Абонирай се за достъп",
 
-    // Drawer / Nav
+    // HERO INTRO
+    hero_kicker: "NEW ISSUE",
+    hero_subtitle: "Е-списанието е тук — влез в пълната версия на сайта.",
+    hero_swipe: "Swipe down за сайта",
+    hero_hint: "Можеш да се върнеш тук като скролнеш нагоре.",
+
+    // NAV (drawer)
     home: "Начало",
     news: "Новини",
     events: "Събития",
     gallery: "Галерия",
     games: "Игри",
-    emag: "Е-списание", // важно: кирилица
-
+    emag: "Е-списание",
     about: "За нас",
     contact: "Контакти",
+    subscriptions: "Абонаменти",
     help: "Помощ",
     profile: "Профил",
-    subscriptions: "Абонаменти",
 
+    // AUTH/UI
     register: "Регистрация",
     login: "Вход",
     logout: "Изход",
     theme: "Тема",
-    language: "Език",
     loading: "Зареждане...",
-    footer_copy: "© 2025 MIREN. Всички права запазени.",
 
-    // Newsletter
+    // NEWSLETTER
     newsletter_title: "📩 Абонирай се за новини!",
     newsletter_text:
       "Бъди запознат с най-новото в света на Мирен. Получавай известия за нови статии и събития.",
@@ -47,10 +53,13 @@ export const dict = {
     newsletter_btn: "Абонирай се",
     newsletter_success: "Успешно се абонира! ✅",
 
-    // Hero Intro
-    hero_kicker: "Ново издание",
-    hero_subtitle: "Плъзни надолу, за да влезеш в сайта",
-    hero_scroll_label: "Плъзни надолу",
+    // CONFIRM
+    confirm_title: "Потвърждение на имейл",
+    confirm_progress: "Потвърждаваме...",
+    confirm_ok: "Имейлът е потвърден! ✅",
+    confirm_fail: "Невалиден или изтекъл линк.",
+
+    footer_copy: "© 2025 MIREN. Всички права запазени.",
   },
 
   en: {
@@ -58,33 +67,38 @@ export const dict = {
 
     home_title: "Welcome to MIREN",
     home_sub: "Here you’ll find security, style and functionality.",
+    home_user_sub: "Explore our latest content.",
+    welcome: "Welcome",
     start: "Get started",
     read_news: "Read News",
     featured: "Featured",
+    read_more: "Read More",
+    premium_content: "Premium content",
+    subscribe_unlock: "Subscribe to unlock",
 
-    // Drawer / Nav
+    hero_kicker: "NEW ISSUE",
+    hero_subtitle: "The e-magazine is here — enter the full site experience.",
+    hero_swipe: "Swipe down for the site",
+    hero_hint: "Scroll up anytime to return here.",
+
     home: "Home",
     news: "News",
     events: "Events",
     gallery: "Gallery",
     games: "Games",
     emag: "E-Magazine",
-
     about: "About",
     contact: "Contact",
+    subscriptions: "Subscriptions",
     help: "Help",
     profile: "Profile",
-    subscriptions: "Subscriptions",
 
     register: "Register",
     login: "Login",
     logout: "Logout",
     theme: "Theme",
-    language: "Language",
     loading: "Loading...",
-    footer_copy: "© 2025 MIREN. All rights reserved.",
 
-    // Newsletter
     newsletter_title: "📩 Subscribe to news!",
     newsletter_text:
       "Stay up to date with the latest from MIREN. Get notified about new articles and events.",
@@ -92,16 +106,18 @@ export const dict = {
     newsletter_btn: "Subscribe",
     newsletter_success: "Successfully subscribed! ✅",
 
-    // Hero Intro
-    hero_kicker: "New issue",
-    hero_subtitle: "Swipe down to enter the full site",
-    hero_scroll_label: "Swipe down",
+    confirm_title: "Email confirmation",
+    confirm_progress: "Confirming...",
+    confirm_ok: "Email confirmed! ✅",
+    confirm_fail: "Invalid or expired link.",
+
+    footer_copy: "© 2025 MIREN. All rights reserved.",
   },
 }
 
 export function t(key) {
   const table = dict[currentLang] || dict.bg
-  return table[key] || key
+  return table[key] ?? key
 }
 
 export function getLang() {
@@ -111,15 +127,9 @@ export function getLang() {
 export function setLang(next) {
   currentLang = next === "en" ? "en" : "bg"
   if (typeof window !== "undefined") {
-    localStorage.setItem(STORAGE_KEY, currentLang)
+    localStorage.setItem("lang", currentLang)
     window.dispatchEvent(
       new CustomEvent("lang:change", { detail: { lang: currentLang } })
     )
   }
-}
-
-// ако някъде още ползваш това – оставям го
-export function tWithLang(lang, key) {
-  const table = dict[lang] || dict.bg
-  return table[key] || key
 }

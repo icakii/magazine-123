@@ -3086,3 +3086,138 @@ html[data-theme="dark"] .newsletter {
     max-width: 60ch !important;
   }
 }
+/* =========================================================
+   HERO SNAP + FIX OVERLAPS + SUBTLE FX (append-only)
+   Put at VERY BOTTOM of globals.css
+========================================================= */
+
+/* FIX: старите правила правят .hero-scroll кръг 52x52 – ние го ОВЪРРАЙДВАМЕ твърдо */
+.hero-intro .hero-scroll,
+.hero-intro .hero-scroll * {
+  box-sizing: border-box !important;
+}
+
+.hero-intro .hero-scroll {
+  width: auto !important;
+  height: auto !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 10px !important;
+
+  padding: 12px 16px !important;
+  border-radius: 999px !important;
+
+  white-space: nowrap !important;
+  line-height: 1 !important;
+
+  border: 1px solid var(--nav-border) !important;
+  background: var(--bg-elev) !important;
+  box-shadow: var(--shadow-sm) !important;
+
+  transform: none !important; /* стоп на “скачане” от други hover rules */
+}
+
+.hero-intro .hero-scroll-icon {
+  width: 34px !important;
+  height: 34px !important;
+  display: grid !important;
+  place-items: center !important;
+  border-radius: 999px !important;
+  background: rgba(230,57,70,.12) !important;
+  color: var(--primary) !important;
+  flex: 0 0 auto !important;
+  font-weight: 900 !important;
+  animation: heroArrowBob2 1.25s ease-in-out infinite !important;
+}
+
+@keyframes heroArrowBob2 {
+  0%,100% { transform: translateY(0); opacity: .85; }
+  50% { transform: translateY(3px); opacity: 1; }
+}
+
+/* HERO: малко по-стабилен grid + да не се “смачква” */
+.hero-intro .hero-inner {
+  align-items: center !important;
+}
+
+.hero-intro .hero-copy {
+  min-width: 0 !important;
+}
+
+/* Subtle appearing / disappearing microtext (не е too much) */
+.hero-intro .hero-kicker {
+  position: relative !important;
+}
+
+.hero-intro .hero-kicker::after {
+  content: "  •  M!REN" !important;
+  opacity: 0.0;
+  margin-left: 10px;
+  display: inline-block;
+  transform: translateY(2px);
+  animation: microReveal 4.6s ease-in-out infinite;
+  color: var(--primary);
+  letter-spacing: 0.18em;
+  font-weight: 800;
+}
+
+@keyframes microReveal {
+  0%, 25% { opacity: 0; transform: translateY(2px); filter: blur(2px); }
+  35%, 65% { opacity: .9; transform: translateY(0); filter: blur(0); }
+  75%, 100% { opacity: 0; transform: translateY(-2px); filter: blur(2px); }
+}
+
+/* Floating particles – много леки, само за “живот” */
+.hero-intro {
+  position: relative !important;
+  overflow: hidden !important;
+}
+
+.hero-intro::before,
+.hero-intro::after {
+  content: "" !important;
+  position: absolute !important;
+  inset: -20% !important;
+  pointer-events: none !important;
+  z-index: 0 !important;
+  opacity: .55 !important;
+}
+
+.hero-intro::before {
+  background:
+    radial-gradient(circle at 15% 25%, rgba(230,57,70,.18), transparent 38%),
+    radial-gradient(circle at 70% 15%, rgba(230,57,70,.12), transparent 42%),
+    radial-gradient(circle at 85% 70%, rgba(230,57,70,.10), transparent 45%);
+  animation: floatFog 10s ease-in-out infinite;
+}
+
+.hero-intro::after {
+  background:
+    radial-gradient(circle at 25% 80%, rgba(0,0,0,.06), transparent 45%),
+    radial-gradient(circle at 60% 55%, rgba(0,0,0,.04), transparent 48%);
+  animation: floatFog 13s ease-in-out infinite reverse;
+}
+
+@keyframes floatFog {
+  0%,100% { transform: translate(0,0) scale(1); }
+  50% { transform: translate(10px,-10px) scale(1.02); }
+}
+
+/* Частиците да са зад съдържанието */
+.hero-intro .hero-inner,
+.hero-intro .hero-media,
+.hero-intro .hero-copy {
+  position: relative !important;
+  z-index: 1 !important;
+}
+
+/* Мобилно: без изненади */
+@media (max-width: 900px) {
+  .hero-intro .hero-scroll {
+    justify-content: center !important;
+  }
+}

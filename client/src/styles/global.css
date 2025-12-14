@@ -1240,3 +1240,150 @@ html[data-theme="dark"] .key { background-color: #818384; color: white; }
   body { line-height: 1.7; font-size: 1.03rem; }
   .page { margin-top: 12px; box-shadow: none; border-radius: 10px; }
 }
+/* =========================================================
+   MIREN PATCH (PUT THIS AT VERY BOTTOM)
+   - use ONLY --nav-offset everywhere (kill --nav-height)
+   - fix nav/drawer/hero alignment
+   - enforce palette usage across UI
+========================================================= */
+
+/* 1) PALETTE ENFORCE */
+:root {
+  --oxide-red: #9C2A2A;
+  --clay: #C46A4A;
+  --ivory: #FFF4E6;
+  --olive: #6B7B4E;
+  --ink: #1E1E1E;
+
+  --primary: var(--oxide-red);
+  --primary-dark: #7f2020;
+  --primary-light: var(--clay);
+
+  --accent: var(--clay);
+
+  --bg: var(--ivory);
+  --bg-muted: color-mix(in srgb, var(--ivory) 82%, var(--clay) 18%);
+  --bg-elev: color-mix(in srgb, var(--ivory) 92%, white 8%);
+
+  --text: var(--ink);
+  --heading: var(--ink);
+  --text-muted: color-mix(in srgb, var(--ink) 55%, transparent);
+
+  --success: var(--olive);
+  --warning: var(--clay);
+  --danger: var(--oxide-red);
+
+  --nav-bg: color-mix(in srgb, var(--ivory) 92%, transparent);
+  --nav-text: var(--ink);
+  --nav-border: color-mix(in srgb, var(--ink) 14%, transparent);
+
+  --input-bg: color-mix(in srgb, var(--ivory) 92%, white 8%);
+  --input-border: color-mix(in srgb, var(--ink) 18%, transparent);
+  --placeholder: color-mix(in srgb, var(--ink) 45%, transparent);
+  --focus-ring: 0 0 0 6px color-mix(in srgb, var(--oxide-red) 18%, transparent);
+}
+
+/* 2) SINGLE SOURCE OF TRUTH: --nav-offset
+      (NavBar.jsx sets it via ResizeObserver) */
+:root {
+  /* fallback if JS not yet applied */
+  --nav-offset: 72px;
+}
+
+/* Kill old variable usage completely */
+:root { --nav-height: var(--nav-offset) !important; }
+
+/* 3) NAV FIX: height uses --nav-offset, no double layout rules */
+.nav {
+  height: var(--nav-offset) !important;
+  padding: 0 16px !important;
+  display: flex !important;
+  align-items: center !important;
+  background: var(--nav-bg) !important;
+  border-bottom: 1px solid var(--nav-border) !important;
+  box-shadow: var(--shadow-sm) !important;
+  z-index: 5000 !important;
+}
+
+/* If some old CSS tries to force column layout inside nav,
+   this keeps your grid layout stable */
+.nav-inner {
+  width: 100% !important;
+  max-width: min(1400px, 100%) !important;
+  margin: 0 auto !important;
+  display: grid !important;
+  grid-template-columns: auto 1fr auto !important;
+  align-items: center !important;
+  gap: 14px !important;
+  padding: 10px 16px !important;
+}
+
+/* 4) DRAWER FIX: always starts under nav */
+.drawer {
+  top: var(--nav-offset) !important;
+  height: calc(100vh - var(--nav-offset)) !important;
+  z-index: 3000 !important;
+}
+.drawer-backdrop { z-index: 2900 !important; }
+
+/* 5) HERO FIX: always fullscreen under nav, no weird scroll container */
+.hero-intro {
+  min-height: calc(100vh - var(--nav-offset)) !important;
+}
+
+/* 6) REMOVE INNER SCROLL BUG (main page “scroll inside scroll”) */
+.app-main {
+  overflow: visible !important;
+}
+
+/* 7) HERO SCROLL BUTTON: correct order + animation */
+.hero-intro .hero-scroll {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  gap: 8px !important;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  white-space: nowrap !important;
+}
+.hero-intro .hero-scroll-label {
+  order: 1 !important;
+  font-weight: 900 !important;
+  color: var(--text) !important;
+}
+.hero-intro .hero-scroll-icon {
+  order: 2 !important;
+  color: var(--primary) !important;
+  animation: heroArrowBob 1.35s ease-in-out infinite !important;
+}
+@keyframes heroArrowBob {
+  0%,100% { transform: translateY(0); opacity: .65; }
+  50% { transform: translateY(5px); opacity: 1; }
+}
+
+/* 8) Bring back M!R / M!REN micro animation */
+.hero-intro .hero-kicker::after {
+  content: " • M!R • M!REN" !important;
+  color: var(--accent) !important; /* Clay */
+  opacity: 0;
+  animation: microReveal 5.2s ease-in-out infinite;
+}
+@keyframes microReveal {
+  0%,22%   { opacity: 0; transform: translateY(2px); }
+  38%,64%  { opacity: .92; transform: translateY(0); }
+  82%,100% { opacity: 0; transform: translateY(-2px); }
+}
+
+/* 9) Use Olive somewhere visible (success states + subtle highlights) */
+.msg.success,
+.newsletter-success {
+  color: var(--success) !important;
+}
+.btn.outline:hover {
+  background: var(--primary) !important;
+  color: #fff !important;
+}
+
+/* 10) Remove any accidental horizontal overflow */
+html, body { overflow-x: hidden !important; }

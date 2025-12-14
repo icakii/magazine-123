@@ -616,7 +616,7 @@ html[data-theme="dark"] .lang-toggle {
 
 /* Secondary uses CLAY (so it’s not only red) */
 .btn.secondary {
-  color: var(--btn-text);
+  color: var(--oxide-red);
   background: var(--grad-btn-secondary);
 }
 .btn.secondary:hover {

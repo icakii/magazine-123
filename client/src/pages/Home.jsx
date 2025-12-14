@@ -30,7 +30,6 @@ export default function Home() {
 
         <div
           className="hero-bg anim-zoom-in anim-delay-1"
-          style={{ padding: "40px 20px", textAlign: "center", marginBottom: 40 }}
         >
           <h1 className="headline" style={{ fontSize: "3rem" }}>
             {user ? `${t("welcome")}, ${user.displayName}!` : t("home_title")}

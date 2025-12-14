@@ -377,20 +377,24 @@ html[data-theme="dark"] .nav.nav--scrolled {
   font-family: var(--font-body);
   font-weight: 900;
   font-size: 2.6rem;
-  letter-spacing: 0.06em;
-  line-height: 1;
-  color: var(--nav-text);
+  letter-spacing: 0.08em;
   text-transform: uppercase;
-  padding: 6px 10px;
-  border-radius: 12px;
 
-  /* uses clay subtly so it’s not only red */
-  background: linear-gradient(135deg, rgba(196, 106, 74, 0.12), rgba(156, 42, 42, 0.06));
-  border: 1px solid rgba(196, 106, 74, 0.22);
-  box-shadow: 0 10px 26px rgba(30, 30, 30, 0.06);
+  color: var(--ivory); /* fill */
+  background: transparent; /* махаме блока */
+  border: none;
+  box-shadow: none;
 
-  transition: transform 200ms var(--ease), filter 200ms var(--ease), color 200ms var(--ease);
+  /* OUTLINE EFFECT */
+  text-shadow:
+    -1px -1px 0 var(--ink),
+     1px -1px 0 var(--ink),
+    -1px  1px 0 var(--ink),
+     1px  1px 0 var(--ink);
+
+  transition: transform 200ms ease, color 200ms ease;
 }
+
 
 .brand:hover {
   transform: translateY(-1px) scale(1.02);
@@ -438,7 +442,7 @@ html[data-theme="dark"] .hamburger {
   width: 26px;
   height: 3px;
   border-radius: 99px;
-  background: var(--nav-text);
+  background: var(--ink);
   opacity: 0.9;
 }
 
@@ -460,6 +464,9 @@ html[data-theme="dark"] .hamburger {
   min-width: 74px;
 
   transition: transform 170ms var(--ease), border-color 170ms var(--ease), background 170ms var(--ease);
+}
+html[data-theme="dark"] .hamburger .line {
+  background: var(--ivory);
 }
 
 html[data-theme="dark"] .theme-toggle,
@@ -1845,4 +1852,3 @@ html[data-theme="dark"] .newsletter-card .newsletter-inner {
 }
 
 /* ====================================================================== */
-  

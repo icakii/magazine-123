@@ -61,7 +61,7 @@ export default function TwoFASetup() {
   // 6. Всичко надолу си остава същото, но вече ще показва реалния имейл
   return (
     <div className="page">
-      <h2 className="headline">2FA Setup</h2>
+<h2 className="headline">{t("twofa_setup_title")}</h2>
       <p className="subhead">We will send a code to: <strong>{email}</strong></p>
       <div className="stack mt-3">
         <button className="btn primary" onClick={sendEmail} disabled={timer > 0}>

@@ -49,7 +49,7 @@ export default function TwoFAVerify() {
 
   return (
     <div className="page">
-      <h2 className="headline">{t('confirm_email_title') || '2FA Verify'}</h2>
+<h2 className="headline">{t("twofa_verify_title")}</h2>
       <p className="subhead">Код ще бъде изпратен на: <strong>{email || '—'}</strong></p>
 
       <div className="form-container">

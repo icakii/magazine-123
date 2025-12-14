@@ -54,10 +54,21 @@ export const dict = {
     newsletter_success: "Успешно се абонира! ✅",
 
     // CONFIRM
-    confirm_title: "Потвърждение на имейл",
-    confirm_progress: "Потвърждаваме...",
-    confirm_ok: "Имейлът е потвърден! ✅",
-    confirm_fail: "Невалиден или изтекъл линк.",
+    // BG
+confirm_processing: "Потвърждаваме...",
+confirm_no_token: "Липсва токен за потвърждение.",
+confirm_success: "Имейлът е потвърден! ✅",
+confirm_failed: "Невалиден или изтекъл линк.",
+go_home: "Към началото",
+
+confirm_email_title: "Потвърждение по имейл",
+twofa_setup_title: "Настройка на 2FA",
+twofa_verify_title: "Потвърди 2FA",
+twofa_send: "Изпрати имейл",
+twofa_resend: "Изпрати пак",
+twofa_code_placeholder: "Въведи код",
+twofa_verify_btn: "Потвърди",
+
 
     footer_copy: "© 2025 MIREN. Всички права запазени.",
   },
@@ -106,10 +117,21 @@ export const dict = {
     newsletter_btn: "Subscribe",
     newsletter_success: "Successfully subscribed! ✅",
 
-    confirm_title: "Email confirmation",
-    confirm_progress: "Confirming...",
-    confirm_ok: "Email confirmed! ✅",
-    confirm_fail: "Invalid or expired link.",
+    // EN
+confirm_processing: "Confirming...",
+confirm_no_token: "Missing confirmation token.",
+confirm_success: "Email confirmed! ✅",
+confirm_failed: "Invalid or expired link.",
+go_home: "Go home",
+
+confirm_email_title: "Email verification",
+twofa_setup_title: "2FA Setup",
+twofa_verify_title: "2FA Verify",
+twofa_send: "Send Email",
+twofa_resend: "Resend",
+twofa_code_placeholder: "Enter code",
+twofa_verify_btn: "Verify",
+
 
     footer_copy: "© 2025 MIREN. All rights reserved.",
   },

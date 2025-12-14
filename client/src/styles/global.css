@@ -3178,3 +3178,105 @@ html[data-theme="dark"] .newsletter {
     max-width: 90vw !important;
   }
 }
+/* =========================================================
+   🎨 GLOBAL COLOR SYSTEM – MIREN (FINAL)
+   Palette-based override (SAFE, NON-DESTRUCTIVE)
+   Paste at VERY BOTTOM of globals.css
+========================================================= */
+
+:root {
+  /* CORE PALETTE */
+  --oxide-red: #9C2A2A;
+  --clay: #C46A4A;
+  --ivory: #FFF4E6;
+  --olive: #6B7B4E;
+  --ink: #1E1E1E;
+
+  /* PRIMARY SYSTEM */
+  --primary: var(--oxide-red);
+  --primary-dark: #7f2020;
+  --primary-light: var(--clay);
+
+  /* TEXT */
+  --text: var(--ink);
+  --heading: var(--ink);
+  --text-muted: rgba(30, 30, 30, 0.6);
+
+  /* BACKGROUNDS */
+  --bg: var(--ivory);
+  --bg-muted: #f4e8da;
+  --bg-elev: rgba(255, 244, 230, 0.92);
+
+  /* NAV */
+  --nav-bg: rgba(255, 244, 230, 0.92);
+  --nav-text: var(--ink);
+  --nav-border: rgba(30, 30, 30, 0.12);
+
+  /* INPUTS */
+  --input-bg: #fffaf2;
+  --input-border: rgba(30, 30, 30, 0.18);
+  --input-focus: var(--oxide-red);
+  --placeholder: rgba(30, 30, 30, 0.45);
+
+  /* BUTTONS */
+  --btn-text: #ffffff;
+
+  /* SHADOWS (warmer, softer) */
+  --shadow-sm: 0 6px 20px rgba(156, 42, 42, 0.12);
+  --shadow-md: 0 14px 40px rgba(156, 42, 42, 0.18);
+  --shadow-lg: 0 30px 70px rgba(156, 42, 42, 0.22);
+
+  /* STATUS */
+  --success: var(--olive);
+  --warning: var(--clay);
+  --danger: var(--oxide-red);
+}
+
+/* =========================
+   🌙 DARK THEME
+========================= */
+html[data-theme="dark"] {
+  --bg: #141414;
+  --bg-muted: #1b1b1b;
+  --bg-elev: rgba(20, 20, 20, 0.94);
+
+  --text: #f2efe9;
+  --heading: #ffffff;
+  --text-muted: rgba(242, 239, 233, 0.6);
+
+  --nav-bg: rgba(20, 20, 20, 0.94);
+  --nav-text: #ffffff;
+  --nav-border: rgba(255, 255, 255, 0.12);
+
+  --input-bg: #1e1e1e;
+  --input-border: rgba(255, 255, 255, 0.18);
+  --placeholder: rgba(255, 255, 255, 0.45);
+
+  --shadow-sm: 0 6px 24px rgba(0, 0, 0, 0.55);
+  --shadow-md: 0 18px 48px rgba(0, 0, 0, 0.65);
+  --shadow-lg: 0 36px 80px rgba(0, 0, 0, 0.75);
+}
+
+/* =========================
+   🎯 GLOBAL FINISH
+========================= */
+
+/* links */
+a {
+  color: var(--primary);
+}
+a:hover {
+  color: var(--primary-dark);
+}
+
+/* hero orbs & accents */
+.hero-orb,
+.hero-intro::before,
+.hero-intro::after {
+  background-blend-mode: multiply;
+}
+
+/* scrollbar */
+::-webkit-scrollbar-thumb {
+  background: var(--oxide-red);
+}

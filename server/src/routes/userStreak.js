@@ -1,30 +1,43 @@
+// server/src/routes/userStreak.js
 const express = require("express")
 const router = express.Router()
+
 const { authMiddleware } = require("../middleware/auth.middleware")
 const db = require("../db")
 
+// POST /api/user/streak
+// body: { streak: number, lastWinISO?: "YYYY-MM-DD" }
 router.post("/user/streak", authMiddleware, async (req, res) => {
   try {
-    const { streak } = req.body
-    const email = req.user.email
+    const userId = req.user.id
+    const { streak, lastWinISO } = req.body
 
-    if (typeof streak !== "number") {
-      return res.status(400).json({ error: "Invalid streak" })
+    if (typeof streak !== "number" || !Number.isFinite(streak) || streak < 0) {
+      return res.status(400).json({ error: "Invalid streak value" })
     }
 
-    await db.query(
-      `
-      UPDATE users
-      SET wordle_streak = $1,
-          last_win_date = (now() AT TIME ZONE 'UTC')::date
-      WHERE email = $2
-      `,
-      [streak, email]
-    )
+    // ако има lastWinISO -> записваме last_win_date (date, UTC)
+    // ако няма -> не пипаме last_win_date (важно при reset от 0)
+    if (lastWinISO) {
+      await db.query(
+        `UPDATE users
+         SET wordle_streak = $1,
+             last_win_date = $2::date
+         WHERE id = $3`,
+        [streak, lastWinISO, userId]
+      )
+    } else {
+      await db.query(
+        `UPDATE users
+         SET wordle_streak = $1
+         WHERE id = $2`,
+        [streak, userId]
+      )
+    }
 
-    res.json({ ok: true })
+    res.json({ success: true })
   } catch (err) {
-    console.error("user streak error:", err)
+    console.error("User streak error:", err)
     res.status(500).json({ error: "Server error" })
   }
 })

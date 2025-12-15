@@ -1,7 +1,7 @@
 // client/src/pages/Games.jsx
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { api } from "../lib/api"
 import { useAuth } from "../hooks/useAuth"
 
@@ -26,6 +26,7 @@ function dayOfYearUTC() {
   return Math.floor((today - start) / 86400000)
 }
 
+// seeded PRNG (deterministic)
 function mulberry32(seed) {
   return function () {
     let t = (seed += 0x6d2b79f5)
@@ -44,6 +45,7 @@ function pickDailyWordNoRepeatYear(words) {
   const year = new Date().getUTCFullYear()
   const rnd = mulberry32(seedFromYear(year))
 
+  // deterministic shuffle
   const idx = Array.from({ length: words.length }, (_, i) => i)
   for (let i = idx.length - 1; i > 0; i--) {
     const j = Math.floor(rnd() * (i + 1))
@@ -58,6 +60,7 @@ function pickDailyWordNoRepeatYear(words) {
 export default function Games() {
   const { user } = useAuth()
 
+  // Game State
   const [word, setWord] = useState("")
   const [guesses, setGuesses] = useState([])
   const [currentGuess, setCurrentGuess] = useState("")
@@ -68,14 +71,19 @@ export default function Games() {
   const [streak, setStreak] = useState(0)
   const [attempts, setAttempts] = useState(5)
 
+  // Dictionary State
   const [allWords, setAllWords] = useState(new Set())
   const [possibleAnswers, setPossibleAnswers] = useState([])
   const [loadingGame, setLoadingGame] = useState(true)
   const [dictionaryLoaded, setDictionaryLoaded] = useState(false)
 
+  // prevent double-win sync
+  const winSyncedRef = useRef(false)
+
   const emailKey = user?.email || "guest"
   const getStorageKey = (suffix = "") => `gameData_${emailKey}${suffix}`
 
+  // load dictionary
   useEffect(() => {
     async function loadDictionary() {
       try {
@@ -97,28 +105,42 @@ export default function Games() {
     loadDictionary()
   }, [])
 
+  // init game (wait user + dictionary)
   useEffect(() => {
     if (!user || !dictionaryLoaded) return
 
     async function initGame() {
       try {
+        winSyncedRef.current = false
+
         const todayISO = isoTodayUTC()
 
+        // streak from localStorage
         const storedStreak = parseInt(localStorage.getItem(getStorageKey("_streak")) || "0", 10)
-        const lastWinISO = localStorage.getItem(getStorageKey("_lastWinISO"))
+        const lastWinISO = localStorage.getItem(getStorageKey("_lastWinISO")) // YYYY-MM-DD
         let currentStreak = Number.isFinite(storedStreak) ? storedStreak : 0
 
+        // ✅ FIX 1: ако имаш streak, но НЯМА lastWinISO (старо/счупено), ресет
+        if (!lastWinISO && currentStreak > 0) {
+          currentStreak = 0
+          localStorage.setItem(getStorageKey("_streak"), "0")
+          api.post("/user/streak", { streak: 0 }).catch(() => {})
+        }
+
+        // ✅ FIX 2: UTC diff reset
         if (lastWinISO && currentStreak > 0) {
           const diff = utcDayNumber(todayISO) - utcDayNumber(lastWinISO)
           if (diff > 1) {
             currentStreak = 0
             localStorage.setItem(getStorageKey("_streak"), "0")
-            api.post("/user/streak", { streak: 0 }).catch((e) => console.error(e))
+            api.post("/user/streak", { streak: 0 }).catch(() => {})
           }
         }
 
+        // daily word without repeats (year-shuffle)
         const targetWord = pickDailyWordNoRepeatYear(possibleAnswers)
 
+        // load saved progress
         const savedData = localStorage.getItem(getStorageKey())
         const parsedData = savedData ? JSON.parse(savedData) : {}
 
@@ -154,6 +176,7 @@ export default function Games() {
     initGame()
   }, [user, dictionaryLoaded, possibleAnswers])
 
+  // save progress
   useEffect(() => {
     if (word && user && !loadingGame) {
       const todayISO = isoTodayUTC()
@@ -170,22 +193,9 @@ export default function Games() {
     }
   }, [word, guesses, won, gameOver, usedLetters, streak, user, loadingGame])
 
-  // ✅ IMPORTANT: on win sync streak + lastWinISO to backend
-  useEffect(() => {
-    if (won && user) {
-      const todayISO = isoTodayUTC()
-      localStorage.setItem(getStorageKey("_streak"), String(streak))
-      localStorage.setItem(getStorageKey("_lastWinISO"), todayISO)
-
-      api
-        .post("/user/streak", { streak, lastWinISO: todayISO })
-        .catch((err) => console.error("Sync failed", err))
-    }
-  }, [won, streak, user])
-
   function handleKeyDown(e) {
     if (gameOver || loadingGame || !dictionaryLoaded) return
-    const key = e.key.toUpperCase()
+    const key = String(e.key || "").toUpperCase()
 
     if (key === "ENTER") {
       if (currentGuess.length !== 5) {
@@ -203,10 +213,25 @@ export default function Games() {
       setAttempts(5 - newGuesses.length)
 
       if (currentGuess === word) {
-        setStreak((prev) => prev + 1)
+        const todayISO = isoTodayUTC()
+        const newStreak = streak + 1
+
+        // ✅ update local state
+        setStreak(newStreak)
         setWon(true)
         setGameOver(true)
         setMessage("🎉 You won!")
+
+        // ✅ persist locally
+        localStorage.setItem(getStorageKey("_streak"), String(newStreak))
+        localStorage.setItem(getStorageKey("_lastWinISO"), todayISO)
+
+        // ✅ sync once (avoid double useEffect sync)
+        if (!winSyncedRef.current) {
+          winSyncedRef.current = true
+          api.post("/user/streak", { streak: newStreak, lastWinISO: todayISO }).catch(() => {})
+        }
+
         return
       }
 
@@ -215,7 +240,7 @@ export default function Games() {
         setWon(false)
         setStreak(0)
         localStorage.setItem(getStorageKey("_streak"), "0")
-        api.post("/user/streak", { streak: 0 }).catch(console.error)
+        api.post("/user/streak", { streak: 0 }).catch(() => {})
         setMessage(`Game over! The word was: ${word}`)
         return
       }
@@ -231,14 +256,17 @@ export default function Games() {
   }
 
   function handleKeyClick(letter) {
-    if (!gameOver && currentGuess.length < 5) setCurrentGuess((prev) => prev + letter)
+    if (gameOver || loadingGame || !dictionaryLoaded) return
+    if (currentGuess.length < 5) setCurrentGuess((prev) => prev + letter)
   }
   function handleBackspace() {
-    if (!gameOver) setCurrentGuess((prev) => prev.slice(0, -1))
+    if (gameOver || loadingGame || !dictionaryLoaded) return
+    setCurrentGuess((prev) => prev.slice(0, -1))
     setMessage("")
   }
   function handleSubmit() {
-    if (!gameOver) handleKeyDown({ key: "Enter" })
+    if (gameOver || loadingGame || !dictionaryLoaded) return
+    handleKeyDown({ key: "Enter" })
   }
 
   function getLetterColor(letter, index) {
@@ -255,7 +283,7 @@ export default function Games() {
   useEffect(() => {
     window.addEventListener("keydown", handleKeyDown)
     return () => window.removeEventListener("keydown", handleKeyDown)
-  }, [currentGuess, gameOver, word, guesses, usedLetters, user, loadingGame, dictionaryLoaded])
+  }, [currentGuess, gameOver, word, guesses, usedLetters, user, loadingGame, dictionaryLoaded, streak])
 
   if (loadingGame || !dictionaryLoaded) {
     return (
@@ -411,3 +439,4 @@ export default function Games() {
     </div>
   )
 }
+  

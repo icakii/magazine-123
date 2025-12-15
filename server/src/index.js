@@ -40,7 +40,7 @@ app.use(
 );
 
 app.use(userStreakRouter)
-app.use(leaderboardsRouter)
+app.use("/api", leaderboardsRouter)
 
 // Rate limiting
 const loginLimiter = rateLimit({

@@ -1,3 +1,4 @@
+// server/src/routes/leaderboards.js
 const express = require("express")
 const router = express.Router()
 
@@ -14,10 +15,10 @@ router.get("/leaderboard", async (req, res) => {
         CASE
           WHEN u.last_win_date IS NULL THEN 0
           WHEN (SELECT d FROM today) - u.last_win_date > 1 THEN 0
-          ELSE u.wordle_streak
+          ELSE COALESCE(u.wordle_streak, 0)
         END AS streak
       FROM users u
-      ORDER BY streak DESC
+      ORDER BY streak DESC, u.display_name ASC
       LIMIT 50
     `)
 

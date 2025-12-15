@@ -5,7 +5,7 @@ const router = express.Router()
 const db = require("../db")
 
 // използваме ТВОЯ auth middleware
-const authMiddleware = require("../authMiddleware") // <- ако е на друго място, кажи
+const authMiddleware = require("../middleware/auth.middleware") // <- ако е на друго място, кажи
 
 function todayUTC() {
   const d = new Date()

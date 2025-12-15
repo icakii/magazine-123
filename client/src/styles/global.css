@@ -1852,3 +1852,190 @@ html[data-theme="dark"] .newsletter-card .newsletter-inner {
 }
 
 /* ====================================================================== */
+/* === NAV mobile wrap fix === */
+.nav-right-wrap {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+
+.nav-actions,
+.nav-toggles {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+/* allow 2 rows on small screens */
+@media (max-width: 520px) {
+  .nav-right-wrap {
+    justify-content: flex-end;
+  }
+  .nav-actions,
+  .nav-toggles {
+    width: 100%;
+    justify-content: flex-end;
+  }
+}
+
+/* Logout button stays dark red */
+.logout-btn.btn.secondary {
+  background: var(--oxide-red);
+  color: var(--ivory);
+}
+
+/* === Leaderboard styling (palette + mobile stable) === */
+.leaderboard-head,
+.leaderboard-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.leaderboard-head {
+  padding: 10px;
+  border-bottom: 1px solid var(--nav-border);
+  font-weight: 800;
+  opacity: 0.85;
+}
+
+.leaderboard-row {
+  padding: 14px 10px;
+  border-bottom: 1px solid var(--nav-border);
+}
+
+.lb-col.lb-rank { width: 50px; text-align: center; font-weight: 800; opacity: 0.8; }
+.lb-col.lb-player { flex: 1; min-width: 0; }
+.lb-col.lb-streak { width: 92px; text-align: center; }
+
+.plan-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: var(--ivory);
+  border: 1px solid rgba(30, 30, 30, 0.18);
+  color: var(--ink);
+  font-weight: 800;
+  max-width: 100%;
+}
+
+.plan-badge--monthly {
+  border-color: rgba(196, 106, 74, 0.45);
+  background: rgba(196, 106, 74, 0.12);
+  color: var(--ink);
+}
+
+.plan-badge--yearly {
+  border-color: rgba(107, 123, 78, 0.55);
+  background: rgba(107, 123, 78, 0.16);
+  color: var(--ink);
+}
+
+.plan-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 46vw;
+}
+
+.streak-pill {
+  display: inline-flex;
+  justify-content: center;
+  min-width: 72px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(107, 123, 78, 0.14);
+  border: 1px solid rgba(107, 123, 78, 0.35);
+  color: var(--olive);
+  font-weight: 900;
+}
+
+/* leaderboard mobile: less weird look */
+@media (max-width: 520px) {
+  .lb-col.lb-streak { width: 82px; }
+  .plan-name { max-width: 52vw; }
+}
+/* =========================================================
+   MIREN — FINAL UI FIXES (ADD ONLY, DO NOT REMOVE ANYTHING)
+   ========================================================= */
+
+/* 1) HERO: MIREN OUTLINE (title + placeholder) */
+.hero-title,
+.hero-cover--placeholder span {
+  color: transparent !important;
+  -webkit-text-stroke: 2px var(--ink) !important;
+  text-stroke: 2px var(--ink) !important;
+  letter-spacing: 0.12em !important;
+}
+
+html[data-theme="dark"] .hero-title,
+html[data-theme="dark"] .hero-cover--placeholder span {
+  -webkit-text-stroke: 2px var(--ivory) !important;
+  text-stroke: 2px var(--ivory) !important;
+}
+
+/* 2) HAMBURGER LINES: force Ink in light */
+.hamburger .line {
+  background: var(--ink) !important;
+}
+html[data-theme="dark"] .hamburger .line {
+  background: var(--ivory) !important;
+}
+
+/* 3) HERO SCROLL CTA: bigger + clearer */
+.hero-scroll-icon {
+  width: 52px !important;
+  height: 52px !important;
+  font-size: 26px !important;
+  border-width: 2px !important;
+  background: rgba(196, 106, 74, 0.18) !important;
+}
+
+/* 4) NAV MOBILE: allow 2 rows WITHOUT touching NavBar.jsx */
+@media (max-width: 520px) {
+  .nav-inner {
+    grid-template-columns: 1fr auto !important;
+    row-gap: 10px !important;
+  }
+
+  /* Center (logo) can take full width row if needed */
+  .nav-center {
+    grid-column: 1 / -1 !important;
+    justify-content: center !important;
+    order: 2;
+  }
+
+  /* Left (hamburger) + right (buttons) stay on first row */
+  .nav-left { order: 1; }
+  .nav-right {
+    order: 1;
+    flex-wrap: wrap !important;
+    justify-content: flex-end !important;
+    gap: 8px !important;
+  }
+
+  /* Make buttons not overflow */
+  .theme-toggle,
+  .lang-toggle {
+    min-width: 62px !important;
+  }
+}
+
+/* 5) LEADERBOARD: mobile stability (if layout uses these classes) */
+@media (max-width: 520px) {
+  .leaderboard-head,
+  .leaderboard-row {
+    gap: 8px !important;
+  }
+  .lb-col.lb-streak {
+    width: 82px !important;
+  }
+  .plan-name {
+    max-width: 52vw !important;
+  }
+}

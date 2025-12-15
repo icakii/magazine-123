@@ -3,16 +3,14 @@
 
 import { useEffect, useState } from "react"
 import { api } from "../lib/api"
-import { Link } from "react-router-dom" 
+import { Link } from "react-router-dom"
 
 export default function Leaderboards() {
   const [data, setData] = useState([])
   const [loading, setLoading] = useState(true)
   const [game, setGame] = useState("wordle")
 
-  useEffect(() => {
-    loadData()
-  }, [game])
+  useEffect(() => { loadData() }, [game])
 
   async function loadData() {
     setLoading(true)
@@ -26,39 +24,17 @@ export default function Leaderboards() {
     }
   }
 
-  function getPlanBadgeStyle(plan) {
-    if (plan === "yearly") {
-      return {
-        display: "inline-flex",
-        alignItems: "center",
-        gap: 6,
-        padding: "4px 10px",
-        borderRadius: 9999,
-        backgroundColor: "#fff7cc",
-        color: "#ff8c00",
-        fontWeight: 700,
-      }
-    }
-
-    if (plan === "monthly") {
-      return {
-        display: "inline-flex",
-        alignItems: "center",
-        gap: 6,
-        padding: "4px 10px",
-        borderRadius: 9999,
-        backgroundColor: "#e3f0ff",
-        color: "#1f5fbf",
-        fontWeight: 600,
-      }
-    }
-
-    return {}
+  function planClass(plan) {
+    const p = (plan || "").toLowerCase()
+    if (p === "yearly") return "plan-badge plan-badge--yearly"
+    if (p === "monthly") return "plan-badge plan-badge--monthly"
+    return "plan-badge"
   }
 
-  function getPlanIcon(plan) {
-    if (plan === "yearly") return " 👑"
-    if (plan === "monthly") return " ⭐"
+  function planIcon(plan) {
+    const p = (plan || "").toLowerCase()
+    if (p === "yearly") return " 👑"
+    if (p === "monthly") return " ⭐"
     return ""
   }
 
@@ -74,43 +50,21 @@ export default function Leaderboards() {
 
   return (
     <div className="page">
-      <h2
-        className="headline"
-        style={{ textAlign: "center", marginBottom: 30 }}
-      >
+      <h2 className="headline" style={{ textAlign: "center", marginBottom: 30 }}>
         Leaderboards 🏆
       </h2>
 
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "center",
-          marginBottom: 30,
-          gap: 10,
-        }}
-      >
-        <Link
-          to="/games"
-          className="btn primary"
-          style={{ textDecoration: "none" }}
-        >
+      <div style={{ display: "flex", justifyContent: "center", marginBottom: 30, gap: 10 }}>
+        <Link to="/games" className="btn primary" style={{ textDecoration: "none" }}>
           Play Daily Word Game
         </Link>
       </div>
 
-      <div className="card stack">
-        <div
-          style={{
-            display: "flex",
-            padding: "10px",
-            borderBottom: "1px solid var(--nav-border)",
-            fontWeight: "bold",
-            opacity: 0.7,
-          }}
-        >
-          <div style={{ width: "50px", textAlign: "center" }}>#</div>
-          <div style={{ flex: 1 }}>Player</div>
-          <div style={{ width: "80px", textAlign: "center" }}>Streak</div>
+      <div className="card stack leaderboard-card">
+        <div className="leaderboard-head">
+          <div className="lb-col lb-rank">#</div>
+          <div className="lb-col lb-player">Player</div>
+          <div className="lb-col lb-streak">Streak</div>
         </div>
 
         {visibleData.length === 0 ? (
@@ -124,45 +78,18 @@ export default function Leaderboards() {
               "Unknown"
 
             return (
-              <div
-                key={player.userId || index}
-                style={{
-                  display: "flex",
-                  padding: "16px 10px",
-                  alignItems: "center",
-                  borderBottom: "1px solid var(--nav-border)",
-                  borderRadius: "0 8px 8px 0",
-                }}
-              >
-                <div
-                  style={{
-                    width: "50px",
-                    textAlign: "center",
-                    fontWeight: "bold",
-                    fontSize: "1.2rem",
-                    opacity: 0.7,
-                  }}
-                >
-                  {index + 1}
-                </div>
+              <div key={player.userId || index} className="leaderboard-row">
+                <div className="lb-col lb-rank">{index + 1}</div>
 
-                <div style={{ flex: 1, fontSize: "1.1rem" }}>
-                  <span style={getPlanBadgeStyle(player.plan)}>
-                    {name}
-                    {getPlanIcon(player.plan)}
+                <div className="lb-col lb-player">
+                  <span className={planClass(player.plan)}>
+                    <span className="plan-name">{name}</span>
+                    <span className="plan-icon">{planIcon(player.plan)}</span>
                   </span>
                 </div>
 
-                <div
-                  style={{
-                    width: "80px",
-                    textAlign: "center",
-                    fontWeight: "bold",
-                    fontSize: "1.2rem",
-                    color: "var(--success)",
-                  }}
-                >
-                  {player.streak} 🔥
+                <div className="lb-col lb-streak">
+                  <span className="streak-pill">{player.streak} 🔥</span>
                 </div>
               </div>
             )

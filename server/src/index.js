@@ -920,6 +920,16 @@ app.post("/api/create-checkout-session", authMiddleware, async (req, res) => {
 // ---------------------------------------------------------------
 app.get("/api/leaderboard", async (req, res) => {
   try {
+    // ✅ FIX: auto-expire streaks server-side (so “inactive for weeks” doesn’t show)
+    // If last win was more than 1 day ago, streak should be 0.
+    await db.query(`
+      UPDATE users
+      SET wordle_streak = 0
+      WHERE wordle_streak > 0
+        AND wordle_last_win_date IS NOT NULL
+        AND (CURRENT_DATE - wordle_last_win_date) > 1
+    `);
+
     const { rows } = await db.query(`
       SELECT
         u.display_name AS "displayName",
@@ -940,12 +950,37 @@ app.get("/api/leaderboard", async (req, res) => {
 });
 
 app.post("/api/user/streak", authMiddleware, async (req, res) => {
-  await db.query("UPDATE users SET wordle_streak = $1 WHERE email = $2", [
-    req.body.streak,
-    req.user.email,
-  ]);
-  res.json({ ok: true });
+  const streak = Number(req.body.streak || 0);
+
+  // ✅ FIX: store last played always; store last win when streak > 0 (win day)
+  // (client calls this on win + when resetting to 0)
+  try {
+    if (streak > 0) {
+      await db.query(
+        `UPDATE users
+         SET wordle_streak = $1,
+             wordle_last_played_date = CURRENT_DATE,
+             wordle_last_win_date = CURRENT_DATE
+         WHERE email = $2`,
+        [streak, req.user.email]
+      );
+    } else {
+      await db.query(
+        `UPDATE users
+         SET wordle_streak = $1,
+             wordle_last_played_date = CURRENT_DATE
+         WHERE email = $2`,
+        [streak, req.user.email]
+      );
+    }
+
+    res.json({ ok: true });
+  } catch (err) {
+    console.error("STREAK UPDATE ERROR:", err);
+    res.status(500).json({ error: "Failed to update streak" });
+  }
 });
+
 
 // ---------------------------------------------------------------
 // 📩 CONTACT FORM

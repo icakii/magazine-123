@@ -1,3 +1,4 @@
+// client/src/components/NavBar.jsx
 "use client"
 
 import { Link } from "react-router-dom"
@@ -8,10 +9,21 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react"
 
 const ADMIN_EMAILS = ["icaki06@gmail.com", "icaki2k@gmail.com", "mirenmagazine@gmail.com"]
 
+function applyTheme(theme) {
+  const html = document.documentElement
+  const next = theme === "dark" ? "dark" : "light"
+  html.setAttribute("data-theme", next)
+  try {
+    localStorage.setItem("theme", next)
+  } catch {}
+}
+
 function toggleTheme() {
   const html = document.documentElement
   const current = html.getAttribute("data-theme") || "light"
-  html.setAttribute("data-theme", current === "dark" ? "light" : "dark")
+  const next = current === "dark" ? "light" : "dark"
+  html.setAttribute("data-theme", next)
+  localStorage.setItem("miren_theme", next)
 }
 
 export default function NavBar() {
@@ -23,6 +35,16 @@ export default function NavBar() {
   const navRef = useRef(null)
   const isAdmin = user && ADMIN_EMAILS.includes(user.email)
 
+  // ✅ Theme persist (works when NavBar exists)
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem("theme")
+      if (stored === "dark" || stored === "light") {
+        applyTheme(stored)
+      }
+    } catch {}
+  }, [])
+
   useEffect(() => {
     function onLangChange(e) {
       setLangState(e.detail.lang)
@@ -31,7 +53,7 @@ export default function NavBar() {
     return () => window.removeEventListener("lang:change", onLangChange)
   }, [])
 
-  // IMPORTANT: измерваме реалната височина на navbar-а и я даваме на CSS-а
+  // ✅ measure navbar height -> --nav-offset
   useLayoutEffect(() => {
     const el = navRef.current
     if (!el) return
@@ -84,7 +106,12 @@ export default function NavBar() {
         <div className="nav-inner">
           <div className="nav-top">
             <div className="nav-left">
-              <button className="hamburger" aria-label="Open menu" onClick={toggleDrawer} type="button">
+              <button
+                className="hamburger"
+                aria-label="Open menu"
+                onClick={toggleDrawer}
+                type="button"
+              >
                 <span className="lines">
                   <span className="line"></span>
                   <span className="line"></span>
@@ -100,33 +127,38 @@ export default function NavBar() {
             </div>
           </div>
 
-          <div className="nav-right">
-            {!loading && !user && (
-              <>
-                <Link to="/register" className="btn ghost" style={{ border: "none" }}>
-                  {t("register")}
-                </Link>
-                <Link to="/login" className="btn primary">
-                  {t("login")}
-                </Link>
-              </>
-            )}
+          {/* ✅ right side: wrap-able rows on mobile */}
+          <div className="nav-right nav-right-wrap">
+            <div className="nav-actions">
+              {!loading && !user && (
+                <>
+                  <Link to="/register" className="btn ghost nav-btn" style={{ border: "none" }}>
+                    {t("register")}
+                  </Link>
+                  <Link to="/login" className="btn primary nav-btn">
+                    {t("login")}
+                  </Link>
+                </>
+              )}
 
-            {user && (
-              <form onSubmit={handleLogout} style={{ display: "inline" }}>
-                <button className="btn secondary" type="submit">
-                  {t("logout")}
-                </button>
-              </form>
-            )}
+              {user && (
+                <form onSubmit={handleLogout} style={{ display: "inline" }}>
+                  <button className="btn secondary nav-btn logout-btn" type="submit">
+                    {t("logout")}
+                  </button>
+                </form>
+              )}
+            </div>
 
-            <button className="theme-toggle" onClick={toggleTheme} type="button">
-              {t("theme")}
-            </button>
+            <div className="nav-toggles">
+              <button className="theme-toggle" onClick={toggleTheme} type="button">
+                {t("theme")}
+              </button>
 
-            <button className="lang-toggle" onClick={changeLang} type="button">
-              {lang.toUpperCase()}
-            </button>
+              <button className="lang-toggle" onClick={changeLang} type="button">
+                {lang.toUpperCase()}
+              </button>
+            </div>
           </div>
         </div>
       </nav>
@@ -154,7 +186,12 @@ export default function NavBar() {
           </Link>
 
           {isAdmin && (
-            <Link className="drawer-item" to="/admin" onClick={closeDrawer} style={{ color: "var(--primary)", fontWeight: "bold" }}>
+            <Link
+              className="drawer-item"
+              to="/admin"
+              onClick={closeDrawer}
+              style={{ color: "var(--oxide-red)", fontWeight: "bold" }}
+            >
               ⚙️ Admin Panel
             </Link>
           )}
@@ -163,7 +200,11 @@ export default function NavBar() {
 
       {showLoginModal && (
         <div className="modal-backdrop" onClick={() => setShowLoginModal(false)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ textAlign: "center", maxWidth: "400px" }}>
+          <div
+            className="modal-content"
+            onClick={(e) => e.stopPropagation()}
+            style={{ textAlign: "center", maxWidth: "400px" }}
+          >
             <button className="modal-close" onClick={() => setShowLoginModal(false)}>×</button>
             <div style={{ fontSize: "3rem", marginBottom: "10px" }}>🔒</div>
             <h2 className="headline" style={{ fontSize: "1.8rem" }}>Access Restricted</h2>
@@ -172,10 +213,20 @@ export default function NavBar() {
               Join MIREN today!
             </p>
             <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-              <Link to="/register" className="btn primary" onClick={() => setShowLoginModal(false)} style={{ textDecoration: "none" }}>
+              <Link
+                to="/register"
+                className="btn primary"
+                onClick={() => setShowLoginModal(false)}
+                style={{ textDecoration: "none" }}
+              >
                 Create Account
               </Link>
-              <Link to="/login" className="btn ghost" onClick={() => setShowLoginModal(false)} style={{ textDecoration: "none" }}>
+              <Link
+                to="/login"
+                className="btn ghost"
+                onClick={() => setShowLoginModal(false)}
+                style={{ textDecoration: "none" }}
+              >
                 Login
               </Link>
             </div>

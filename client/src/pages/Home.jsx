@@ -26,7 +26,10 @@ export default function Home() {
 
       {/* MAIN SITE CONTENT */}
       <div id="home-main-content" className="page anim-fade-up">
-        <NewsletterManager user={user} type="static" />
+        {/* ✅ IMPORTANT FIX: Target for Hero scroll */}
+        <div id="home-newsletter">
+          <NewsletterManager user={user} type="static" />
+        </div>
 
         <div
           className="hero-bg anim-zoom-in anim-delay-1"

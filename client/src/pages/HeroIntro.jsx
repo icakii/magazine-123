@@ -23,40 +23,71 @@ export default function HeroIntro() {
       .catch(() => {})
   }, [])
 
-  const scrollToTarget = () => {
-    const target =
-      document.querySelector("#home-newsletter") ||
-      document.querySelector("#home-main-content")
+  // ✅ helper: get nav offset from CSS var (set by NavBar ResizeObserver)
+  const getNavOffset = () => {
+    try {
+      const v = getComputedStyle(document.documentElement).getPropertyValue("--nav-offset")
+      const n = parseFloat(v)
+      return Number.isFinite(n) ? n : 72
+    } catch {
+      return 72
+    }
+  }
 
-    if (target) target.scrollIntoView({ behavior: "smooth" })
-    else window.scrollTo({ top: window.innerHeight, behavior: "smooth" })
+  // ✅ FIX: scroll to JUST under hero, not to newsletter (prevents overshooting)
+  const scrollToTarget = () => {
+    const hero = heroRef.current
+    const navOffset = getNavOffset()
+    const extraPad = 18
+
+    if (hero) {
+      const rect = hero.getBoundingClientRect()
+      const heroBottomAbs = window.scrollY + rect.bottom
+
+      // Scroll to the point where hero ends and content starts (under nav)
+      const targetTop = Math.max(0, heroBottomAbs - navOffset + extraPad)
+
+      window.scrollTo({ top: targetTop, behavior: "smooth" })
+      return
+    }
+
+    // fallback
+    window.scrollTo({ top: window.innerHeight, behavior: "smooth" })
   }
 
   const scrollToHero = () => {
-    if (heroRef.current) heroRef.current.scrollIntoView({ behavior: "smooth" })
-    else window.scrollTo({ top: 0, behavior: "smooth" })
+    const hero = heroRef.current
+    const navOffset = getNavOffset()
+    const extraPad = 6
+
+    if (hero) {
+      const rect = hero.getBoundingClientRect()
+      const heroTopAbs = window.scrollY + rect.top
+      const targetTop = Math.max(0, heroTopAbs - extraPad - (navOffset > 0 ? 0 : 0))
+      window.scrollTo({ top: targetTop, behavior: "smooth" })
+      return
+    }
+
+    window.scrollTo({ top: 0, behavior: "smooth" })
   }
 
   useEffect(() => {
     const el = heroRef.current
     if (!el) return
 
-    // helper: дали Hero е реално “във view”
     const isHeroVisible = () => {
       const r = el.getBoundingClientRect()
       const vh = window.innerHeight || 800
-      // ако горе е близо до top и секцията е видима достатъчно
       return r.top < vh * 0.35 && r.bottom > vh * 0.45
     }
 
+    // ✅ FIX: detect “we are at top of main” based on hero bottom proximity (more stable)
     const isAtTopOfMain = () => {
-      const target =
-        document.querySelector("#home-newsletter") ||
-        document.querySelector("#home-main-content")
-      if (!target) return false
-      const r = target.getBoundingClientRect()
-      // ако target-a е “залепен” близо до top → значи сме горе в main
-      return r.top >= -6 && r.top <= 120
+      const r = el.getBoundingClientRect()
+      const navOffset = getNavOffset()
+      const threshold = 120
+      // when hero bottom is close-ish to nav area -> we’re near the seam (top of main)
+      return r.bottom <= navOffset + threshold && r.bottom >= navOffset - 6
     }
 
     const lock = () => {
@@ -65,11 +96,10 @@ export default function HeroIntro() {
     }
 
     const onWheel = (e) => {
-      // само ако е леко движение и не сме заключени
       if (lockRef.current) return
       const dy = e.deltaY
 
-      // надолу от Hero → към newsletter/main
+      // down from Hero -> to just under hero (NOT newsletter)
       if (isHeroVisible() && dy > 12) {
         e.preventDefault()
         lock()
@@ -77,7 +107,7 @@ export default function HeroIntro() {
         return
       }
 
-      // нагоре от началото на main → обратно към Hero
+      // up from start of main -> back to hero
       if (!isHeroVisible() && dy < -12 && isAtTopOfMain()) {
         e.preventDefault()
         lock()
@@ -102,13 +132,12 @@ export default function HeroIntro() {
       }
 
       // swipe down (content goes up)
-      if (!isHeroVisible() && diff < -18 && (document.documentElement.scrollTop || window.scrollY) < 140) {
+      if (!isHeroVisible() && diff < -18 && isAtTopOfMain()) {
         lock()
         scrollToHero()
       }
     }
 
-    // IMPORTANT: wheel preventDefault requires non-passive
     window.addEventListener("wheel", onWheel, { passive: false })
     window.addEventListener("touchstart", onTouchStart, { passive: true })
     window.addEventListener("touchend", onTouchEnd, { passive: true })

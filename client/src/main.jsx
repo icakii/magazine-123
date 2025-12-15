@@ -1,4 +1,4 @@
-import React from "react"
+import React, { useEffect } from "react"
 import ReactDOM from "react-dom/client"
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom"
 
@@ -34,8 +34,50 @@ import "./styles/global.css"
 import "./styles/layout.css"
 import "./styles/animations.css"
 
+/**
+ * ✅ FIX: persist theme across routes + reloads
+ * - reads theme from localS  rage (miren_theme)
+ * - applies to <html data-theme="..."> before anything
+ * - keeps it in sync if changed elsewhere
+ */
+function ThemeBootstrap() {
+  useEffect(() => {
+    const KEY = "miren_theme"
+
+    const apply = (value) => {
+      const theme = value === "dark" ? "dark" : "light"
+      document.documentElement.setAttribute("data-theme", theme)
+      try {
+        localStorage.setItem(KEY, theme)
+      } catch {}
+    }
+
+    // initial apply
+    let saved = "light"
+    try {
+      saved = localStorage.getItem(KEY) || "light"
+    } catch {}
+
+    // if html already has theme (rare), respect it; otherwise use saved
+    const current = document.documentElement.getAttribute("data-theme")
+    apply(current || saved)
+
+    // keep sync with localStorage changes (other tabs / manual sets)
+    const onStorage = (e) => {
+      if (e.key === KEY) apply(e.newValue)
+    }
+    window.addEventListener("storage", onStorage)
+
+    return () => window.removeEventListener("storage", onStorage)
+  }, [])
+
+  return null
+}
+
 ReactDOM.createRoot(document.getElementById("root")).render(
   <BrowserRouter>
+    <ThemeBootstrap />
+
     <NavBar />
     <main className="app-main">
       <Routes>

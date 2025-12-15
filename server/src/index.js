@@ -926,34 +926,31 @@ app.post("/api/create-checkout-session", authMiddleware, async (req, res) => {
 // ---------------------------------------------------------------
 app.get("/api/leaderboard", async (req, res) => {
   try {
-    // ✅ FIX: auto-expire streaks server-side (so “inactive for weeks” doesn’t show)
-    // If last win was more than 1 day ago, streak should be 0.
-    await db.query(`
-      UPDATE users
-      SET wordle_streak = 0
-      WHERE wordle_streak > 0
-        AND wordle_last_win_date IS NOT NULL
-        AND (CURRENT_DATE - wordle_last_win_date) > 1
-    `);
-
     const { rows } = await db.query(`
+      WITH today AS (
+        SELECT (now() AT TIME ZONE 'UTC')::date AS d
+      )
       SELECT
         u.display_name AS "displayName",
-        u.wordle_streak AS streak,
+        CASE
+          WHEN u.last_win_date IS NULL THEN 0
+          WHEN (SELECT d FROM today) - u.last_win_date > 1 THEN 0
+          ELSE u.wordle_streak
+        END AS streak,
         COALESCE(s.plan, 'free') AS plan
       FROM users u
       LEFT JOIN subscriptions s ON s.email = u.email
-      WHERE u.wordle_streak > 0
-      ORDER BY u.wordle_streak DESC
+      ORDER BY streak DESC
       LIMIT 50
-    `);
+    `)
 
-    res.json(rows);
+    res.json(rows)
   } catch (err) {
-    console.error("LEADERBOARD ERROR:", err);
-    res.status(500).json({ error: "Failed to load leaderboard" });
+    console.error("LEADERBOARD ERROR:", err)
+    res.status(500).json({ error: "Failed to load leaderboard" })
   }
-});
+})
+
 
 app.post("/api/user/streak", authMiddleware, async (req, res) => {
   const streak = Number(req.body.streak || 0);

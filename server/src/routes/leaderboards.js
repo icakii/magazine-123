@@ -1,43 +1,31 @@
-import express from "express"
-
-// TODO: replace with your db client import
-import { pool } from "../db/pool.js"
-
+const express = require("express")
 const router = express.Router()
 
-/**
- * GET /leaderboards
- * Returns players with effectiveStreak:
- * - if last_win_date is NULL => 0
- * - if (todayUTC - last_win_date) > 1 => 0
- * - else => streak
- */
-router.get("/leaderboards", async (_req, res) => {
+const db = require("../db")
+
+router.get("/leaderboard", async (req, res) => {
   try {
-    const q = `
+    const { rows } = await db.query(`
       WITH today AS (
         SELECT (now() AT TIME ZONE 'UTC')::date AS d
       )
       SELECT
-        u.id,
         u.display_name AS "displayName",
-        u.streak AS "storedStreak",
-        u.last_win_date AS "lastWinDate",
         CASE
           WHEN u.last_win_date IS NULL THEN 0
           WHEN (SELECT d FROM today) - u.last_win_date > 1 THEN 0
-          ELSE u.streak
-        END AS "effectiveStreak"
+          ELSE u.wordle_streak
+        END AS streak
       FROM users u
-      ORDER BY "effectiveStreak" DESC, u.display_name ASC
-      LIMIT 100
-    `
-    const r = await pool.query(q)
-    res.json(r.rows)
+      ORDER BY streak DESC
+      LIMIT 50
+    `)
+
+    res.json(rows)
   } catch (e) {
-    console.error(e)
-    res.status(500).json({ error: "Server error" })
+    console.error("leaderboard error:", e)
+    res.status(500).json({ error: "Failed to load leaderboard" })
   }
 })
 
-export default router
+module.exports = router

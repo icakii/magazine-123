@@ -21,6 +21,12 @@ const JWT_SECRET = process.env.JWT_SECRET || "super-secret-key-change-this";
 const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:5173";
 const APP_URL = process.env.APP_URL || "http://localhost:5173";
 
+import userStreakRouter from "./routes/userStreak.js"
+import leaderboardsRouter from "./routes/leaderboards.js"
+
+app.use(userStreakRouter)
+app.use(leaderboardsRouter)
+
 // ---------------------------------------------------------------
 // 1. CONFIG & BASE MIDDLEWARE
 // ---------------------------------------------------------------

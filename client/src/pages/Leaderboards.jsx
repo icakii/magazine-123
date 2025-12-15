@@ -1,101 +1,75 @@
-// client/src/pages/Leaderboards.jsx
 "use client"
 
 import { useEffect, useState } from "react"
 import { api } from "../lib/api"
-import { Link } from "react-router-dom"
 
 export default function Leaderboards() {
-  const [data, setData] = useState([])
+  const [rows, setRows] = useState([])
   const [loading, setLoading] = useState(true)
-  const [game, setGame] = useState("wordle")
+  const [err, setErr] = useState("")
 
-  useEffect(() => { loadData() }, [game])
+  useEffect(() => {
+    let mounted = true
+    api
+      .get("/leaderboards")
+      .then((res) => {
+        if (!mounted) return
+        setRows(Array.isArray(res.data) ? res.data : [])
+      })
+      .catch(() => {
+        if (!mounted) return
+        setErr("Failed to load leaderboards.")
+      })
+      .finally(() => {
+        if (!mounted) return
+        setLoading(false)
+      })
 
-  async function loadData() {
-    setLoading(true)
-    try {
-      const res = await api.get(`/leaderboard?game=${game}`)
-      setData(res.data || [])
-    } catch (err) {
-      console.error(err)
-    } finally {
-      setLoading(false)
+    return () => {
+      mounted = false
     }
-  }
-
-  function planClass(plan) {
-    const p = (plan || "").toLowerCase()
-    if (p === "yearly") return "plan-badge plan-badge--yearly"
-    if (p === "monthly") return "plan-badge plan-badge--monthly"
-    return "plan-badge"
-  }
-
-  function planIcon(plan) {
-    const p = (plan || "").toLowerCase()
-    if (p === "yearly") return " 👑"
-    if (p === "monthly") return " ⭐"
-    return ""
-  }
+  }, [])
 
   if (loading) {
     return (
       <div className="page">
-        <p>Loading rankings.</p>
+        <h2 className="headline">Leaderboards</h2>
+        <p className="subhead">Loading…</p>
       </div>
     )
   }
 
-  const visibleData = data.slice(0, 10)
-
   return (
     <div className="page">
-      <h2 className="headline" style={{ textAlign: "center", marginBottom: 30 }}>
-        Leaderboards 🏆
-      </h2>
+      <h2 className="headline">Leaderboards</h2>
+      <p className="subhead">Streaks reset automatically if a player hasn’t won yesterday/today (UTC).</p>
 
-      <div style={{ display: "flex", justifyContent: "center", marginBottom: 30, gap: 10 }}>
-        <Link to="/games" className="btn primary" style={{ textDecoration: "none" }}>
-          Play Daily Word Game
-        </Link>
+      {err && <p className="msg warning">{err}</p>}
+
+      <div className="leaderboard-head">
+        <div className="lb-col lb-rank">#</div>
+        <div className="lb-col lb-player">Player</div>
+        <div className="lb-col lb-streak">Streak</div>
       </div>
 
-      <div className="card stack leaderboard-card">
-        <div className="leaderboard-head">
-          <div className="lb-col lb-rank">#</div>
-          <div className="lb-col lb-player">Player</div>
-          <div className="lb-col lb-streak">Streak</div>
-        </div>
-
-        {visibleData.length === 0 ? (
-          <p style={{ textAlign: "center", padding: 20 }}>No records yet.</p>
-        ) : (
-          visibleData.map((player, index) => {
-            const name =
-              player.displayName ||
-              player.username ||
-              player.email ||
-              "Unknown"
-
-            return (
-              <div key={player.userId || index} className="leaderboard-row">
-                <div className="lb-col lb-rank">{index + 1}</div>
-
-                <div className="lb-col lb-player">
-                  <span className={planClass(player.plan)}>
-                    <span className="plan-name">{name}</span>
-                    <span className="plan-icon">{planIcon(player.plan)}</span>
-                  </span>
-                </div>
-
-                <div className="lb-col lb-streak">
-                  <span className="streak-pill">{player.streak} 🔥</span>
-                </div>
+      {rows.map((u, i) => (
+        <div key={u.id || i} className="leaderboard-row">
+          <div className="lb-col lb-rank">{i + 1}</div>
+          <div className="lb-col lb-player">
+            <div style={{ fontWeight: 900 }}>{u.displayName || "Unknown"}</div>
+            {u.lastWinDate && (
+              <div className="text-muted" style={{ fontSize: "0.9rem" }}>
+                last win: {String(u.lastWinDate).slice(0, 10)}
               </div>
-            )
-          })
-        )}
-      </div>
+            )}
+          </div>
+          <div className="lb-col lb-streak">
+            <span className="streak-pill">{Number(u.effectiveStreak || 0)}</span>
+          </div>
+        </div>
+      ))}
+
+      {rows.length === 0 && !err && <p className="text-muted">No players yet.</p>}
     </div>
   )
 }

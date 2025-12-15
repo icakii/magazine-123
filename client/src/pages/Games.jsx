@@ -1,13 +1,10 @@
 // client/src/pages/Games.jsx
 "use client"
 
-import { useState, useEffect, useMemo } from "react"
+import { useState, useEffect } from "react"
 import { api } from "../lib/api"
 import { useAuth } from "../hooks/useAuth"
 
-/* =========================
-   UTC HELPERS
-========================= */
 function isoTodayUTC() {
   const d = new Date()
   const y = d.getUTCFullYear()
@@ -17,7 +14,6 @@ function isoTodayUTC() {
 }
 
 function utcDayNumber(isoYYYYMMDD) {
-  // isoYYYYMMDD -> number of days since epoch (UTC)
   const [y, m, d] = isoYYYYMMDD.split("-").map(Number)
   const ms = Date.UTC(y, m - 1, d)
   return Math.floor(ms / 86400000)
@@ -26,17 +22,10 @@ function utcDayNumber(isoYYYYMMDD) {
 function dayOfYearUTC() {
   const now = new Date()
   const start = Date.UTC(now.getUTCFullYear(), 0, 1)
-  const today = Date.UTC(
-    now.getUTCFullYear(),
-    now.getUTCMonth(),
-    now.getUTCDate()
-  )
-  return Math.floor((today - start) / 86400000) // 0-based
+  const today = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())
+  return Math.floor((today - start) / 86400000)
 }
 
-/* =========================
-   SEEDED PRNG (DETERMINISTIC)
-========================= */
 function mulberry32(seed) {
   return function () {
     let t = (seed += 0x6d2b79f5)
@@ -47,7 +36,6 @@ function mulberry32(seed) {
 }
 
 function seedFromYear(year) {
-  // simple stable seed
   return year * 1000003 + 49297
 }
 
@@ -56,7 +44,6 @@ function pickDailyWordNoRepeatYear(words) {
   const year = new Date().getUTCFullYear()
   const rnd = mulberry32(seedFromYear(year))
 
-  // create deterministic shuffled index mapping (Fisher-Yates)
   const idx = Array.from({ length: words.length }, (_, i) => i)
   for (let i = idx.length - 1; i > 0; i--) {
     const j = Math.floor(rnd() * (i + 1))
@@ -68,17 +55,9 @@ function pickDailyWordNoRepeatYear(words) {
   return words[chosenIndex]
 }
 
-/* =========================
-   COMPONENT
-========================= */
 export default function Games() {
   const { user } = useAuth()
 
-  // IMPORTANT: you use 5 attempts in this project
-  const MAX_ATTEMPTS = 5
-  const WORD_LEN = 5
-
-  // Game State
   const [word, setWord] = useState("")
   const [guesses, setGuesses] = useState([])
   const [currentGuess, setCurrentGuess] = useState("")
@@ -87,9 +66,8 @@ export default function Games() {
   const [won, setWon] = useState(false)
   const [usedLetters, setUsedLetters] = useState(new Set())
   const [streak, setStreak] = useState(0)
-  const [attempts, setAttempts] = useState(MAX_ATTEMPTS)
+  const [attempts, setAttempts] = useState(5)
 
-  // Dictionary State
   const [allWords, setAllWords] = useState(new Set())
   const [possibleAnswers, setPossibleAnswers] = useState([])
   const [loadingGame, setLoadingGame] = useState(true)
@@ -98,16 +76,12 @@ export default function Games() {
   const emailKey = user?.email || "guest"
   const getStorageKey = (suffix = "") => `gameData_${emailKey}${suffix}`
 
-  /* =========================
-     LOAD DICTIONARY
-  ========================= */
   useEffect(() => {
     async function loadDictionary() {
       try {
         const response = await fetch("/dictionary.json")
         if (!response.ok) throw new Error("Failed to load dictionary")
         const data = await response.json()
-
         const normalized = Array.from(
           new Set((data || []).map((w) => String(w || "").trim().toUpperCase()))
         ).filter(Boolean)
@@ -123,9 +97,6 @@ export default function Games() {
     loadDictionary()
   }, [])
 
-  /* =========================
-     INIT GAME (WAIT USER + DICTIONARY)
-  ========================= */
   useEffect(() => {
     if (!user || !dictionaryLoaded) return
 
@@ -133,12 +104,8 @@ export default function Games() {
       try {
         const todayISO = isoTodayUTC()
 
-        // ✅ streak reset using UTC day numbers (fix timezone/parsing bugs)
-        const storedStreak = parseInt(
-          localStorage.getItem(getStorageKey("_streak")) || "0",
-          10
-        )
-        const lastWinISO = localStorage.getItem(getStorageKey("_lastWinISO")) // YYYY-MM-DD
+        const storedStreak = parseInt(localStorage.getItem(getStorageKey("_streak")) || "0", 10)
+        const lastWinISO = localStorage.getItem(getStorageKey("_lastWinISO"))
         let currentStreak = Number.isFinite(storedStreak) ? storedStreak : 0
 
         if (lastWinISO && currentStreak > 0) {
@@ -150,10 +117,8 @@ export default function Games() {
           }
         }
 
-        // ✅ daily word without repeats (year-shuffle)
         const targetWord = pickDailyWordNoRepeatYear(possibleAnswers)
 
-        // load saved progress
         const savedData = localStorage.getItem(getStorageKey())
         const parsedData = savedData ? JSON.parse(savedData) : {}
 
@@ -164,12 +129,9 @@ export default function Games() {
           setGameOver(!!parsedData.gameOver)
           setUsedLetters(new Set(parsedData.usedLetters || []))
           setStreak(currentStreak)
+          setAttempts(5 - (parsedData.guesses || []).length)
 
-          const used = (parsedData.guesses || []).length
-          setAttempts(MAX_ATTEMPTS - used)
-
-          if (parsedData.gameOver && !parsedData.won)
-            setMessage(`Game over! Word: ${parsedData.word}`)
+          if (parsedData.gameOver && !parsedData.won) setMessage(`Game over! Word: ${parsedData.word}`)
           if (parsedData.won) setMessage("Already solved today!")
         } else {
           setWord(targetWord)
@@ -178,9 +140,8 @@ export default function Games() {
           setGameOver(false)
           setUsedLetters(new Set())
           setMessage("")
-          setAttempts(MAX_ATTEMPTS)
+          setAttempts(5)
           setStreak(currentStreak)
-          setCurrentGuess("")
         }
       } catch (e) {
         console.error("Error init game", e)
@@ -193,9 +154,6 @@ export default function Games() {
     initGame()
   }, [user, dictionaryLoaded, possibleAnswers])
 
-  /* =========================
-     SAVE PROGRESS
-  ========================= */
   useEffect(() => {
     if (word && user && !loadingGame) {
       const todayISO = isoTodayUTC()
@@ -212,9 +170,7 @@ export default function Games() {
     }
   }, [word, guesses, won, gameOver, usedLetters, streak, user, loadingGame])
 
-  /* =========================
-     SAVE WIN + SYNC STREAK
-  ========================= */
+  // ✅ IMPORTANT: on win sync streak + lastWinISO to backend
   useEffect(() => {
     if (won && user) {
       const todayISO = isoTodayUTC()
@@ -222,162 +178,88 @@ export default function Games() {
       localStorage.setItem(getStorageKey("_lastWinISO"), todayISO)
 
       api
-        .post("/user/streak", { streak })
-        .then(() => console.log("Streak synced"))
+        .post("/user/streak", { streak, lastWinISO: todayISO })
         .catch((err) => console.error("Sync failed", err))
     }
   }, [won, streak, user])
 
-  /* =========================
-     TILE COLORING (WORDLE-LIKE)
-     - green: correct place
-     - clay : exists elsewhere
-     - dark : not in word
-  ========================= */
+  function handleKeyDown(e) {
+    if (gameOver || loadingGame || !dictionaryLoaded) return
+    const key = e.key.toUpperCase()
+
+    if (key === "ENTER") {
+      if (currentGuess.length !== 5) {
+        setMessage("Word must be 5 letters")
+        return
+      }
+      if (!allWords.has(currentGuess)) {
+        setMessage("Not in word list")
+        return
+      }
+
+      const newGuesses = [...guesses, currentGuess]
+      setGuesses(newGuesses)
+      setUsedLetters(new Set([...usedLetters, ...currentGuess.split("")]))
+      setAttempts(5 - newGuesses.length)
+
+      if (currentGuess === word) {
+        setStreak((prev) => prev + 1)
+        setWon(true)
+        setGameOver(true)
+        setMessage("🎉 You won!")
+        return
+      }
+
+      if (newGuesses.length >= 5) {
+        setGameOver(true)
+        setWon(false)
+        setStreak(0)
+        localStorage.setItem(getStorageKey("_streak"), "0")
+        api.post("/user/streak", { streak: 0 }).catch(console.error)
+        setMessage(`Game over! The word was: ${word}`)
+        return
+      }
+
+      setCurrentGuess("")
+      setMessage("")
+    } else if (key === "BACKSPACE") {
+      setCurrentGuess((prev) => prev.slice(0, -1))
+      setMessage("")
+    } else if (/^[A-Z]$/.test(key) && currentGuess.length < 5) {
+      setCurrentGuess((prev) => prev + key)
+    }
+  }
+
+  function handleKeyClick(letter) {
+    if (!gameOver && currentGuess.length < 5) setCurrentGuess((prev) => prev + letter)
+  }
+  function handleBackspace() {
+    if (!gameOver) setCurrentGuess((prev) => prev.slice(0, -1))
+    setMessage("")
+  }
+  function handleSubmit() {
+    if (!gameOver) handleKeyDown({ key: "Enter" })
+  }
+
   function getLetterColor(letter, index) {
-    if (!letter) return "transparent"
     if (letter === word[index]) return "var(--olive)"
     if (word.includes(letter)) return "var(--clay)"
     return "#4a4a4a"
   }
 
   function getKeyboardButtonStyle(letter) {
-    // keep your original logic
-    if (usedLetters.has(letter))
-      return word.includes(letter) ? "#a0a0a0" : "#4a4a4a"
+    if (usedLetters.has(letter)) return word.includes(letter) ? "#a0a0a0" : "#4a4a4a"
     return "#d3d3d3"
-  }
-
-  /* =========================
-     SUBMIT LOGIC
-  ========================= */
-  function submitGuess(guessRaw) {
-    if (gameOver || loadingGame || !dictionaryLoaded) return
-
-    const guess = String(guessRaw || "").toUpperCase()
-
-    if (guess.length !== WORD_LEN) {
-      setMessage("Word must be 5 letters")
-      return
-    }
-    if (!allWords.has(guess)) {
-      setMessage("Not in word list")
-      return
-    }
-
-    const newGuesses = [...guesses, guess]
-    setGuesses(newGuesses)
-    setUsedLetters(new Set([...usedLetters, ...guess.split("")]))
-
-    const remaining = MAX_ATTEMPTS - newGuesses.length
-    setAttempts(remaining)
-
-    if (guess === word) {
-      setStreak((prev) => prev + 1)
-      setWon(true)
-      setGameOver(true)
-      setMessage("🎉 You won!")
-      setCurrentGuess("")
-      return
-    }
-
-    if (newGuesses.length >= MAX_ATTEMPTS) {
-      setGameOver(true)
-      setWon(false)
-      setStreak(0)
-      localStorage.setItem(getStorageKey("_streak"), "0")
-      api.post("/user/streak", { streak: 0 }).catch(console.error)
-      setMessage(`Game over! The word was: ${word}`)
-      setCurrentGuess("")
-      return
-    }
-
-    setCurrentGuess("")
-    setMessage("")
-  }
-
-  /* =========================
-     KEYBOARD EVENTS
-  ========================= */
-  function handleKeyDown(e) {
-    if (gameOver || loadingGame || !dictionaryLoaded) return
-    const key = String(e.key || "").toUpperCase()
-
-    if (key === "ENTER") {
-      submitGuess(currentGuess)
-      return
-    }
-
-    if (key === "BACKSPACE") {
-      setCurrentGuess((prev) => prev.slice(0, -1))
-      setMessage("")
-      return
-    }
-
-    if (/^[A-Z]$/.test(key) && currentGuess.length < WORD_LEN) {
-      setCurrentGuess((prev) => prev + key)
-    }
   }
 
   useEffect(() => {
     window.addEventListener("keydown", handleKeyDown)
     return () => window.removeEventListener("keydown", handleKeyDown)
-    // keep deps like your original (avoid stale closures)
   }, [currentGuess, gameOver, word, guesses, usedLetters, user, loadingGame, dictionaryLoaded])
 
-  /* =========================
-     ON-SCREEN KEYBOARD
-  ========================= */
-  function handleKeyClick(letter) {
-    if (gameOver || loadingGame) return
-    if (currentGuess.length < WORD_LEN) setCurrentGuess((prev) => prev + letter)
-  }
-
-  function handleBackspace() {
-    if (gameOver || loadingGame) return
-    setCurrentGuess((prev) => prev.slice(0, -1))
-    setMessage("")
-  }
-
-  function handleSubmit() {
-    if (gameOver || loadingGame) return
-    submitGuess(currentGuess)
-  }
-
-  /* =========================
-     RENDER ROWS (FIXED)
-     ✅ IMPORTANT FIX:
-     - only 1 current row shows currentGuess
-     - other empty rows stay empty
-  ========================= */
-  const rows = useMemo(() => {
-    const result = []
-    for (let i = 0; i < MAX_ATTEMPTS; i++) {
-      if (i < guesses.length) {
-        result.push({ type: "guess", value: guesses[i] })
-      } else if (i === guesses.length && !gameOver) {
-        result.push({ type: "current", value: currentGuess })
-      } else {
-        result.push({ type: "empty", value: "" })
-      }
-    }
-    return result
-  }, [guesses, currentGuess, gameOver])
-
-  /* =========================
-     LOADING UI
-  ========================= */
   if (loadingGame || !dictionaryLoaded) {
     return (
-      <div
-        className="page"
-        style={{
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-          minHeight: "50vh",
-        }}
-      >
+      <div className="page" style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "50vh" }}>
         <div style={{ textAlign: "center" }}>
           <div className="loading-spinner"></div>
           <p style={{ marginTop: "10px" }}>Loading dictionary...</p>
@@ -386,14 +268,8 @@ export default function Games() {
     )
   }
 
-  /* =========================
-     MAIN UI
-  ========================= */
   return (
-    <div
-      className="page"
-      style={{ display: "flex", flexDirection: "column", alignItems: "center" }}
-    >
+    <div className="page" style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
       <h2 className="headline">Daily Word Game</h2>
 
       <a
@@ -413,11 +289,7 @@ export default function Games() {
         📜 Play Past Games (Archive)
       </a>
 
-      {/* ✅ Attempts always visible + stable */}
-      <p className="subhead" style={{ marginTop: 6 }}>
-        Attempts remaining:{" "}
-        <span style={{ fontWeight: 800 }}>{Math.max(0, attempts)}</span>
-      </p>
+      <p className="subhead">Attempts remaining: {attempts}</p>
 
       {streak > 0 && (
         <div
@@ -435,119 +307,63 @@ export default function Games() {
         </div>
       )}
 
-      {/* =========================
-          GRID (FIXED)
-          - no repeating currentGuess on empty rows
-      ========================= */}
       <div style={{ display: "grid", gap: 8, margin: "24px 0" }}>
-        {rows.map((row, rowIdx) => {
-          const letters = Array.from({ length: WORD_LEN }).map((_, i) => row.value[i] || "")
-
-          // row coloring:
-          const isGuessRow = row.type === "guess"
-          const isCurrentRow = row.type === "current"
-
-          return (
-            <div
-              key={rowIdx}
-              style={{ display: "flex", gap: 8, justifyContent: "center" }}
-            >
-              {letters.map((letter, colIdx) => {
-                const baseStyle = {
+        {guesses.map((guess, rowIdx) => (
+          <div key={rowIdx} style={{ display: "flex", gap: 8, justifyContent: "center" }}>
+            {guess.split("").map((letter, colIdx) => (
+              <div
+                key={colIdx}
+                style={{
                   width: 60,
                   height: 60,
                   display: "grid",
                   placeItems: "center",
-                  fontWeight: 800,
+                  background: getLetterColor(letter, colIdx),
+                  color: "white",
+                  fontWeight: 700,
                   borderRadius: 8,
                   fontSize: "1.4rem",
+                }}
+              >
+                {letter}
+              </div>
+            ))}
+          </div>
+        ))}
+
+        {!gameOver && (
+          <div style={{ display: "flex", gap: 8, justifyContent: "center" }}>
+            {Array.from({ length: 5 }).map((_, idx) => (
+              <div
+                key={idx}
+                style={{
+                  width: 60,
+                  height: 60,
+                  display: "grid",
+                  placeItems: "center",
+                  background: idx < currentGuess.length ? "var(--oxide-red)" : "var(--bg-muted)",
+                  color: idx < currentGuess.length ? "white" : "var(--text)",
+                  fontWeight: 700,
+                  borderRadius: 8,
                   border: "2px solid var(--nav-border)",
-                  color: "var(--text)",
-                  background: "var(--bg-muted)",
-                }
-
-                // ✅ guess row -> colored tiles
-                if (isGuessRow) {
-                  return (
-                    <div
-                      key={colIdx}
-                      style={{
-                        ...baseStyle,
-                        background: getLetterColor(letter, colIdx),
-                        color: "white",
-                        border: "none",
-                      }}
-                    >
-                      {letter}
-                    </div>
-                  )
-                }
-
-                // ✅ current row -> red fill for typed letters (your old style)
-                if (isCurrentRow) {
-                  const filled = colIdx < row.value.length
-                  return (
-                    <div
-                      key={colIdx}
-                      style={{
-                        ...baseStyle,
-                        background: filled ? "var(--oxide-red)" : "var(--bg-muted)",
-                        color: filled ? "white" : "var(--text)",
-                      }}
-                    >
-                      {letter}
-                    </div>
-                  )
-                }
-
-                // ✅ empty rows
-                return (
-                  <div key={colIdx} style={baseStyle}>
-                    {letter}
-                  </div>
-                )
-              })}
-            </div>
-          )
-        })}
+                  fontSize: "1.4rem",
+                }}
+              >
+                {currentGuess[idx] || ""}
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
-      {/* =========================
-          ON-SCREEN KEYBOARD (RESTORED)
-      ========================= */}
       {!gameOver && (
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            gap: 8,
-            alignItems: "center",
-            marginTop: 24,
-            maxWidth: 520,
-            width: "100%",
-          }}
-        >
-          {[
-            ["Q", "W", "E", "R", "T", "Y", "U", "I", "O", "P"],
-            ["A", "S", "D", "F", "G", "H", "J", "K", "L"],
-            ["Z", "X", "C", "V", "B", "N", "M"],
-          ].map((row, rowIdx) => (
-            <div
-              key={rowIdx}
-              style={{ display: "flex", gap: 6, justifyContent: "center" }}
-            >
+        <div style={{ display: "flex", flexDirection: "column", gap: 8, alignItems: "center", marginTop: 24, maxWidth: 500 }}>
+          {[["Q","W","E","R","T","Y","U","I","O","P"], ["A","S","D","F","G","H","J","K","L"], ["Z","X","C","V","B","N","M"]].map((row, rowIdx) => (
+            <div key={rowIdx} style={{ display: "flex", gap: 6, justifyContent: "center" }}>
               {rowIdx === 2 && (
                 <button
                   onClick={handleBackspace}
-                  style={{
-                    padding: "8px 12px",
-                    borderRadius: 6,
-                    border: "none",
-                    background: "#999",
-                    color: "white",
-                    fontWeight: 700,
-                    cursor: "pointer",
-                  }}
+                  style={{ padding: "8px 12px", borderRadius: 6, border: "none", background: "#999", color: "white", fontWeight: 600, cursor: "pointer" }}
                 >
                   ←
                 </button>
@@ -564,7 +380,7 @@ export default function Games() {
                     border: "none",
                     background: getKeyboardButtonStyle(letter),
                     color: usedLetters.has(letter) ? "white" : "black",
-                    fontWeight: 800,
+                    fontWeight: 600,
                     cursor: "pointer",
                   }}
                 >
@@ -575,15 +391,7 @@ export default function Games() {
               {rowIdx === 2 && (
                 <button
                   onClick={handleSubmit}
-                  style={{
-                    padding: "8px 12px",
-                    borderRadius: 6,
-                    border: "none",
-                    background: "var(--oxide-red)",
-                    color: "white",
-                    fontWeight: 800,
-                    cursor: "pointer",
-                  }}
+                  style={{ padding: "8px 12px", borderRadius: 6, border: "none", background: "var(--oxide-red)", color: "white", fontWeight: 600, cursor: "pointer" }}
                 >
                   ↵
                 </button>
@@ -593,22 +401,10 @@ export default function Games() {
         </div>
       )}
 
-      {/* Message */}
       {message && <p className={`msg ${won ? "success" : "warning"}`}>{message}</p>}
 
-      {/* Game over CTA */}
       {gameOver && (
-        <a
-          href="/leaderboards"
-          className="btn primary"
-          style={{
-            marginTop: 20,
-            padding: "12px 24px",
-            fontSize: "1.1rem",
-            textDecoration: "none",
-            display: "inline-block",
-          }}
-        >
+        <a href="/leaderboards" className="btn primary" style={{ marginTop: 20, padding: "12px 24px", fontSize: "1.1rem", textDecoration: "none", display: "inline-block" }}>
           🏆 View Leaderboards
         </a>
       )}

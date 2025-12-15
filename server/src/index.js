@@ -21,11 +21,8 @@ const JWT_SECRET = process.env.JWT_SECRET || "super-secret-key-change-this";
 const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:5173";
 const APP_URL = process.env.APP_URL || "http://localhost:5173";
 
-const userStreakRoutes = require("./routes/userStreak")
-const leaderboardsRoutes = require("./routes/leaderboards")
-
-app.use(userStreakRouter)
-app.use(leaderboardsRouter)
+const userStreakRouter = require("./routes/userStreak")
+const leaderboardsRouter = require("./routes/leaderboards")
 
 // ---------------------------------------------------------------
 // 1. CONFIG & BASE MIDDLEWARE
@@ -41,6 +38,9 @@ app.use(
     credentials: true,
   })
 );
+
+app.use(userStreakRouter)
+app.use(leaderboardsRouter)
 
 // Rate limiting
 const loginLimiter = rateLimit({

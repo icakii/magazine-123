@@ -176,7 +176,6 @@ const transporter = nodemailer.createTransport({
 // - router.get("/leaderboards", ...)
 // and here we mount them under "/api"
 // ✅ 7. ROUTERS (IMPORTANT: mount under /api)
-app.use("/api", authMiddleware, userStreakRouter) // ✅ streak endpoints require auth
 app.use("/api", leaderboardsRouter)               // leaderboards can be public
 
 
@@ -951,6 +950,191 @@ app.post("/api/contact", async (req, res) => {
   })
   res.json({ ok: true })
 })
+
+// ---------------------------------------------------------------
+// 🎮 WORD GAME STREAK (SERVER-SIDE SOURCE OF TRUTH)
+// Fixes:
+// - 1 win per UTC day (no multi-device double increments in same day)
+// - auto reset if you miss a day
+// - leaderboard shows "effectiveStreak" based on last win date
+// ---------------------------------------------------------------
+
+function utcYmd(date = new Date()) {
+  return date.toISOString().slice(0, 10) // YYYY-MM-DD (UTC)
+}
+
+function ymdToDate(ymd) {
+  // ymd is 'YYYY-MM-DD'
+  // create UTC date at midnight
+  return new Date(`${ymd}T00:00:00.000Z`)
+}
+
+function daysBetweenUtcYmd(aYmd, bYmd) {
+  const a = ymdToDate(aYmd)
+  const b = ymdToDate(bYmd)
+  const ms = b.getTime() - a.getTime()
+  return Math.floor(ms / (1000 * 60 * 60 * 24))
+}
+
+function computeEffectiveStreak(streak, lastWinYmd, todayYmd) {
+  if (!streak || !lastWinYmd) return 0
+  const diff = daysBetweenUtcYmd(lastWinYmd, todayYmd)
+  // diff=0 -> won today, diff=1 -> won yesterday (still valid), diff>=2 -> broken
+  if (diff === 0 || diff === 1) return Number(streak) || 0
+  return 0
+}
+
+// GET current streak
+app.get("/api/user/streak", authMiddleware, async (req, res) => {
+  try {
+    const today = utcYmd()
+
+    const { rows } = await db.query(
+      "SELECT wordle_streak, wordle_last_win_date FROM users WHERE email = $1",
+      [req.user.email]
+    )
+    const u = rows[0]
+    if (!u) return res.status(404).json({ error: "User not found" })
+
+    const lastWin = u.wordle_last_win_date
+      ? utcYmd(new Date(u.wordle_last_win_date))
+      : null
+
+    const streak = Number(u.wordle_streak || 0)
+    const effectiveStreak = computeEffectiveStreak(streak, lastWin, today)
+
+    res.json({
+      streak,
+      effectiveStreak,
+      lastWinDate: lastWin,
+      today,
+    })
+  } catch (e) {
+    console.error(e)
+    res.status(500).json({ error: "Error" })
+  }
+})
+
+// POST win (or reset)
+app.post("/api/user/streak", authMiddleware, async (req, res) => {
+  try {
+    const today = utcYmd()
+    const { streak: incomingStreak, reset } = req.body || {}
+
+    // manual reset support (if your client ever sends streak:0)
+    const wantsReset =
+      reset === true || incomingStreak === 0 || incomingStreak === "0"
+
+    const { rows } = await db.query(
+      "SELECT wordle_streak, wordle_last_win_date FROM users WHERE email = $1",
+      [req.user.email]
+    )
+    const u = rows[0]
+    if (!u) return res.status(404).json({ error: "User not found" })
+
+    const dbStreak = Number(u.wordle_streak || 0)
+    const lastWin = u.wordle_last_win_date
+      ? utcYmd(new Date(u.wordle_last_win_date))
+      : null
+
+    if (wantsReset) {
+      await db.query(
+        "UPDATE users SET wordle_streak = 0, wordle_last_win_date = NULL WHERE email = $1",
+        [req.user.email]
+      )
+      return res.json({
+        ok: true,
+        streak: 0,
+        effectiveStreak: 0,
+        lastWinDate: null,
+        today,
+      })
+    }
+
+    // WIN: allow only once per UTC day
+    let nextStreak = 1
+
+    if (lastWin) {
+      const diff = daysBetweenUtcYmd(lastWin, today)
+
+      if (diff === 0) {
+        // already counted today -> no change
+        const effectiveStreak = computeEffectiveStreak(dbStreak, lastWin, today)
+        return res.json({
+          ok: true,
+          streak: dbStreak,
+          effectiveStreak,
+          lastWinDate: lastWin,
+          today,
+        })
+      }
+
+      if (diff === 1) {
+        // consecutive day
+        nextStreak = dbStreak + 1
+      } else {
+        // missed day(s)
+        nextStreak = 1
+      }
+    } else {
+      nextStreak = 1
+    }
+
+    await db.query(
+      "UPDATE users SET wordle_streak = $1, wordle_last_win_date = $2 WHERE email = $3",
+      [nextStreak, today, req.user.email]
+    )
+
+    res.json({
+      ok: true,
+      streak: nextStreak,
+      effectiveStreak: nextStreak, // just won today
+      lastWinDate: today,
+      today,
+    })
+  } catch (e) {
+    console.error(e)
+    res.status(500).json({ error: "Error" })
+  }
+})
+
+// ---------------------------------------------------------------
+// 🏆 LEADERBOARDS (effective streak)
+// ---------------------------------------------------------------
+app.get("/api/leaderboards", async (req, res) => {
+  try {
+    const today = utcYmd()
+
+    const { rows } = await db.query(`
+      SELECT
+        display_name AS "displayName",
+        COALESCE(wordle_streak, 0) AS "streak",
+        wordle_last_win_date AS "lastWinDate"
+      FROM users
+      WHERE is_confirmed = true
+      ORDER BY COALESCE(wordle_streak, 0) DESC, display_name ASC
+      LIMIT 100
+    `)
+
+    const mapped = rows.map((r) => {
+      const lastWin = r.lastWinDate ? utcYmd(new Date(r.lastWinDate)) : null
+      const streak = Number(r.streak || 0)
+      const effectiveStreak = computeEffectiveStreak(streak, lastWin, today)
+      return {
+        displayName: r.displayName,
+        streak, // raw
+        effectiveStreak, // what UI should show
+        lastWinDate: lastWin,
+      }
+    })
+
+    res.json(mapped)
+  } catch (e) {
+    console.error(e)
+    res.status(500).json({ error: "Error" })
+  }
+})
+
 
 // ---------------------------------------------------------------
 // START SERVER

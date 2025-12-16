@@ -61,6 +61,10 @@ confirm_success: "Имейлът е потвърден! ✅",
 confirm_failed: "Невалиден или изтекъл линк.",
 go_home: "Към началото",
 
+confirm_title: "Потвърждение по имейл",
+confirm_button: "Потвърди",
+
+
 confirm_email_title: "Потвърждение по имейл",
 twofa_setup_title: "Настройка на 2FA",
 twofa_verify_title: "Потвърди 2FA",
@@ -123,6 +127,10 @@ confirm_no_token: "Missing confirmation token.",
 confirm_success: "Email confirmed! ✅",
 confirm_failed: "Invalid or expired link.",
 go_home: "Go home",
+
+confirm_title: "Email verification",
+confirm_button: "Confirm",
+
 
 confirm_email_title: "Email verification",
 twofa_setup_title: "2FA Setup",

@@ -29,9 +29,7 @@ export default function Confirm() {
           localStorage.setItem("auth_token", res.data.token)
         }
 
-        setTimeout(() => {
-          navigate("/profile")
-        }, 2000)
+        setTimeout(() => navigate("/profile"), 1200)
       })
       .catch((err) => {
         console.error("Confirmation Error:", err)
@@ -42,9 +40,11 @@ export default function Confirm() {
 
   return (
     <div className="page" style={{ textAlign: "center", padding: "50px" }}>
-      <h2 className="headline">{t("confirm_title")}</h2>
+      <h2 className="headline">{t("confirm_email_title")}</h2>
 
-      {status === "loading" && <p style={{ fontSize: "1.2rem", color: "gray" }}>⏳ {msg}</p>}
+      {status === "loading" && (
+        <p style={{ fontSize: "1.2rem", color: "gray" }}>⏳ {msg}</p>
+      )}
 
       {status === "success" && (
         <div style={{ color: "green" }}>
@@ -57,7 +57,11 @@ export default function Confirm() {
         <div style={{ color: "red" }}>
           <h1 style={{ fontSize: "3rem" }}>❌</h1>
           <p style={{ fontSize: "1.2rem", fontWeight: "bold" }}>{msg}</p>
-          <button onClick={() => navigate("/")} className="btn outline" style={{ marginTop: "20px" }}>
+          <button
+            onClick={() => navigate("/home")}
+            className="btn outline"
+            style={{ marginTop: "20px" }}
+          >
             {t("go_home")}
           </button>
         </div>

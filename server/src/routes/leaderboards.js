@@ -28,17 +28,18 @@ router.get("/leaderboards", async (req, res) => {
     const today = utcYmd()
 
     const { rows } = await db.query(`
-      SELECT
-        u.display_name AS "displayName",
-        COALESCE(u.wordle_streak, 0) AS "rawStreak",
-        u.wordle_last_win_date AS "lastWinDate",
-        COALESCE(s.plan, 'free') AS "plan"
-      FROM users u
-      LEFT JOIN subscriptions s ON s.email = u.email
-      WHERE u.is_confirmed = true
-      ORDER BY COALESCE(u.wordle_streak, 0) DESC, u.display_name ASC
-      LIMIT 200
-    `)
+  SELECT
+    u.display_name AS "displayName",
+    COALESCE(u.wordle_streak, 0) AS "rawStreak",
+    u.wordle_last_win_date AS "lastWinDate",
+    COALESCE(s.plan, 'free') AS "plan"
+  FROM users u
+  LEFT JOIN subscriptions s ON s.email = u.email
+  WHERE u.is_confirmed = true
+  ORDER BY COALESCE(u.wordle_streak, 0) DESC, u.display_name ASC
+  LIMIT 200
+`)
+
 
     const mapped = rows
   .map((r) => {

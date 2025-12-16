@@ -176,8 +176,8 @@ const transporter = nodemailer.createTransport({
 // - router.get("/leaderboards", ...)
 // and here we mount them under "/api"
 // ✅ 7. ROUTERS (IMPORTANT: mount under /api)
-app.use("/api", leaderboardsRouter)               // leaderboards can be public
-
+app.use("/api", leaderboardRouter)   // /api/leaderboards
+app.use("/api", userStreakRouter) 
 
 // ================================================================
 // API ROUTES
@@ -1097,44 +1097,6 @@ app.post("/api/user/streak", authMiddleware, async (req, res) => {
     res.status(500).json({ error: "Error" })
   }
 })
-
-// ---------------------------------------------------------------
-// 🏆 LEADERBOARDS (effective streak)
-// ---------------------------------------------------------------
-app.get("/api/leaderboards", async (req, res) => {
-  try {
-    const today = utcYmd()
-
-    const { rows } = await db.query(`
-      SELECT
-        display_name AS "displayName",
-        COALESCE(wordle_streak, 0) AS "streak",
-        wordle_last_win_date AS "lastWinDate"
-      FROM users
-      WHERE is_confirmed = true
-      ORDER BY COALESCE(wordle_streak, 0) DESC, display_name ASC
-      LIMIT 100
-    `)
-
-    const mapped = rows.map((r) => {
-      const lastWin = r.lastWinDate ? utcYmd(new Date(r.lastWinDate)) : null
-      const streak = Number(r.streak || 0)
-      const effectiveStreak = computeEffectiveStreak(streak, lastWin, today)
-      return {
-        displayName: r.displayName,
-        streak, // raw
-        effectiveStreak, // what UI should show
-        lastWinDate: lastWin,
-      }
-    })
-
-    res.json(mapped)
-  } catch (e) {
-    console.error(e)
-    res.status(500).json({ error: "Error" })
-  }
-})
-
 
 // ---------------------------------------------------------------
 // START SERVER

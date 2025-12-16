@@ -175,8 +175,10 @@ const transporter = nodemailer.createTransport({
 // - router.post("/user/streak", ...)
 // - router.get("/leaderboards", ...)
 // and here we mount them under "/api"
-app.use("/api", userStreakRouter)
-app.use("/api", leaderboardsRouter)
+// ✅ 7. ROUTERS (IMPORTANT: mount under /api)
+app.use("/api", authMiddleware, userStreakRouter) // ✅ streak endpoints require auth
+app.use("/api", leaderboardsRouter)               // leaderboards can be public
+
 
 // ================================================================
 // API ROUTES

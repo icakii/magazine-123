@@ -18,9 +18,9 @@ function effectiveStreak(rawStreak, lastWinYmd, todayYmd) {
   const s = Number(rawStreak || 0)
   if (!lastWinYmd || s <= 0) return 0
   const diff = daysBetweenUtcYmd(lastWinYmd, todayYmd)
-  // valid if won today or yesterday (UTC)
   return diff === 0 || diff === 1 ? s : 0
 }
+
 
 // GET /api/leaderboards
 router.get("/leaderboards", async (req, res) => {
@@ -41,17 +41,21 @@ router.get("/leaderboards", async (req, res) => {
     `)
 
     const mapped = rows
-      .map((r) => {
-        const lastWin = r.lastWinDate ? String(r.lastWinDate).slice(0, 10) : null
-        const eff = effectiveStreak(r.rawStreak, lastWin, today)
-        return {
-          displayName: r.displayName,
-          plan: String(r.plan || "free").toLowerCase(),
-          streak: eff, // ✅ IMPORTANT: клиентът показва това число
-          lastWinDate: lastWin,
-        }
-      })
-        .filter((r) => Number(r.streak) > 0)
+  .map((r) => {
+    const lastWin = r.lastWinDate ? String(r.lastWinDate).slice(0, 10) : null
+    const raw = Number(r.rawStreak || 0)
+    const eff = effectiveStreak(raw, lastWin, today)
+
+    return {
+      displayName: r.displayName,
+      plan: String(r.plan || "free").toLowerCase(),
+      streak: eff,
+      lastWinDate: lastWin,
+      rawStreak: raw, // TEMP debug (можеш да го махнеш после)
+    }
+  })
+  .filter((u) => u.streak > 0)
+
 // ✅ remove 0-streak users completely
       .sort((a, b) => b.streak - a.streak || a.displayName.localeCompare(b.displayName))
       .slice(0, 100)

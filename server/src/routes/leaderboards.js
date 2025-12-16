@@ -1,52 +1,64 @@
+// server/src/routes/leaderboard.js
 const express = require("express")
 const router = express.Router()
 const db = require("../db")
 
-function utcTodayISO() {
-  return new Date().toISOString().slice(0, 10)
+function utcYmd(date = new Date()) {
+  return date.toISOString().slice(0, 10) // YYYY-MM-DD UTC
 }
-function ymdToUTCDate(ymd) {
+function ymdToDate(ymd) {
   return new Date(`${ymd}T00:00:00.000Z`)
 }
-function daysDiff(aYmd, bYmd) {
-  return Math.floor((ymdToUTCDate(bYmd) - ymdToUTCDate(aYmd)) / 86400000)
+function daysBetweenUtcYmd(aYmd, bYmd) {
+  const a = ymdToDate(aYmd).getTime()
+  const b = ymdToDate(bYmd).getTime()
+  return Math.floor((b - a) / 86400000)
 }
-function effective(streak, lastWinYmd, todayYmd) {
-  if (!lastWinYmd) return 0
-  const diff = daysDiff(lastWinYmd, todayYmd)
-  return diff <= 1 ? Math.max(0, Number(streak || 0)) : 0
+function effectiveStreak(rawStreak, lastWinYmd, todayYmd) {
+  const s = Number(rawStreak || 0)
+  if (!lastWinYmd || s <= 0) return 0
+  const diff = daysBetweenUtcYmd(lastWinYmd, todayYmd)
+  // valid if won today or yesterday (UTC)
+  return diff === 0 || diff === 1 ? s : 0
 }
 
+// GET /api/leaderboards
 router.get("/leaderboards", async (req, res) => {
   try {
-    const today = utcTodayISO()
+    const today = utcYmd()
 
     const { rows } = await db.query(`
       SELECT
-        display_name AS "displayName",
-        COALESCE(wordle_streak,0) AS "wordleStreak",
-        wordle_last_win_date AS "lastWinDate"
-      FROM users
-      WHERE is_confirmed = true
-      ORDER BY COALESCE(wordle_streak,0) DESC, display_name ASC
-      LIMIT 50
+        u.display_name AS "displayName",
+        COALESCE(u.wordle_streak, 0) AS "rawStreak",
+        u.wordle_last_win_date AS "lastWinDate",
+        COALESCE(s.plan, 'free') AS "plan"
+      FROM users u
+      LEFT JOIN subscriptions s ON s.email = u.email
+      WHERE u.is_confirmed = true
+      ORDER BY COALESCE(u.wordle_streak, 0) DESC, u.display_name ASC
+      LIMIT 200
     `)
 
-    res.json(
-      rows.map((r) => {
+    const mapped = rows
+      .map((r) => {
         const lastWin = r.lastWinDate ? String(r.lastWinDate).slice(0, 10) : null
-        const streak = Number(r.wordleStreak || 0)
+        const eff = effectiveStreak(r.rawStreak, lastWin, today)
         return {
           displayName: r.displayName,
-          streak, // raw
-          effectiveStreak: effective(streak, lastWin, today),
+          plan: String(r.plan || "free").toLowerCase(),
+          streak: eff, // ✅ IMPORTANT: клиентът показва това число
           lastWinDate: lastWin,
         }
       })
-    )
+      .filter((r) => r.streak > 0) // ✅ remove 0-streak users completely
+      .sort((a, b) => b.streak - a.streak || a.displayName.localeCompare(b.displayName))
+      .slice(0, 100)
+
+    res.json(mapped)
   } catch (e) {
-    console.error("LEADERBOARDS ERROR:", e)
-    res.status(500).json({ error: "Failed to load leaderboards" })
+    console.error("LEADERBOARD ERROR:", e)
+    res.status(500).json({ error: "Failed to load leaderboard" })
   }
 })
 

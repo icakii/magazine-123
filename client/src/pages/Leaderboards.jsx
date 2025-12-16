@@ -1,7 +1,35 @@
+// client/src/pages/Leaderboards.jsx
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { api } from "../lib/api"
+
+function planPillStyle(plan) {
+  const p = String(plan || "free").toLowerCase()
+  if (p === "monthly") {
+    return {
+      background: "rgba(56, 128, 255, 0.14)", // синьо
+      border: "1px solid rgba(56, 128, 255, 0.28)",
+    }
+  }
+  if (p === "yearly") {
+    return {
+      background: "rgba(255, 199, 64, 0.16)", // златно
+      border: "1px solid rgba(255, 199, 64, 0.32)",
+    }
+  }
+  return {
+    background: "var(--bg-muted)",
+    border: "1px solid var(--nav-border)",
+  }
+}
+
+function nameSuffix(plan) {
+  const p = String(plan || "free").toLowerCase()
+  if (p === "monthly") return " ⭐"
+  if (p === "yearly") return " 👑"
+  return ""
+}
 
 export default function Leaderboards() {
   const [rows, setRows] = useState([])
@@ -14,7 +42,11 @@ export default function Leaderboards() {
       .get("/leaderboards")
       .then((res) => {
         if (!mounted) return
-        setRows(Array.isArray(res.data) ? res.data : [])
+        const list = Array.isArray(res.data) ? res.data : []
+
+        // safety net: махаме 0-те и тук (дори сървъра вече го прави)
+        const cleaned = list.filter((u) => Number(u?.streak || 0) > 0)
+        setRows(cleaned)
       })
       .catch(() => {
         if (!mounted) return
@@ -30,10 +62,21 @@ export default function Leaderboards() {
     }
   }, [])
 
+  const header = useMemo(() => {
+    return (
+      <>
+        <h2 className="headline">Leaderboards</h2>
+        <p className="subhead">
+          Streaks reset automatically if a player hasn’t won yesterday/today (UTC).
+        </p>
+      </>
+    )
+  }, [])
+
   if (loading) {
     return (
       <div className="page">
-        <h2 className="headline">Leaderboards</h2>
+        {header}
         <p className="subhead">Loading…</p>
       </div>
     )
@@ -41,8 +84,7 @@ export default function Leaderboards() {
 
   return (
     <div className="page">
-      <h2 className="headline">Leaderboards</h2>
-      <p className="subhead">Streaks reset automatically if a player hasn’t won yesterday/today (UTC).</p>
+      {header}
 
       {err && <p className="msg warning">{err}</p>}
 
@@ -52,22 +94,63 @@ export default function Leaderboards() {
         <div className="lb-col lb-streak">Streak</div>
       </div>
 
-      {rows.map((u, i) => (
-        <div key={u.id || i} className="leaderboard-row">
-          <div className="lb-col lb-rank">{i + 1}</div>
-          <div className="lb-col lb-player">
-            <div style={{ fontWeight: 900 }}>{u.displayName || "Unknown"}</div>
-            {u.lastWinDate && (
-              <div className="text-muted" style={{ fontSize: "0.9rem" }}>
-                last win: {String(u.lastWinDate).slice(0, 10)}
+      {rows.map((u, i) => {
+        const plan = String(u.plan || "free").toLowerCase()
+        const pill = planPillStyle(plan)
+        const suffix = nameSuffix(plan)
+
+        return (
+          <div
+            key={`${u.displayName || "user"}_${i}`}
+            className="leaderboard-row"
+            style={{
+              // mobile-friendly “card-ish” feel without breaking your grid
+              borderRadius: 14,
+              overflow: "hidden",
+            }}
+          >
+            <div className="lb-col lb-rank">{i + 1}</div>
+
+            <div className="lb-col lb-player">
+              <div
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 10,
+                  flexWrap: "wrap",
+                }}
+              >
+                <span
+                  style={{
+                    fontWeight: 900,
+                    padding: "6px 10px",
+                    borderRadius: 999,
+                    ...pill,
+                    maxWidth: "100%",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
+                  }}
+                  title={u.displayName || "Unknown"}
+                >
+                  {u.displayName || "Unknown"}
+                  {suffix}
+                </span>
               </div>
-            )}
+
+              {u.lastWinDate && (
+                <div className="text-muted" style={{ fontSize: "0.9rem", marginTop: 6 }}>
+                  last win: {String(u.lastWinDate).slice(0, 10)}
+                </div>
+              )}
+            </div>
+
+            <div className="lb-col lb-streak">
+              <span className="streak-pill">{Number(u.streak || 0)}</span>
+            </div>
           </div>
-          <div className="lb-col lb-streak">
-            <span className="streak-pill">{Number(u.effectiveStreak || 0)}</span>
-          </div>
-        </div>
-      ))}
+        )
+      })}
 
       {rows.length === 0 && !err && <p className="text-muted">No players yet.</p>}
     </div>

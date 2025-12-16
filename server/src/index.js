@@ -803,11 +803,20 @@ app.post("/api/auth/reset-password-request", async (req, res) => {
     )
 
     const url = `${APP_URL}/reset-password?token=${token}`
-    await transporter.sendMail({
+    // ✅ respond immediately (fast)
+res.json({ ok: true })
+
+// ✅ send email without blocking request
+setImmediate(() => {
+  transporter
+    .sendMail({
       to: email,
       subject: "Reset Password",
       html: `<a href="${url}">Reset Here</a>`,
     })
+    .catch((err) => console.error("RESET EMAIL SEND ERROR:", err))
+})
+
 
     res.json({ ok: true })
   } catch (e) {

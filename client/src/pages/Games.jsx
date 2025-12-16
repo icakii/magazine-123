@@ -194,66 +194,79 @@ export default function Games() {
   }, [word, guesses, won, gameOver, usedLetters, streak, user, loadingGame])
 
   function handleKeyDown(e) {
-    if (gameOver || loadingGame || !dictionaryLoaded) return
-    const key = String(e.key || "").toUpperCase()
+  if (gameOver || loadingGame || !dictionaryLoaded) return
 
-    if (key === "ENTER") {
-      if (currentGuess.length !== 5) {
-        setMessage("Word must be 5 letters")
-        return
-      }
-      if (!allWords.has(currentGuess)) {
-        setMessage("Not in word list")
-        return
-      }
+  const key = String(e?.key || "").toUpperCase()
 
-      const newGuesses = [...guesses, currentGuess]
-      setGuesses(newGuesses)
-      setUsedLetters(new Set([...usedLetters, ...currentGuess.split("")]))
-      setAttempts(5 - newGuesses.length)
-
-      if (currentGuess === word) {
-        const todayISO = isoTodayUTC()
-        const newStreak = streak + 1
-
-        // ✅ update local state
-        setStreak(newStreak)
-        setWon(true)
-        setGameOver(true)
-        setMessage("🎉 You won!")
-
-        // ✅ persist locally
-        localStorage.setItem(getStorageKey("_streak"), String(newStreak))
-        localStorage.setItem(getStorageKey("_lastWinISO"), todayISO)
-
-        // ✅ sync once (avoid double useEffect sync)
-        if (!winSyncedRef.current) {
-          winSyncedRef.current = true
-          api.post("/user/streak", { streak: newStreak, lastWinISO: todayISO }).catch(() => {})
-        }
-
-        return
-      }
-
-      if (newGuesses.length >= 5) {
-        setGameOver(true)
-        setWon(false)
-        setStreak(0)
-        localStorage.setItem(getStorageKey("_streak"), "0")
-        api.post("/user/streak", { streak: 0 }).catch(() => {})
-        setMessage(`Game over! The word was: ${word}`)
-        return
-      }
-
-      setCurrentGuess("")
-      setMessage("")
-    } else if (key === "BACKSPACE") {
-      setCurrentGuess((prev) => prev.slice(0, -1))
-      setMessage("")
-    } else if (/^[A-Z]$/.test(key) && currentGuess.length < 5) {
-      setCurrentGuess((prev) => prev + key)
+  if (key === "ENTER") {
+    if (currentGuess.length !== 5) {
+      setMessage("Word must be 5 letters")
+      return
     }
+    if (!allWords.has(currentGuess)) {
+      setMessage("Not in word list")
+      return
+    }
+
+    const newGuesses = [...guesses, currentGuess]
+    setGuesses(newGuesses)
+    setUsedLetters(new Set([...usedLetters, ...currentGuess.split("")]))
+    setAttempts(5 - newGuesses.length)
+
+    // ✅ WIN
+    if (currentGuess === word) {
+      const todayISO = isoTodayUTC()
+      const newStreak = (Number(streak) || 0) + 1
+
+      setStreak(newStreak)
+      setWon(true)
+      setGameOver(true)
+      setMessage("🎉 You won!")
+
+      // local persist
+      localStorage.setItem(getStorageKey("_streak"), String(newStreak))
+      localStorage.setItem(getStorageKey("_lastWinISO"), todayISO)
+
+      // ✅ sync ONCE with correct value
+      if (winSyncedRef?.current !== true) {
+        winSyncedRef.current = true
+        api.post("/user/streak", { streak: newStreak, lastWinISO: todayISO }).catch(() => {})
+      }
+
+      return
+    }
+
+    // ❌ LOSE
+    if (newGuesses.length >= 5) {
+      setGameOver(true)
+      setWon(false)
+      setStreak(0)
+      setMessage(`Game over! The word was: ${word}`)
+
+      localStorage.setItem(getStorageKey("_streak"), "0")
+      localStorage.removeItem(getStorageKey("_lastWinISO"))
+
+      api.post("/user/streak", { streak: 0 }).catch(() => {})
+      return
+    }
+
+    // continue
+    setCurrentGuess("")
+    setMessage("")
+    return
   }
+
+  if (key === "BACKSPACE") {
+    setCurrentGuess((prev) => prev.slice(0, -1))
+    setMessage("")
+    return
+  }
+
+  if (/^[A-Z]$/.test(key) && currentGuess.length < 5) {
+    setCurrentGuess((prev) => prev + key)
+  }
+}
+
 
   function handleKeyClick(letter) {
     if (gameOver || loadingGame || !dictionaryLoaded) return

@@ -1,39 +1,23 @@
 const express = require("express")
 const router = express.Router()
-
 const db = require("../db")
 
-// --- date helpers (UTC, day-level) ---
 function utcTodayISO() {
-  const d = new Date()
-  const y = d.getUTCFullYear()
-  const m = String(d.getUTCMonth() + 1).padStart(2, "0")
-  const day = String(d.getUTCDate()).padStart(2, "0")
-  return `${y}-${m}-${day}`
+  return new Date().toISOString().slice(0, 10) // YYYY-MM-DD UTC
 }
-
-function isoToDayNumber(isoYYYYMMDD) {
-  if (!isoYYYYMMDD || typeof isoYYYYMMDD !== "string") return null
-  const m = isoYYYYMMDD.match(/^(\d{4})-(\d{2})-(\d{2})$/)
-  if (!m) return null
-  const y = Number(m[1])
-  const mo = Number(m[2])
-  const d = Number(m[3])
-  const ms = Date.UTC(y, mo - 1, d)
-  return Math.floor(ms / 86400000)
+function ymdToUTCDate(ymd) {
+  return new Date(`${ymd}T00:00:00.000Z`)
 }
-
-function ensureYYYYMMDD(v) {
-  if (typeof v !== "string") return null
-  return /^\d{4}-\d{2}-\d{2}$/.test(v) ? v : null
+function daysDiff(aYmd, bYmd) {
+  const a = ymdToUTCDate(aYmd).getTime()
+  const b = ymdToUTCDate(bYmd).getTime()
+  return Math.floor((b - a) / 86400000)
 }
-
-// IMPORTANT:
-// - users.wordle_streak: int
-// - users.wordle_last_win_date: date (UTC)
-//
-// This endpoint must be idempotent across devices:
-// - Winning twice in the same UTC day must NOT increase streak.
+function effective(streak, lastWinYmd, todayYmd) {
+  if (!lastWinYmd) return 0
+  const diff = daysDiff(lastWinYmd, todayYmd)
+  return diff <= 1 ? Math.max(0, Number(streak || 0)) : 0
+}
 
 // GET /api/user/streak
 router.get("/user/streak", async (req, res) => {
@@ -41,52 +25,45 @@ router.get("/user/streak", async (req, res) => {
     const email = req.user?.email
     if (!email) return res.status(401).json({ error: "Unauthorized" })
 
+    const today = utcTodayISO()
     const { rows } = await db.query(
-      "SELECT wordle_streak, wordle_last_win_date FROM users WHERE email = $1",
+      "SELECT wordle_streak, wordle_last_win_date, wordle_last_played_date FROM users WHERE email=$1",
       [email]
     )
     const u = rows[0]
-    const todayISO = utcTodayISO()
-    const todayN = isoToDayNumber(todayISO)
+    if (!u) return res.status(404).json({ error: "User not found" })
 
-    const lastISO = u?.wordle_last_win_date
+    const lastWin = u.wordle_last_win_date
       ? String(u.wordle_last_win_date).slice(0, 10)
       : null
-    const lastN = lastISO ? isoToDayNumber(lastISO) : null
-    const raw = Number(u?.wordle_streak || 0)
-
-    const effectiveStreak =
-      !lastN ? 0 : todayN - lastN > 1 ? 0 : Math.max(0, raw)
 
     res.json({
-      streak: raw,
-      effectiveStreak,
-      lastWinDate: lastISO,
-      todayISO,
+      streak: Number(u.wordle_streak || 0),
+      effectiveStreak: effective(u.wordle_streak, lastWin, today),
+      lastWinDate: lastWin,
+      today,
     })
-  } catch (err) {
-    console.error("USER STREAK GET ERROR:", err)
+  } catch (e) {
+    console.error("GET STREAK ERROR:", e)
     res.status(500).json({ error: "Failed to load streak" })
   }
 })
 
 // POST /api/user/streak
-// Body:
-// - { lastWinISO: "YYYY-MM-DD" }  -> register a win for that day
-// - { streak: 0 }                  -> reset streak
+// Body: { type: "play" } OR { type: "win" } OR { type: "reset" }
 router.post("/user/streak", async (req, res) => {
   const email = req.user?.email
   if (!email) return res.status(401).json({ error: "Unauthorized" })
 
-  const requestedReset = Number(req.body?.streak) === 0
-  const requestedWinISO = ensureYYYYMMDD(req.body?.lastWinISO) || utcTodayISO()
+  const type = String(req.body?.type || "win")
+  const today = utcTodayISO()
 
   const client = await db.connect()
   try {
     await client.query("BEGIN")
 
     const { rows } = await client.query(
-      "SELECT wordle_streak, wordle_last_win_date FROM users WHERE email = $1 FOR UPDATE",
+      "SELECT wordle_streak, wordle_last_win_date FROM users WHERE email=$1 FOR UPDATE",
       [email]
     )
     const u = rows[0]
@@ -95,55 +72,76 @@ router.post("/user/streak", async (req, res) => {
       return res.status(404).json({ error: "User not found" })
     }
 
-    if (requestedReset) {
+    const prevStreak = Number(u.wordle_streak || 0)
+    const prevLastWin = u.wordle_last_win_date
+      ? String(u.wordle_last_win_date).slice(0, 10)
+      : null
+
+    // mark played always (helps analytics / UI)
+    await client.query(
+      "UPDATE users SET wordle_last_played_date = $2::date WHERE email = $1",
+      [email, today]
+    )
+
+    if (type === "reset") {
       await client.query(
-        "UPDATE users SET wordle_streak = 0, wordle_last_win_date = NULL WHERE email = $1",
+        "UPDATE users SET wordle_streak=0, wordle_last_win_date=NULL, streak=0 WHERE email=$1",
         [email]
       )
       await client.query("COMMIT")
-      return res.json({ ok: true, streak: 0, effectiveStreak: 0, lastWinDate: null })
+      return res.json({ ok: true, streak: 0, effectiveStreak: 0, lastWinDate: null, today })
     }
 
-    const todayISO = requestedWinISO
-    const todayN = isoToDayNumber(todayISO)
+    if (type === "play") {
+      await client.query("COMMIT")
+      return res.json({
+        ok: true,
+        streak: prevStreak,
+        effectiveStreak: effective(prevStreak, prevLastWin, today),
+        lastWinDate: prevLastWin,
+        today,
+      })
+    }
 
-    const prevLastISO = u.wordle_last_win_date
-      ? String(u.wordle_last_win_date).slice(0, 10)
-      : null
-    const prevLastN = prevLastISO ? isoToDayNumber(prevLastISO) : null
+    // type === "win" (DEFAULT)
+    // idempotent: only one win per UTC day
+    if (prevLastWin) {
+      const diff = daysDiff(prevLastWin, today)
 
-    const prevStreak = Number(u.wordle_streak || 0)
-
-    let nextStreak = 1
-
-    if (prevLastN != null) {
-      const diff = todayN - prevLastN
       if (diff === 0) {
-        // already counted today (multi-device safe)
-        nextStreak = Math.max(0, prevStreak)
-      } else if (diff === 1) {
-        nextStreak = Math.max(0, prevStreak) + 1
-      } else {
-        nextStreak = 1
+        // already counted today
+        await client.query("COMMIT")
+        return res.json({
+          ok: true,
+          streak: prevStreak,
+          effectiveStreak: effective(prevStreak, prevLastWin, today),
+          lastWinDate: prevLastWin,
+          today,
+        })
       }
+
+      let next = 1
+      if (diff === 1) next = prevStreak + 1
+      else next = 1
+
+      await client.query(
+        "UPDATE users SET wordle_streak=$2, wordle_last_win_date=$3::date, streak=$2 WHERE email=$1",
+        [email, next, today]
+      )
+      await client.query("COMMIT")
+      return res.json({ ok: true, streak: next, effectiveStreak: next, lastWinDate: today, today })
+    } else {
+      const next = 1
+      await client.query(
+        "UPDATE users SET wordle_streak=$2, wordle_last_win_date=$3::date, streak=$2 WHERE email=$1",
+        [email, next, today]
+      )
+      await client.query("COMMIT")
+      return res.json({ ok: true, streak: next, effectiveStreak: next, lastWinDate: today, today })
     }
-
-    await client.query(
-      "UPDATE users SET wordle_streak = $1, wordle_last_win_date = $2::date WHERE email = $3",
-      [nextStreak, todayISO, email]
-    )
-
-    await client.query("COMMIT")
-
-    res.json({
-      ok: true,
-      streak: nextStreak,
-      effectiveStreak: nextStreak,
-      lastWinDate: todayISO,
-    })
-  } catch (err) {
+  } catch (e) {
     await client.query("ROLLBACK")
-    console.error("USER STREAK POST ERROR:", err)
+    console.error("POST STREAK ERROR:", e)
     res.status(500).json({ error: "Failed to update streak" })
   } finally {
     client.release()

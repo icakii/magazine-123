@@ -215,7 +215,7 @@ export default function Games() {
         if (winSyncedRef?.current !== true) {
           winSyncedRef.current = true
           api
-            .post("/user/streak", { lastWinISO: todayISO })
+            .post("/user/streak", { })
             .then((res) => {
               const next = Number(res.data?.effectiveStreak ?? res.data?.streak ?? 0)
               setStreak(next)

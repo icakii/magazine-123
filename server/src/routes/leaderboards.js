@@ -1,45 +1,52 @@
 const express = require("express")
 const router = express.Router()
-
 const db = require("../db")
 
-// GET /api/leaderboards
-// Returns ONLY active streaks (effectiveStreak > 0)
+function utcTodayISO() {
+  return new Date().toISOString().slice(0, 10)
+}
+function ymdToUTCDate(ymd) {
+  return new Date(`${ymd}T00:00:00.000Z`)
+}
+function daysDiff(aYmd, bYmd) {
+  return Math.floor((ymdToUTCDate(bYmd) - ymdToUTCDate(aYmd)) / 86400000)
+}
+function effective(streak, lastWinYmd, todayYmd) {
+  if (!lastWinYmd) return 0
+  const diff = daysDiff(lastWinYmd, todayYmd)
+  return diff <= 1 ? Math.max(0, Number(streak || 0)) : 0
+}
+
 router.get("/leaderboards", async (req, res) => {
   try {
+    const today = utcTodayISO()
+
     const { rows } = await db.query(`
-      WITH today AS (
-        SELECT (now() AT TIME ZONE 'UTC')::date AS d
-      )
       SELECT
-        u.email AS id,
-        u.display_name AS "displayName",
-        COALESCE(s.plan, 'free') AS plan,
-        u.wordle_last_win_date AS "lastWinDate",
-        CASE
-          WHEN u.wordle_last_win_date IS NULL THEN 0
-          WHEN (SELECT d FROM today) - u.wordle_last_win_date > 1 THEN 0
-          ELSE COALESCE(u.wordle_streak, 0)
-        END AS "effectiveStreak"
-      FROM users u
-      LEFT JOIN subscriptions s ON s.email = u.email
-      WHERE
-        CASE
-          WHEN u.wordle_last_win_date IS NULL THEN 0
-          WHEN (SELECT d FROM today) - u.wordle_last_win_date > 1 THEN 0
-          ELSE COALESCE(u.wordle_streak, 0)
-        END > 0
-      ORDER BY "effectiveStreak" DESC, u.display_name ASC
+        display_name AS "displayName",
+        COALESCE(wordle_streak,0) AS "wordleStreak",
+        wordle_last_win_date AS "lastWinDate"
+      FROM users
+      WHERE is_confirmed = true
+      ORDER BY COALESCE(wordle_streak,0) DESC, display_name ASC
       LIMIT 50
     `)
 
-    res.json(rows)
-  } catch (err) {
-    console.error("LEADERBOARDS ERROR:", err)
-    res.status(500).json({
-      error: "Failed to load leaderboards",
-      detail: err?.message || String(err),
-    })
+    res.json(
+      rows.map((r) => {
+        const lastWin = r.lastWinDate ? String(r.lastWinDate).slice(0, 10) : null
+        const streak = Number(r.wordleStreak || 0)
+        return {
+          displayName: r.displayName,
+          streak, // raw
+          effectiveStreak: effective(streak, lastWin, today),
+          lastWinDate: lastWin,
+        }
+      })
+    )
+  } catch (e) {
+    console.error("LEADERBOARDS ERROR:", e)
+    res.status(500).json({ error: "Failed to load leaderboards" })
   }
 })
 

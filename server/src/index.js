@@ -824,27 +824,39 @@ setImmediate(() => {
   }
 })
 
-app.post("/api/auth/reset-password", async (req, res) => {
-  const { token, newPassword } = req.body
+app.post("/api/auth/reset-password-request", async (req, res) => {
+  const { email } = req.body
 
   try {
-    const { rows } = await db.query(
-      "SELECT * FROM users WHERE reset_password_token = $1 AND reset_password_expires > NOW()",
-      [token]
-    )
-    if (!rows[0]) return res.status(400).json({ error: "Invalid token" })
+    const token = crypto.randomBytes(32).toString("hex")
+    const expiry = new Date(Date.now() + 3600000)
 
-    const hash = await bcrypt.hash(newPassword, 10)
     await db.query(
-      "UPDATE users SET password_hash = $1, reset_password_token = NULL, reset_password_expires = NULL WHERE email = $2",
-      [hash, rows[0].email]
+      "UPDATE users SET reset_password_token = $1, reset_password_expires = $2 WHERE email = $3",
+      [token, expiry, email]
     )
 
+    const url = `${APP_URL}/reset-password?token=${token}`
+
+    // ✅ respond immediately
     res.json({ ok: true })
+
+    // ✅ send email after response (no res.* calls here!)
+    setImmediate(() => {
+      transporter
+        .sendMail({
+          to: email,
+          subject: "Reset Password",
+          html: `<a href="${url}">Reset Here</a>`,
+        })
+        .catch((err) => console.error("RESET EMAIL SEND ERROR:", err))
+    })
   } catch (e) {
+    console.error("RESET REQUEST ERROR:", e)
     res.status(500).json({ error: "Error" })
   }
 })
+
 
 // --- 2FA ---
 app.post("/api/auth/send-2fa", async (req, res) => {

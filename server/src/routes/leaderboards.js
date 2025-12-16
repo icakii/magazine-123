@@ -51,7 +51,8 @@ router.get("/leaderboards", async (req, res) => {
           lastWinDate: lastWin,
         }
       })
-      .filter((r) => r.streak > 0) // ✅ remove 0-streak users completely
+        .filter((r) => Number(r.streak) > 0)
+// ✅ remove 0-streak users completely
       .sort((a, b) => b.streak - a.streak || a.displayName.localeCompare(b.displayName))
       .slice(0, 100)
 

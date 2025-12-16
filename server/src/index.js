@@ -176,7 +176,7 @@ const transporter = nodemailer.createTransport({
 // - router.get("/leaderboards", ...)
 // and here we mount them under "/api"
 // ✅ 7. ROUTERS (IMPORTANT: mount under /api)
-app.use("/api", leaderboardRouter)   // /api/leaderboards
+app.use("/api", leaderboardsRouter)   // /api/leaderboards
 app.use("/api", userStreakRouter) 
 
 // ================================================================

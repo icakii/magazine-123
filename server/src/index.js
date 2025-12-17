@@ -158,15 +158,27 @@ app.use("/api/auth/reset-password-request", loginLimiter)
 app.use("/api/contact", contactLimiter)
 
 // ---------------------------------------------------------------
-// 6. EMAIL TRANSPORTER (Gmail)
+// 6. EMAIL TRANSPORTER (Gmail SMTP + verify + pool)
 // ---------------------------------------------------------------
 const transporter = nodemailer.createTransport({
-  service: "gmail",
+  host: "smtp.gmail.com",
+  port: 465,
+  secure: true,
+  pool: true,
+  maxConnections: 2,
+  maxMessages: 50,
   auth: {
     user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
+    pass: process.env.EMAIL_PASS, // MUST be Gmail App Password
   },
 })
+
+// ✅ Verify on boot (shows real auth/TLS problems immediately in Render logs)
+transporter.verify((err) => {
+  if (err) console.error("❌ EMAIL TRANSPORT VERIFY FAILED:", err)
+  else console.log("✅ EMAIL TRANSPORT READY")
+})
+
 
 // ---------------------------------------------------------------
 // ✅ 7. ROUTERS (IMPORTANT: mount under /api)
@@ -689,12 +701,20 @@ app.post("/api/auth/register", async (req, res) => {
     ])
 
     const confirmationUrl = `${APP_URL}/confirm?token=${token}`
-    await transporter.sendMail({
-      from: '"MIREN" <mirenmagazine@gmail.com>',
+    setImmediate(async () => {
+  try {
+    const info = await transporter.sendMail({
+      from: `"MIREN" <${process.env.EMAIL_USER}>`,
       to: email,
       subject: "Confirm Account",
-      html: `<a href="${confirmationUrl}">Click to Confirm Email</a>`,
+      html: `<p>Confirm your account:</p><a href="${confirmationUrl}">Click to Confirm Email</a>`,
     })
+    console.log("✅ CONFIRM EMAIL SENT:", info.messageId, info.response)
+  } catch (err) {
+    console.error("❌ CONFIRM EMAIL SEND ERROR:", err)
+  }
+})
+
 
     res.status(201).json({ ok: true, message: "Check email!" })
   } catch (err) {
@@ -792,42 +812,11 @@ app.get("/api/user/me", authMiddleware, async (req, res) => {
 
 app.post("/api/auth/reset-password-request", async (req, res) => {
   const { email } = req.body
+  if (!email) return res.status(400).json({ error: "Email required" })
 
   try {
-    const token = crypto.randomBytes(32).toString("hex")
-    const expiry = new Date(Date.now() + 3600000)
-
-    await db.query(
-      "UPDATE users SET reset_password_token = $1, reset_password_expires = $2 WHERE email = $3",
-      [token, expiry, email]
-    )
-
-    const url = `${APP_URL}/reset-password?token=${token}`
-    // ✅ respond immediately (fast)
-res.json({ ok: true })
-
-// ✅ send email without blocking request
-setImmediate(() => {
-  transporter
-    .sendMail({
-      to: email,
-      subject: "Reset Password",
-      html: `<a href="${url}">Reset Here</a>`,
-    })
-    .catch((err) => console.error("RESET EMAIL SEND ERROR:", err))
-})
-
-
-    res.json({ ok: true })
-  } catch (e) {
-    res.status(500).json({ error: "Error" })
-  }
-})
-
-app.post("/api/auth/reset-password-request", async (req, res) => {
-  const { email } = req.body
-
-  try {
+    // ✅ (optional) don't leak whether user exists
+    // but still do DB update safely
     const token = crypto.randomBytes(32).toString("hex")
     const expiry = new Date(Date.now() + 3600000)
 
@@ -838,18 +827,22 @@ app.post("/api/auth/reset-password-request", async (req, res) => {
 
     const url = `${APP_URL}/reset-password?token=${token}`
 
-    // ✅ respond immediately
+    // ✅ respond immediately (fast UX)
     res.json({ ok: true })
 
-    // ✅ send email after response (no res.* calls here!)
-    setImmediate(() => {
-      transporter
-        .sendMail({
+    // ✅ send email after response (no res.* here!)
+    setImmediate(async () => {
+      try {
+        const info = await transporter.sendMail({
+          from: `"MIREN" <${process.env.EMAIL_USER}>`,
           to: email,
           subject: "Reset Password",
-          html: `<a href="${url}">Reset Here</a>`,
+          html: `<p>Click to reset your password:</p><a href="${url}">Reset Here</a>`,
         })
-        .catch((err) => console.error("RESET EMAIL SEND ERROR:", err))
+        console.log("✅ RESET EMAIL SENT:", info.messageId, info.response)
+      } catch (err) {
+        console.error("❌ RESET EMAIL SEND ERROR:", err)
+      }
     })
   } catch (e) {
     console.error("RESET REQUEST ERROR:", e)

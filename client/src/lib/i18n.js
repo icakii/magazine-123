@@ -39,6 +39,7 @@ export const dict = {
     profile: "Профил",
 
     // AUTH/UI
+    create_account: "Създай Акаунт",
     register: "Регистрация",
     login: "Вход",
     logout: "Изход",
@@ -108,6 +109,7 @@ twofa_verify_btn: "Потвърди",
     help: "Help",
     profile: "Profile",
 
+    create_account: "Create Account",
     register: "Register",
     login: "Login",
     logout: "Logout",

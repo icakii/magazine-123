@@ -1,63 +1,39 @@
+// server/src/routes/leaderboards.js
 const express = require("express")
 const router = express.Router()
 const db = require("../db")
 
-function utcYmd(date = new Date()) {
-  return date.toISOString().slice(0, 10)
-}
-function ymdToDate(ymd) {
-  return new Date(`${ymd}T00:00:00.000Z`)
-}
-function daysBetweenUtcYmd(aYmd, bYmd) {
-  const a = ymdToDate(aYmd).getTime()
-  const b = ymdToDate(bYmd).getTime()
-  return Math.floor((b - a) / 86400000)
-}
-function effectiveStreak(rawStreak, lastWinYmd, todayYmd) {
-  const s = Number(rawStreak || 0)
-  if (!lastWinYmd || s <= 0) return 0
-  const diff = daysBetweenUtcYmd(lastWinYmd, todayYmd)
-  return diff === 0 || diff === 1 ? s : 0
-}
-
 // GET /api/leaderboards
 router.get("/leaderboards", async (req, res) => {
   try {
-    const today = utcYmd()
-
     const { rows } = await db.query(`
+      WITH today AS (
+        SELECT (now() AT TIME ZONE 'UTC')::date AS d
+      )
       SELECT
         u.display_name AS "displayName",
-        COALESCE(u.wordle_streak, 0) AS "rawStreak",
-        u.wordle_last_win_date AS "lastWinDate",
-        COALESCE(s.plan, 'free') AS "plan"
+        COALESCE(s.plan, 'free') AS "plan",
+        CASE
+          WHEN u.wordle_last_win_date IS NULL THEN 0
+          WHEN (SELECT d FROM today) - u.wordle_last_win_date > 1 THEN 0
+          ELSE COALESCE(u.wordle_streak, 0)
+        END AS "streak",
+        u.wordle_last_win_date AS "lastWinDate"
       FROM users u
       LEFT JOIN subscriptions s ON s.email = u.email
       WHERE u.is_confirmed = true
-      ORDER BY COALESCE(u.wordle_streak, 0) DESC, u.display_name ASC
-      LIMIT 200
+        AND CASE
+          WHEN u.wordle_last_win_date IS NULL THEN 0
+          WHEN (SELECT d FROM today) - u.wordle_last_win_date > 1 THEN 0
+          ELSE COALESCE(u.wordle_streak, 0)
+        END > 0
+      ORDER BY "streak" DESC, u.display_name ASC
+      LIMIT 100
     `)
 
-    const mapped = rows
-      .map((r) => {
-        const lastWin = r.lastWinDate ? String(r.lastWinDate).slice(0, 10) : null
-        const eff = effectiveStreak(r.rawStreak, lastWin, today)
-        return {
-          displayName: r.displayName,
-          plan: String(r.plan || "free").toLowerCase(),
-          streak: eff,            // ВРЪЩАМЕ САМО EFFECTIVE
-          lastWinDate: lastWin,
-        }
-      })
-      .filter((u) => Number(u.streak) > 0)
-
-    mapped.sort(
-      (a, b) => b.streak - a.streak || a.displayName.localeCompare(b.displayName)
-    )
-
-    res.json(mapped.slice(0, 100))
+    res.json(rows)
   } catch (e) {
-    console.error("LEADERBOARD ERROR:", e)
+    console.error("LEADERBOARDS ERROR:", e)
     res.status(500).json({ error: "Failed to load leaderboards" })
   }
 })

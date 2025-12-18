@@ -12,9 +12,21 @@ export const api = axios.create({
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem("auth_token")
 
-  if (token) {
+  // НЕ пращаме Bearer token към auth endpoints (login/register/reset/confirm)
+  const url = String(config.url || "")
+  const isAuthEndpoint =
+    url.startsWith("/auth/login") ||
+    url.startsWith("/auth/register") ||
+    url.startsWith("/auth/confirm") ||
+    url.startsWith("/auth/reset-password-request") ||
+    url.startsWith("/auth/reset-password") ||
+    url.startsWith("/auth/send-2fa") ||
+    url.startsWith("/auth/verify-2fa")
+
+  if (token && !isAuthEndpoint) {
     config.headers.Authorization = `Bearer ${token}`
   }
 
   return config
 })
+

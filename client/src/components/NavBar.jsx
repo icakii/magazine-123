@@ -168,15 +168,15 @@ export default function NavBar() {
       <aside className={`drawer ${open ? "open" : ""}`} aria-hidden={!open}>
         <nav className="drawer-list">
           <Link className="drawer-item" to="/home" onClick={closeDrawer}>{t("home")}</Link>
+          <Link className="drawer-item" to="/e-magazine" onClick={handleProtectedClick}>{t("emag")}</Link>
           <Link className="drawer-item" to="/news" onClick={handleProtectedClick}>{t("news")}</Link>
           <Link className="drawer-item" to="/events" onClick={handleProtectedClick}>{t("events")}</Link>
           <Link className="drawer-item" to="/gallery" onClick={handleProtectedClick}>{t("gallery")}</Link>
+          <Link className="drawer-item" to="/subscriptions" onClick={closeDrawer}>{t("subscriptions")}</Link>
           <Link className="drawer-item" to="/games" onClick={handleProtectedClick}>{t("games")}</Link>
-          <Link className="drawer-item" to="/e-magazine" onClick={handleProtectedClick}>{t("emag")}</Link>
 
           <Link className="drawer-item" to="/about" onClick={closeDrawer}>{t("about")}</Link>
           <Link className="drawer-item" to="/contact" onClick={closeDrawer}>{t("contact")}</Link>
-          <Link className="drawer-item" to="/subscriptions" onClick={closeDrawer}>{t("subscriptions")}</Link>
           <Link className="drawer-item" to="/help" onClick={closeDrawer}>{t("help")}</Link>
 
           <div className="drawer-sep" />

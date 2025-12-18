@@ -33,12 +33,18 @@ app.set("trust proxy", 1) // за Render
 app.use(helmet())
 app.use(cookieParser())
 
+app.set("trust proxy", 1)
+
 app.use(
   cors({
-    origin: FRONTEND_URL,
+    origin: [FRONTEND_URL], // важно: точен домейн
     credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
   })
 )
+
+app.options("*", cors())
 
 // ---------------------------------------------------------------
 // 2. STRIPE WEBHOOK  (трябва да е ПРЕДИ express.json())
@@ -133,10 +139,13 @@ function setAuthCookie(res, token) {
 
   res.cookie("auth", token, {
     httpOnly: true,
-    sameSite: isProduction ? "none" : "lax",
-    secure: isProduction,
+    secure: isProduction,            // true в production
+    sameSite: isProduction ? "none" : "lax", // none за cross-site
+    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 дни
+    path: "/",
   })
 }
+
 
 // ---------------------------------------------------------------
 // 5. RATE LIMITING

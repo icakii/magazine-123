@@ -21,7 +21,7 @@ function effectiveStreak(rawStreak, lastWinYmd, todayYmd) {
   return diff === 0 || diff === 1 ? s : 0
 }
 
-// GET /api/leaderboards
+// GET /api/leaderboards (public)
 router.get("/leaderboards", async (req, res) => {
   try {
     const today = utcYmd()
@@ -36,7 +36,7 @@ router.get("/leaderboards", async (req, res) => {
       LEFT JOIN subscriptions s ON s.email = u.email
       WHERE u.is_confirmed = true
       ORDER BY COALESCE(u.wordle_streak, 0) DESC, u.display_name ASC
-      LIMIT 200
+      LIMIT 500
     `)
 
     const mapped = rows
@@ -46,15 +46,17 @@ router.get("/leaderboards", async (req, res) => {
         return {
           displayName: r.displayName,
           plan: String(r.plan || "free").toLowerCase(),
-          streak: eff,
+          streak: eff, // ✅ effective streak only
           lastWinDate: lastWin,
         }
       })
-      .filter((u) => Number(u.streak) > 0)
-      .sort((a, b) => b.streak - a.streak || a.displayName.localeCompare(b.displayName))
-      .slice(0, 100)
+      .filter((u) => Number(u.streak) > 0) // ✅ махаме 0-streak
 
-    return res.json(mapped)
+    mapped.sort(
+      (a, b) => b.streak - a.streak || a.displayName.localeCompare(b.displayName)
+    )
+
+    return res.json(mapped.slice(0, 100))
   } catch (e) {
     console.error("LEADERBOARD ERROR:", e)
     return res.status(500).json({ error: "Failed to load leaderboards" })

@@ -3,7 +3,7 @@
 // ================================================================
 
 require("dotenv").config()
-const express = require("express")
+express = require("express")
 const rateLimit = require("express-rate-limit")
 const cors = require("cors")
 const cookieParser = require("cookie-parser")
@@ -22,7 +22,7 @@ const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:5173"
 const APP_URL = process.env.APP_URL || "http://localhost:5173"
 
 // ✅ ROUTERS (must exist as files)
-const userStreakRouter = require("./routes/userStreak")
+const createUserStreakRouter = require("./routes/userStreak")
 const leaderboardsRouter = require("./routes/leaderboards")
 
 // ---------------------------------------------------------------
@@ -135,16 +135,20 @@ function signToken(payload) {
 }
 
 function setAuthCookie(res, token) {
-  const isProduction = process.env.NODE_ENV === "production"
+  const isProduction =
+    process.env.NODE_ENV === "production" ||
+    process.env.RENDER ||
+    process.env.RENDER_EXTERNAL_URL
 
   res.cookie("auth", token, {
     httpOnly: true,
-    secure: isProduction,            // true в production
-    sameSite: isProduction ? "none" : "lax", // none за cross-site
-    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 дни
+    secure: !!isProduction,
+    sameSite: isProduction ? "none" : "lax",
+    maxAge: 7 * 24 * 60 * 60 * 1000,
     path: "/",
   })
 }
+
 
 
 // ---------------------------------------------------------------
@@ -192,13 +196,11 @@ transporter.verify((err) => {
 // ---------------------------------------------------------------
 // ✅ 7. ROUTERS (IMPORTANT: mount under /api)
 // ---------------------------------------------------------------
-// Your router files should define routes like:
-// - router.post("/user/streak", ...)
-// - router.get("/leaderboards", ...)
-// and here we mount them under "/api"
-// ✅ 7. ROUTERS (IMPORTANT: mount under /api)
-app.use("/api", leaderboardsRouter)   // /api/leaderboards
-app.use("/api", userStreakRouter) 
+app.use("/api", leaderboardsRouter) // public
+
+// ✅ IMPORTANT: inject middlewares, and DO NOT use router.use(authMiddleware) globally in router
+app.use("/api", createUserStreakRouter(authMiddleware, adminMiddleware))
+
 
 // ================================================================
 // API ROUTES

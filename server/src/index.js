@@ -22,8 +22,6 @@ const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:5173"
 const APP_URL = process.env.APP_URL || "http://localhost:5173"
 
 // ✅ ROUTERS (must exist as files)
-const createUserStreakRouter = require("./routes/userStreak")
-const leaderboardsRouter = require("./routes/leaderboards")
 
 // ---------------------------------------------------------------
 // 1. CONFIG & BASE MIDDLEWARE
@@ -196,10 +194,12 @@ transporter.verify((err) => {
 // ---------------------------------------------------------------
 // ✅ 7. ROUTERS (IMPORTANT: mount under /api)
 // ---------------------------------------------------------------
-app.use("/api", leaderboardsRouter) // public
+const userStreakRouter = require("./routes/userStreak")
+const leaderboardsRouter = require("./routes/leaderboards")
 
-// ✅ IMPORTANT: inject middlewares, and DO NOT use router.use(authMiddleware) globally in router
-app.use("/api", createUserStreakRouter(authMiddleware, adminMiddleware))
+app.use("/api", leaderboardsRouter)
+app.use("/api", userStreakRouter)
+
 
 
 // ================================================================

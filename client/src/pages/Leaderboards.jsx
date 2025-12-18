@@ -1,4 +1,3 @@
-// client/src/pages/Leaderboards.jsx
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
@@ -8,13 +7,13 @@ function planPillStyle(plan) {
   const p = String(plan || "free").toLowerCase()
   if (p === "monthly") {
     return {
-      background: "rgba(56, 128, 255, 0.14)", // синьо
+      background: "rgba(56, 128, 255, 0.14)",
       border: "1px solid rgba(56, 128, 255, 0.28)",
     }
   }
   if (p === "yearly") {
     return {
-      background: "rgba(255, 199, 64, 0.16)", // златно
+      background: "rgba(255, 199, 64, 0.16)",
       border: "1px solid rgba(255, 199, 64, 0.32)",
     }
   }
@@ -38,13 +37,12 @@ export default function Leaderboards() {
 
   useEffect(() => {
     let mounted = true
+
     api
       .get("/leaderboards")
       .then((res) => {
         if (!mounted) return
         const list = Array.isArray(res.data) ? res.data : []
-
-        // safety net: махаме 0-те и тук (дори сървъра вече го прави)
         const cleaned = list.filter((u) => Number(u?.streak || 0) > 0)
         setRows(cleaned)
       })
@@ -103,40 +101,28 @@ export default function Leaderboards() {
           <div
             key={`${u.displayName || "user"}_${i}`}
             className="leaderboard-row"
-            style={{
-              // mobile-friendly “card-ish” feel without breaking your grid
-              borderRadius: 14,
-              overflow: "hidden",
-            }}
+            style={{ borderRadius: 14, overflow: "hidden" }}
           >
             <div className="lb-col lb-rank">{i + 1}</div>
 
             <div className="lb-col lb-player">
-              <div
+              <span
                 style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 10,
-                  flexWrap: "wrap",
+                  fontWeight: 900,
+                  padding: "6px 10px",
+                  borderRadius: 999,
+                  ...pill,
+                  maxWidth: "100%",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                  display: "inline-block",
                 }}
+                title={u.displayName || "Unknown"}
               >
-                <span
-                  style={{
-                    fontWeight: 900,
-                    padding: "6px 10px",
-                    borderRadius: 999,
-                    ...pill,
-                    maxWidth: "100%",
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                    whiteSpace: "nowrap",
-                  }}
-                  title={u.displayName || "Unknown"}
-                >
-                  {u.displayName || "Unknown"}
-                  {suffix}
-                </span>
-              </div>
+                {u.displayName || "Unknown"}
+                {suffix}
+              </span>
 
               {u.lastWinDate && (
                 <div className="text-muted" style={{ fontSize: "0.9rem", marginTop: 6 }}>

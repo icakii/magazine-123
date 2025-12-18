@@ -1,4 +1,4 @@
-// server/src/routes/leaderboard.js
+// server/src/routes/leaderboards.js
 const express = require("express")
 const router = express.Router()
 const db = require("../db")
@@ -9,13 +9,15 @@ function utcYmd(date = new Date()) {
 function ymdToDate(ymd) {
   return new Date(`${ymd}T00:00:00.000Z`)
 }
-function daysBetweenUtcYmd(a, b) {
-  return Math.floor((ymdToDate(b) - ymdToDate(a)) / 86400000)
+function daysBetweenUtcYmd(aYmd, bYmd) {
+  const a = ymdToDate(aYmd).getTime()
+  const b = ymdToDate(bYmd).getTime()
+  return Math.floor((b - a) / 86400000)
 }
-function effectiveStreak(raw, lastWin, today) {
-  const s = Number(raw || 0)
-  if (!lastWin || s <= 0) return 0
-  const diff = daysBetweenUtcYmd(lastWin, today)
+function effectiveStreak(rawStreak, lastWinYmd, todayYmd) {
+  const s = Number(rawStreak || 0)
+  if (!lastWinYmd || s <= 0) return 0
+  const diff = daysBetweenUtcYmd(lastWinYmd, todayYmd)
   return diff === 0 || diff === 1 ? s : 0
 }
 
@@ -27,21 +29,20 @@ router.get("/leaderboards", async (req, res) => {
     const { rows } = await db.query(`
       SELECT
         u.display_name AS "displayName",
-        u.wordle_streak AS "rawStreak",
+        COALESCE(u.wordle_streak, 0) AS "rawStreak",
         u.wordle_last_win_date AS "lastWinDate",
         COALESCE(s.plan, 'free') AS "plan"
       FROM users u
       LEFT JOIN subscriptions s ON s.email = u.email
       WHERE u.is_confirmed = true
+      ORDER BY COALESCE(u.wordle_streak, 0) DESC, u.display_name ASC
+      LIMIT 200
     `)
 
-    const data = rows
+    const mapped = rows
       .map((r) => {
-        const lastWin = r.lastWinDate
-          ? String(r.lastWinDate).slice(0, 10)
-          : null
+        const lastWin = r.lastWinDate ? String(r.lastWinDate).slice(0, 10) : null
         const eff = effectiveStreak(r.rawStreak, lastWin, today)
-
         return {
           displayName: r.displayName,
           plan: String(r.plan || "free").toLowerCase(),
@@ -49,13 +50,14 @@ router.get("/leaderboards", async (req, res) => {
           lastWinDate: lastWin,
         }
       })
-      .filter((u) => u.streak > 0) // ❗ махаме всички 0
-      .sort((a, b) => b.streak - a.streak)
+      .filter((u) => Number(u.streak) > 0)
+      .sort((a, b) => b.streak - a.streak || a.displayName.localeCompare(b.displayName))
+      .slice(0, 100)
 
-    res.json(data.slice(0, 100))
+    return res.json(mapped)
   } catch (e) {
     console.error("LEADERBOARD ERROR:", e)
-    res.status(500).json({ error: "Leaderboard failed" })
+    return res.status(500).json({ error: "Failed to load leaderboards" })
   }
 })
 

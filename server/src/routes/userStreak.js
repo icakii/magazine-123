@@ -4,7 +4,6 @@ const router = express.Router()
 const db = require("../db")
 const authMiddleware = require("../middleware/auth.middleware")
 
-// ✅ protect ALL routes here
 router.use(authMiddleware)
 
 function utcTodayISO() {
@@ -54,78 +53,67 @@ router.get("/user/streak", async (req, res) => {
 })
 
 // POST /api/user/streak
-// Body: { reset:true } for reset OR empty body for "win"
+// Body: { reset:true } OR empty body for "win"
 router.post("/user/streak", async (req, res) => {
-  const email = req.user?.email
-  if (!email) return res.status(401).json({ error: "Unauthorized" })
-
-  const today = utcTodayISO()
-  const wantsReset = req.body?.reset === true || req.body?.streak === 0 || req.body?.streak === "0"
-
-  const client = await db.connect()
   try {
-    await client.query("BEGIN")
+    const email = req.user?.email
+    if (!email) return res.status(401).json({ error: "Unauthorized" })
 
-    const { rows } = await client.query(
-      "SELECT wordle_streak, wordle_last_win_date FROM users WHERE email=$1 FOR UPDATE",
-      [email]
-    )
-    const u = rows[0]
-    if (!u) {
-      await client.query("ROLLBACK")
-      return res.status(404).json({ error: "User not found" })
-    }
-
-    const prevStreak = Number(u.wordle_streak || 0)
-    const prevLastWin = u.wordle_last_win_date ? String(u.wordle_last_win_date).slice(0, 10) : null
+    const today = utcTodayISO()
+    const wantsReset = req.body?.reset === true || req.body?.streak === 0 || req.body?.streak === "0"
 
     if (wantsReset) {
-      await client.query(
-        "UPDATE users SET wordle_streak=0, streak=0, wordle_last_win_date=NULL WHERE email=$1",
+      const { rows } = await db.query(
+        "UPDATE users SET wordle_streak=0, streak=0, wordle_last_win_date=NULL WHERE email=$1 RETURNING wordle_streak, wordle_last_win_date",
         [email]
       )
-      await client.query("COMMIT")
       return res.json({ ok: true, streak: 0, effectiveStreak: 0, lastWinDate: null, today })
     }
 
-    // ✅ WIN: idempotent 1 per UTC day
-    if (prevLastWin) {
-      const diff = daysDiff(prevLastWin, today)
+    // ✅ Atomic, safe, 1 win per UTC day
+    // - if already won today -> unchanged
+    // - if last win was yesterday -> +1
+    // - else -> 1
+    const { rows } = await db.query(
+      `
+      UPDATE users
+      SET
+        wordle_streak = CASE
+          WHEN wordle_last_win_date = $2::date THEN wordle_streak
+          WHEN wordle_last_win_date = ($2::date - INTERVAL '1 day') THEN COALESCE(wordle_streak, 0) + 1
+          ELSE 1
+        END,
+        streak = CASE
+          WHEN wordle_last_win_date = $2::date THEN streak
+          WHEN wordle_last_win_date = ($2::date - INTERVAL '1 day') THEN COALESCE(wordle_streak, 0) + 1
+          ELSE 1
+        END,
+        wordle_last_win_date = CASE
+          WHEN wordle_last_win_date = $2::date THEN wordle_last_win_date
+          ELSE $2::date
+        END
+      WHERE email = $1
+      RETURNING wordle_streak, wordle_last_win_date
+      `,
+      [email, today]
+    )
 
-      if (diff === 0) {
-        await client.query("COMMIT")
-        return res.json({
-          ok: true,
-          streak: prevStreak,
-          effectiveStreak: effective(prevStreak, prevLastWin, today),
-          lastWinDate: prevLastWin,
-          today,
-        })
-      }
+    const u = rows[0]
+    if (!u) return res.status(404).json({ error: "User not found" })
 
-      const next = diff === 1 ? prevStreak + 1 : 1
+    const raw = Number(u.wordle_streak || 0)
+    const lastWin = u.wordle_last_win_date ? String(u.wordle_last_win_date).slice(0, 10) : null
 
-      await client.query(
-        "UPDATE users SET wordle_streak=$2, streak=$2, wordle_last_win_date=$3::date WHERE email=$1",
-        [email, next, today]
-      )
-      await client.query("COMMIT")
-      return res.json({ ok: true, streak: next, effectiveStreak: next, lastWinDate: today, today })
-    } else {
-      const next = 1
-      await client.query(
-        "UPDATE users SET wordle_streak=$2, streak=$2, wordle_last_win_date=$3::date WHERE email=$1",
-        [email, next, today]
-      )
-      await client.query("COMMIT")
-      return res.json({ ok: true, streak: next, effectiveStreak: next, lastWinDate: today, today })
-    }
+    return res.json({
+      ok: true,
+      streak: raw,
+      effectiveStreak: raw, // just won today (or already counted today)
+      lastWinDate: lastWin,
+      today,
+    })
   } catch (e) {
-    await client.query("ROLLBACK")
     console.error("POST STREAK ERROR:", e)
     return res.status(500).json({ error: "Failed to update streak" })
-  } finally {
-    client.release()
   }
 })
 

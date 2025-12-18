@@ -2039,3 +2039,11 @@ html[data-theme="dark"] .hamburger .line {
     max-width: 52vw !important;
   }
 }
+/* Drawer left bar spacing (Home / tabs in menu) */
+.drawer-item {
+  padding-left: 28px; /* беше 14px -> повече място за текста */
+}
+
+.drawer-item::before {
+  left: 14px;         /* беше 10px -> местим чертата малко наляво/навътре */
+}

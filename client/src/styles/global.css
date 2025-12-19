@@ -2330,3 +2330,25 @@ body.cart-open .cart-drawer{
   color: var(--clay);
   opacity: 0.95;
 }
+.drawer-item--locked {
+  opacity: 0.75;
+  cursor: not-allowed;
+  background: rgba(196, 106, 74, 0.08);
+}
+
+.drawer-item--locked:hover {
+  transform: none !important;
+  background: rgba(196, 106, 74, 0.10);
+  color: var(--text);
+}
+
+.drawer-lock {
+  margin-left: 6px;
+}
+
+.drawer-note {
+  margin-left: 8px;
+  font-weight: 800;
+  opacity: 0.75;
+  font-size: 0.92rem;
+}

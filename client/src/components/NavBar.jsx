@@ -35,17 +35,17 @@ export default function NavBar() {
   const [showLoginModal, setShowLoginModal] = useState(false)
 
   const navRef = useRef(null)
-  const isAdmin = user && ADMIN_EMAILS.includes(user.email)
+const [isAdmin, setIsAdmin] = useState(false)
 
-  // ✅ Theme persist (works when NavBar exists)
-  useEffect(() => {
-    try {
-      const stored = localStorage.getItem("theme")
-      if (stored === "dark" || stored === "light") {
-        applyTheme(stored)
-      }
-    } catch {}
-  }, [])
+useEffect(() => {
+  api.get("/user/me")
+    .then((res) => {
+      const email = res?.data?.email
+      setIsAdmin(ADMIN_EMAILS.includes(email))
+    })
+    .catch(() => setIsAdmin(false))
+}, [])
+
 
   useEffect(() => {
     function onLangChange(e) {
@@ -174,17 +174,17 @@ export default function NavBar() {
           <Link className="drawer-item" to="/news" onClick={handleProtectedClick}>{t("news")}</Link>
           <Link className="drawer-item" to="/events" onClick={handleProtectedClick}>{t("events")}</Link>
           <Link className="drawer-item" to="/gallery" onClick={handleProtectedClick}>{t("gallery")}</Link>
-{storeOpen ? (
-  <a className="drawer-item" href="/store">Store</a>
+{isAdmin ? (
+  <a className="drawer-item" href="/store">
+    Store
+  </a>
 ) : (
-  <button
-    className="drawer-item drawer-item--locked"
-    type="button"
-    onClick={() => alert("Store is locked. Available on 27.02.26")}
-  >
-    Store <span className="drawer-lock">(🔒 Available on 27.02.26)</span>
-  </button>
-)}          
+  <div className="drawer-item drawer-item--locked" aria-disabled="true">
+    Store <span className="drawer-lock">🔒</span>
+    <span className="drawer-note">(Available on 27.02.26)</span>
+  </div>
+)}
+     
 <Link className="drawer-item" to="/subscriptions" onClick={closeDrawer}>{t("subscriptions")}</Link>
           <Link className="drawer-item" to="/games" onClick={handleProtectedClick}>{t("games")}</Link>
 

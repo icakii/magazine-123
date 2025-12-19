@@ -245,11 +245,22 @@ metadata: {
 
     })
 
-    res.json({ url: session.url })
-  } catch (e) {
-    console.error("STORE CHECKOUT ERROR:", e)
-    res.status(500).json({ error: "Failed to start checkout" })
-  }
+    } catch (e) {
+  console.error("STORE CHECKOUT ERROR:", e)
+
+  // Stripe errors often have: e.type, e.code, e.raw?.message
+  const stripeMsg =
+    e?.raw?.message ||
+    e?.message ||
+    "Failed to start checkout"
+
+  res.status(500).json({
+    error: stripeMsg,
+    type: e?.type || null,
+    code: e?.code || null,
+  })
+}
+
 })
 
 // ----------------------------------------------------

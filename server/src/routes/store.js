@@ -43,6 +43,32 @@ router.get("/store/items", async (req, res) => {
   }
 })
 
+/**
+ * OPTIONAL helper for frontend cart:
+ * returns mapping { [priceId]: { title, imageUrl, category } }
+ * so cart can show titles even if it only stores priceId.
+ *
+ * GET /api/store/price-map
+ */
+router.get("/store/price-map", async (req, res) => {
+  try {
+    const { rows } = await db.query(
+      `SELECT stripe_price_id AS "priceId",
+              title,
+              image_url AS "imageUrl",
+              category
+       FROM store_items
+       WHERE is_active = true`
+    )
+    const map = {}
+    for (const r of rows) map[r.priceId] = r
+    res.json(map)
+  } catch (e) {
+    console.error("STORE PRICE MAP ERROR:", e)
+    res.status(500).json({ error: "Failed to load price map" })
+  }
+})
+
 // ----------------------------------------------------
 // ADMIN CRUD (protected)
 // base: /api/admin/store/...
@@ -71,7 +97,7 @@ router.post("/admin/store/items", authMiddleware, async (req, res) => {
         title,
         description || "",
         imageUrl || "",
-        category || "emagazine",
+        category || "magazine",
         priceId,
         isActive !== false,
         releaseAt || null,
@@ -109,7 +135,7 @@ router.put("/admin/store/items/:id", authMiddleware, async (req, res) => {
         title,
         description || "",
         imageUrl || "",
-        category || "emagazine",
+        category || "magazine",
         priceId,
         isActive !== false,
         releaseAt || null,
@@ -180,15 +206,73 @@ router.post("/store/checkout", async (req, res) => {
       mode: "payment",
       payment_method_types: ["card"],
       line_items,
+
       success_url: `${APP_URL}${successPath || "/profile?order_success=true"}`,
       cancel_url: `${APP_URL}${cancelPath || "/store?canceled=true"}`,
-      allow_promotion_codes: true,
+
+      // ✅ Collect phone
+      phone_number_collection: { enabled: true },
+
+      // ✅ Collect address (shipping)
+      shipping_address_collection: {
+        allowed_countries: ["BG"],
+      },
+
+      // ✅ “Tri imena”
+      custom_fields: [
+        {
+          key: "full_name",
+          label: { type: "custom", custom: "Three names (Три имена)" },
+          type: "text",
+          text: { minimum_length: 5, maximum_length: 80 },
+          optional: false,
+        },
+      ],
+
+      // ✅ Useful to find in Stripe
+      metadata: {
+        source: "miren_store",
+      },
     })
 
     res.json({ url: session.url })
   } catch (e) {
     console.error("STORE CHECKOUT ERROR:", e)
     res.status(500).json({ error: "Failed to start checkout" })
+  }
+})
+
+// ----------------------------------------------------
+// ADMIN: List latest paid orders (from DB)
+// GET /api/admin/store/orders?limit=20
+// ----------------------------------------------------
+router.get("/admin/store/orders", authMiddleware, async (req, res) => {
+  try {
+    const email = req.user?.email
+    if (!email) return res.status(401).json({ error: "Unauthorized" })
+    if (!isAdmin(email)) return res.status(403).json({ error: "Admin access required" })
+
+    const limit = Math.max(1, Math.min(200, Number(req.query.limit || 20)))
+
+    const { rows } = await db.query(
+      `SELECT id,
+              stripe_session_id AS "stripeSessionId",
+              created_at AS "createdAt",
+              customer_email AS "customerEmail",
+              full_name AS "fullName",
+              phone AS "phone",
+              shipping_address AS "shippingAddress",
+              items AS "items"
+       FROM store_orders
+       ORDER BY created_at DESC
+       LIMIT $1`,
+      [limit]
+    )
+
+    res.json(rows)
+  } catch (e) {
+    console.error("ADMIN LIST STORE ORDERS ERROR:", e)
+    res.status(500).json({ error: "Failed to load orders" })
   }
 })
 

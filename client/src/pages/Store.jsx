@@ -11,11 +11,7 @@ function normalizeItem(raw) {
     description: it.description,
     imageUrl: it.imageUrl || it.image_url || null,
     category: it.category || "misc",
-    stripePriceId:
-      it.stripePriceId ||
-      it.stripe_price_id ||
-      it.priceId ||
-      null,
+    stripePriceId: it.stripePriceId || it.stripe_price_id || it.priceId || null,
     isActive:
       typeof it.isActive === "boolean"
         ? it.isActive
@@ -24,6 +20,9 @@ function normalizeItem(raw) {
           : true,
   }
 }
+
+const prettyTitle = (t) =>
+  t ? String(t).replace(/e-?magazine/gi, "Magazine") : ""
 
 export default function Store() {
   const [items, setItems] = useState([])
@@ -60,6 +59,15 @@ export default function Store() {
     }
   }, [])
 
+  // ✅ Map: priceId -> item (for showing titles inside cart)
+  const priceToItem = useMemo(() => {
+    const m = new Map()
+    for (const it of items) {
+      if (it?.stripePriceId) m.set(it.stripePriceId, it)
+    }
+    return m
+  }, [items])
+
   const cartCount = useMemo(
     () => cart.reduce((a, b) => a + (Number(b.qty) || 0), 0),
     [cart]
@@ -94,8 +102,6 @@ export default function Store() {
     openCart()
   }
 
-  const prettyTitle = (t) => (t ? String(t).replace(/e-?magazine/gi, "Magazine") : "")
-
   return (
     <div className="page">
       <div className="store-head">
@@ -120,19 +126,27 @@ export default function Store() {
       ) : (
         <div className="store-grid">
           {items.map((it) => (
-            <div
-              key={it.id || it.stripePriceId || Math.random()}
-              className="store-card"
-            >
+            <div key={it.id || it.stripePriceId} className="store-card">
               {it.imageUrl && (
-                <img className="store-img" src={it.imageUrl} alt={prettyTitle(it.title)} loading="lazy" />
+                <img
+                  className="store-img"
+                  src={it.imageUrl}
+                  alt={prettyTitle(it.title)}
+                  loading="lazy"
+                />
               )}
 
               <div className="store-body">
                 <div className="store-title">{prettyTitle(it.title)}</div>
-                {it.description && <div className="store-desc">{it.description}</div>}
+                {it.description && (
+                  <div className="store-desc">{it.description}</div>
+                )}
 
-                <button className="btn primary store-btn" onClick={() => addItem(it)} type="button">
+                <button
+                  className="btn primary store-btn"
+                  onClick={() => addItem(it)}
+                  type="button"
+                >
                   Add to cart
                 </button>
               </div>
@@ -145,7 +159,9 @@ export default function Store() {
       <div className="cart-drawer">
         <div className="cart-top">
           <div className="cart-title">Your Cart</div>
-          <button className="cart-close" onClick={closeCart} type="button">✕</button>
+          <button className="cart-close" onClick={closeCart} type="button">
+            ✕
+          </button>
         </div>
 
         {cart.length === 0 ? (
@@ -153,18 +169,37 @@ export default function Store() {
         ) : (
           <>
             <div className="cart-items">
-              {cart.map((c) => (
-                <div key={c.priceId} className="cart-row">
-                  <div className="cart-priceid">{c.priceId}</div>
-                  <div className="cart-qty">x{c.qty}</div>
-                  <button className="cart-remove" onClick={() => setCart(removeFromCart(c.priceId))} type="button">
-                    remove
-                  </button>
-                </div>
-              ))}
+              {cart.map((c) => {
+                const it = priceToItem.get(c.priceId)
+                const title = it?.title ? prettyTitle(it.title) : null
+                return (
+                  <div key={c.priceId} className="cart-row">
+                    <div className="cart-priceid">
+                      {title || c.priceId}
+                      {it?.category ? (
+                        <span className="cart-tag">{it.category}</span>
+                      ) : null}
+                    </div>
+
+                    <div className="cart-qty">x{c.qty}</div>
+
+                    <button
+                      className="cart-remove"
+                      onClick={() => setCart(removeFromCart(c.priceId))}
+                      type="button"
+                    >
+                      remove
+                    </button>
+                  </div>
+                )
+              })}
             </div>
 
-            <button className="btn primary cart-checkout" onClick={startCheckout} type="button">
+            <button
+              className="btn primary cart-checkout"
+              onClick={startCheckout}
+              type="button"
+            >
               Checkout with Stripe ⚡
             </button>
           </>

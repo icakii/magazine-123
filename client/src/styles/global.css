@@ -2300,3 +2300,14 @@ body.cart-open .cart-drawer{
   background: rgba(107,123,78,.92);
   border: 1px solid rgba(30,30,30,.18);
 }
+.cart-tag{
+  margin-left: 10px;
+  display:inline-flex;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(30,30,30,.18);
+  background: rgba(196,106,74,.10);
+  font-weight: 900;
+  font-size: .85rem;
+  opacity: .9;
+}

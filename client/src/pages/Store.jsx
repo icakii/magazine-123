@@ -2,52 +2,20 @@ import { useEffect, useMemo, useState } from "react"
 import { api } from "../lib/api"
 import { addToCart, getCart, removeFromCart } from "../lib/cart"
 
-const DEFAULT_RELEASE = "2026-02-27" // ако item няма release в DB
-
-function ymdTodayUTC() {
-  return new Date().toISOString().slice(0, 10)
-}
-
-function isReleased(releaseAt) {
-  if (!releaseAt) return true
-  return ymdTodayUTC() >= String(releaseAt).slice(0, 10)
-}
-
-// normalize snake_case -> camel-ish + keep originals too
 function normalizeItem(raw) {
   const it = raw || {}
   return {
     ...it,
-
-    // IDs
     id: it.id,
-
-    // text
     title: it.title,
     description: it.description,
-
-    // image
     imageUrl: it.imageUrl || it.image_url || null,
-
-    // category
     category: it.category || "misc",
-
-    // stripe
     stripePriceId:
       it.stripePriceId ||
       it.stripe_price_id ||
-      it.stripe_priceId || // just in case someone named it weird
-      it.priceId || // fallback
+      it.priceId ||
       null,
-
-    // release
-    releaseAt:
-      it.releaseAt ||
-      it.release_at ||
-      it.release ||
-      null,
-
-    // active
     isActive:
       typeof it.isActive === "boolean"
         ? it.isActive
@@ -77,7 +45,7 @@ export default function Store() {
         const normalized = arr.map(normalizeItem).filter((x) => x && x.isActive)
 
         setItems(normalized)
-      } catch (e) {
+      } catch {
         if (!alive) return
         setErr("Failed to load store.")
         setItems([])
@@ -126,11 +94,7 @@ export default function Store() {
     openCart()
   }
 
-  // UI label tweak (Magazine вместо E-Magazine)
-  const prettyTitle = (t) => {
-    if (!t) return ""
-    return String(t).replace(/e-?magazine/gi, "Magazine")
-  }
+  const prettyTitle = (t) => (t ? String(t).replace(/e-?magazine/gi, "Magazine") : "")
 
   return (
     <div className="page">
@@ -142,7 +106,7 @@ export default function Store() {
           {!loading && err && <p className="msg warning">{err}</p>}
 
           {!loading && !err && items.length === 0 && (
-            <p className="msg">No items yet. Coming soon.</p>
+            <p className="msg">No items yet. Add one in DB.</p>
           )}
         </div>
 
@@ -155,50 +119,25 @@ export default function Store() {
         <p className="subhead">Loading…</p>
       ) : (
         <div className="store-grid">
-          {items.map((it) => {
-            const releaseAt = it.releaseAt || DEFAULT_RELEASE
-            const locked = !isReleased(releaseAt)
+          {items.map((it) => (
+            <div
+              key={it.id || it.stripePriceId || Math.random()}
+              className="store-card"
+            >
+              {it.imageUrl && (
+                <img className="store-img" src={it.imageUrl} alt={prettyTitle(it.title)} loading="lazy" />
+              )}
 
-            return (
-              <div
-                key={it.id || it.stripePriceId || Math.random()}
-                className={`store-card ${locked ? "locked" : ""}`}
-              >
-                {it.imageUrl && (
-                  <img
-                    className="store-img"
-                    src={it.imageUrl}
-                    alt={prettyTitle(it.title)}
-                    loading="lazy"
-                  />
-                )}
+              <div className="store-body">
+                <div className="store-title">{prettyTitle(it.title)}</div>
+                {it.description && <div className="store-desc">{it.description}</div>}
 
-                <div className="store-body">
-                  <div className="store-title">{prettyTitle(it.title)}</div>
-
-                  {it.description && (
-                    <div className="store-desc">
-                      {String(it.description).replace(/e-?magazine/gi, "Magazine")}
-                    </div>
-                  )}
-
-                  {locked ? (
-                    <button className="btn outline store-btn" disabled type="button">
-                      Order on 27 Feb 🔒
-                    </button>
-                  ) : (
-                    <button
-                      className="btn primary store-btn"
-                      onClick={() => addItem(it)}
-                      type="button"
-                    >
-                      Add to cart
-                    </button>
-                  )}
-                </div>
+                <button className="btn primary store-btn" onClick={() => addItem(it)} type="button">
+                  Add to cart
+                </button>
               </div>
-            )
-          })}
+            </div>
+          ))}
         </div>
       )}
 
@@ -206,9 +145,7 @@ export default function Store() {
       <div className="cart-drawer">
         <div className="cart-top">
           <div className="cart-title">Your Cart</div>
-          <button className="cart-close" onClick={closeCart} type="button">
-            ✕
-          </button>
+          <button className="cart-close" onClick={closeCart} type="button">✕</button>
         </div>
 
         {cart.length === 0 ? (
@@ -220,22 +157,14 @@ export default function Store() {
                 <div key={c.priceId} className="cart-row">
                   <div className="cart-priceid">{c.priceId}</div>
                   <div className="cart-qty">x{c.qty}</div>
-                  <button
-                    className="cart-remove"
-                    onClick={() => setCart(removeFromCart(c.priceId))}
-                    type="button"
-                  >
+                  <button className="cart-remove" onClick={() => setCart(removeFromCart(c.priceId))} type="button">
                     remove
                   </button>
                 </div>
               ))}
             </div>
 
-            <button
-              className="btn primary cart-checkout"
-              onClick={startCheckout}
-              type="button"
-            >
+            <button className="btn primary cart-checkout" onClick={startCheckout} type="button">
               Checkout with Stripe ⚡
             </button>
           </>

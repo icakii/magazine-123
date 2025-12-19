@@ -43,28 +43,36 @@ app.use("/api", storeRouter)
 
 app.set("trust proxy", 1)
 
-app.use(
-  cors({
-    origin: (origin, cb) => {
-      // allow server-to-server / curl (no origin)
-      if (!origin) return cb(null, true)
+// ---------------------------------------------------------------
+// CORS (FIX: allow Render frontend + localhost + credentials)
+// ---------------------------------------------------------------
+const allowedOrigins = [
+  process.env.FRONTEND_URL,          // e.g. https://miren-app.onrender.com
+  process.env.APP_URL,               // ако ползваш отделно
+  "http://localhost:5173",
+  "http://localhost:8080",
+  "https://miren-app.onrender.com",
+].filter(Boolean)
 
-      if (ALLOWED_ORIGINS.includes(origin)) return cb(null, true)
+const corsOptions = {
+  origin: (origin, cb) => {
+    // allow server-to-server / curl / Postman (no Origin header)
+    if (!origin) return cb(null, true)
 
-      // block everything else
-      return cb(new Error("CORS blocked: " + origin))
-    },
-    credentials: true,
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
-  })
-)
+    if (allowedOrigins.includes(origin)) return cb(null, true)
 
-// ✅ make sure preflight always works for /api/*
-app.options("/api/*", cors())
+    return cb(new Error(`CORS blocked for origin: ${origin}`))
+  },
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+}
 
+app.use(cors(corsOptions))
 
-app.options("*", cors())
+// IMPORTANT: preflight must use SAME options
+app.options("*", cors(corsOptions))
+
 
 // ---------------------------------------------------------------
 // 2. STRIPE WEBHOOK  (трябва да е ПРЕДИ express.json())

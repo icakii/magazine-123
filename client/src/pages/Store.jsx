@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react"
 import { api } from "../lib/api"
 import { addToCart, getCart, removeFromCart } from "../lib/cart"
 
-const DEFAULT_RELEASE = "2026-02-27" // ако item няма releaseAt в DB, ползва това
+const DEFAULT_RELEASE = "2026-02-27" // ако item няма release в DB
 
 function ymdTodayUTC() {
   return new Date().toISOString().slice(0, 10)
@@ -11,6 +11,50 @@ function ymdTodayUTC() {
 function isReleased(releaseAt) {
   if (!releaseAt) return true
   return ymdTodayUTC() >= String(releaseAt).slice(0, 10)
+}
+
+// normalize snake_case -> camel-ish + keep originals too
+function normalizeItem(raw) {
+  const it = raw || {}
+  return {
+    ...it,
+
+    // IDs
+    id: it.id,
+
+    // text
+    title: it.title,
+    description: it.description,
+
+    // image
+    imageUrl: it.imageUrl || it.image_url || null,
+
+    // category
+    category: it.category || "misc",
+
+    // stripe
+    stripePriceId:
+      it.stripePriceId ||
+      it.stripe_price_id ||
+      it.stripe_priceId || // just in case someone named it weird
+      it.priceId || // fallback
+      null,
+
+    // release
+    releaseAt:
+      it.releaseAt ||
+      it.release_at ||
+      it.release ||
+      null,
+
+    // active
+    isActive:
+      typeof it.isActive === "boolean"
+        ? it.isActive
+        : typeof it.is_active === "boolean"
+          ? it.is_active
+          : true,
+  }
 }
 
 export default function Store() {
@@ -28,7 +72,11 @@ export default function Store() {
         setErr("")
         const res = await api.get("/store/items")
         if (!alive) return
-        setItems(Array.isArray(res.data) ? res.data : [])
+
+        const arr = Array.isArray(res.data) ? res.data : []
+        const normalized = arr.map(normalizeItem).filter((x) => x && x.isActive)
+
+        setItems(normalized)
       } catch (e) {
         if (!alive) return
         setErr("Failed to load store.")
@@ -69,14 +117,19 @@ export default function Store() {
   }
 
   const addItem = (it) => {
-    // backend items should provide priceId (stripe_price_id)
-    const priceId = it.priceId || it.stripePriceId || it.stripe_price_id
+    const priceId = it?.stripePriceId
     if (!priceId) {
-      alert("This item is missing Stripe priceId.")
+      alert("This item is missing Stripe priceId (stripe_price_id).")
       return
     }
     setCart(addToCart(priceId, 1))
     openCart()
+  }
+
+  // UI label tweak (Magazine вместо E-Magazine)
+  const prettyTitle = (t) => {
+    if (!t) return ""
+    return String(t).replace(/e-?magazine/gi, "Magazine")
   }
 
   return (
@@ -103,24 +156,42 @@ export default function Store() {
       ) : (
         <div className="store-grid">
           {items.map((it) => {
-            const locked = !isReleased(it.releaseAt || DEFAULT_RELEASE)
+            const releaseAt = it.releaseAt || DEFAULT_RELEASE
+            const locked = !isReleased(releaseAt)
 
             return (
-              <div key={it.id} className={`store-card ${locked ? "locked" : ""}`}>
+              <div
+                key={it.id || it.stripePriceId || Math.random()}
+                className={`store-card ${locked ? "locked" : ""}`}
+              >
                 {it.imageUrl && (
-                  <img className="store-img" src={it.imageUrl} alt={it.title} />
+                  <img
+                    className="store-img"
+                    src={it.imageUrl}
+                    alt={prettyTitle(it.title)}
+                    loading="lazy"
+                  />
                 )}
 
                 <div className="store-body">
-                  <div className="store-title">{it.title}</div>
-                  {it.description && <div className="store-desc">{it.description}</div>}
+                  <div className="store-title">{prettyTitle(it.title)}</div>
+
+                  {it.description && (
+                    <div className="store-desc">
+                      {String(it.description).replace(/e-?magazine/gi, "Magazine")}
+                    </div>
+                  )}
 
                   {locked ? (
-                    <button className="btn outline store-btn" disabled>
+                    <button className="btn outline store-btn" disabled type="button">
                       Order on 27 Feb 🔒
                     </button>
                   ) : (
-                    <button className="btn primary store-btn" onClick={() => addItem(it)}>
+                    <button
+                      className="btn primary store-btn"
+                      onClick={() => addItem(it)}
+                      type="button"
+                    >
                       Add to cart
                     </button>
                   )}
@@ -160,7 +231,11 @@ export default function Store() {
               ))}
             </div>
 
-            <button className="btn primary cart-checkout" onClick={startCheckout} type="button">
+            <button
+              className="btn primary cart-checkout"
+              onClick={startCheckout}
+              type="button"
+            >
               Checkout with Stripe ⚡
             </button>
           </>

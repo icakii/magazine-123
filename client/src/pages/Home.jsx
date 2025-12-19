@@ -6,17 +6,20 @@ import { useAuth } from "../hooks/useAuth"
 import { t } from "../lib/i18n"
 import { api } from "../lib/api"
 import HeroIntro from "./HeroIntro"
+import { clearCart } from "../lib/cart"
 
 export default function Home() {
-  const { user, hasSubscription } = useAuth()
-  const [featured, setFeatured] = useState([])
-  const [selectedArticle, setSelectedArticle] = useState(null)
-
   useEffect(() => {
-    api
-      .get("/articles?category=home")
-      .then((res) => setFeatured(res.data || []))
-      .catch(() => {})
+    const url = new URL(window.location.href)
+    const ok = url.searchParams.get("order_success") === "true"
+    if (ok) {
+      clearCart()
+      document.body.classList.remove("cart-open")
+
+      // махаме query-то, за да не чисти пак при refresh
+      url.searchParams.delete("order_success")
+      window.history.replaceState({}, "", url.pathname + url.search)
+    }
   }, [])
 
   return (

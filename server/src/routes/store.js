@@ -233,5 +233,70 @@ router.post("/store/checkout", async (req, res) => {
     })
   }
 })
+// ----------------------------------------------------
+// ADMIN: list paid orders from Stripe (no DB)
+// GET /api/admin/store/orders
+// ----------------------------------------------------
+router.get("/admin/store/orders", authMiddleware, async (req, res) => {
+  try {
+    const email = req.user?.email
+    if (!email) return res.status(401).json({ error: "Unauthorized" })
+    if (!isAdmin(email)) return res.status(403).json({ error: "Admin access required" })
+
+    // last 50 sessions (paid)
+    const sessions = await stripe.checkout.sessions.list({
+      limit: 50,
+    })
+
+    // keep only paid "payment" sessions
+    const paid = (sessions.data || []).filter(
+      (s) => s.mode === "payment" && s.payment_status === "paid"
+    )
+
+    // fetch line items for each (Stripe API call per session)
+    const mapped = await Promise.all(
+      paid.map(async (s) => {
+        let lineItems = []
+        try {
+          const li = await stripe.checkout.sessions.listLineItems(s.id, { limit: 100 })
+          lineItems = (li.data || []).map((x) => ({
+            description: x.description,
+            quantity: x.quantity,
+            amount_total: x.amount_total,
+            currency: x.currency,
+          }))
+        } catch {
+          lineItems = []
+        }
+
+        const shipping = s.shipping_details || null
+        const customer = s.customer_details || null
+
+        // custom_fields contains your “three names”
+        const customFields = Array.isArray(s.custom_fields) ? s.custom_fields : []
+        const fullNameField = customFields.find((f) => f?.key === "full_name")
+        const fullName = fullNameField?.text?.value || ""
+
+        return {
+          id: s.id,
+          created: s.created,
+          amount_total: s.amount_total,
+          currency: s.currency,
+          customer_email: customer?.email || "",
+          customer_phone: customer?.phone || "",
+          full_name: fullName,
+          shipping_name: shipping?.name || "",
+          shipping_address: shipping?.address || null,
+          line_items: lineItems,
+        }
+      })
+    )
+
+    res.json(mapped)
+  } catch (e) {
+    console.error("ADMIN ORDERS ERROR:", e)
+    res.status(500).json({ error: "Failed to load orders" })
+  }
+})
 
 module.exports = router

@@ -8,6 +8,7 @@ const CLOUDINARY_IMAGE_URL = "https://api.cloudinary.com/v1_1/dwezdx5zn/image/up
 const CLOUDINARY_VIDEO_URL = "https://api.cloudinary.com/v1_1/dwezdx5zn/video/upload"
 const UPLOAD_PRESET = "ml_default"
 const ADMIN_EMAILS = ["icaki06@gmail.com", "icaki2k@gmail.com", "mirenmagazine@gmail.com"]
+const [orders, setOrders] = useState([])
 
 const NEWS_CATEGORIES = [
   "Sports",
@@ -72,7 +73,7 @@ export default function AdminPanel() {
   })
 
   // добавяме hero tab
-  const tabs = ["home", "news", "events", "gallery", "magazine", "hero", "newsletter"]
+  const tabs = ["home", "news", "events", "gallery", "magazine", "hero", "newsletter", "orders"]
 
   useEffect(() => {
     if (!loading && user && ADMIN_EMAILS.includes(user.email)) {
@@ -95,10 +96,16 @@ export default function AdminPanel() {
       } else if (activeTab === "newsletter") {
         const res = await api.get("/newsletter/subscribers")
         setSubscribers(res.data || [])
-      } else {
+      }
+      else if (activeTab === "orders") {
+  const res = await api.get("/admin/store/orders")
+  setOrders(res.data || [])
+}
+ else {
         const res = await api.get(`/articles?category=${activeTab}`)
         setItems(res.data || [])
       }
+      
     } catch (err) {
       console.error(err)
     }
@@ -912,6 +919,81 @@ export default function AdminPanel() {
           ))}
         </div>
       )}
+      {activeTab === "orders" && (
+  <div className="stack">
+    <h3>Orders</h3>
+    <p style={{ color: "var(--text-muted)" }}>
+      Paid orders from Stripe Checkout (no DB).
+    </p>
+
+    <button className="btn primary" type="button" onClick={loadData}>
+      Refresh
+    </button>
+
+    {orders.length === 0 ? (
+      <div className="card" style={{ padding: 18 }}>
+        <p>No paid orders yet.</p>
+      </div>
+    ) : (
+      <div className="stack">
+        {orders.map((o) => (
+          <div key={o.id} className="card" style={{ padding: 16 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", gap: 10, flexWrap: "wrap" }}>
+              <div>
+                <div><b>Order:</b> {o.id}</div>
+                <div className="text-muted">
+                  {new Date((o.created || 0) * 1000).toLocaleString()}
+                </div>
+              </div>
+              <div>
+                <b>Total:</b> {(o.amount_total || 0) / 100} {String(o.currency || "").toUpperCase()}
+              </div>
+            </div>
+
+            <hr style={{ margin: "12px 0" }} />
+
+            <div><b>Three names:</b> {o.full_name || "-"}</div>
+            <div><b>Email:</b> {o.customer_email || "-"}</div>
+            <div><b>Phone:</b> {o.customer_phone || "-"}</div>
+
+            {o.shipping_address && (
+              <div style={{ marginTop: 10 }}>
+                <b>Address:</b>
+                <div className="text-muted">
+                  {o.shipping_name ? <div>{o.shipping_name}</div> : null}
+                  <div>{o.shipping_address.line1 || ""}</div>
+                  {o.shipping_address.line2 ? <div>{o.shipping_address.line2}</div> : null}
+                  <div>
+                    {(o.shipping_address.postal_code || "")} {(o.shipping_address.city || "")}
+                  </div>
+                  <div>{o.shipping_address.country || ""}</div>
+                </div>
+              </div>
+            )}
+
+            <div style={{ marginTop: 10 }}>
+              <b>Items:</b>
+              <div className="text-muted" style={{ marginTop: 6 }}>
+                {(o.line_items || []).length ? (
+                  <ul style={{ margin: 0, paddingLeft: 18 }}>
+                    {o.line_items.map((li, idx) => (
+                      <li key={idx}>
+                        {li.description} x{li.quantity}
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <div>-</div>
+                )}
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    )}
+  </div>
+)}
+
     </div>
   )
 }

@@ -78,10 +78,11 @@ export default function Store() {
       }))
 
       const res = await api.post("/store/checkout", {
-        items: payloadItems,
-        successPath: "/profile?order_success=true",
-        cancelPath: "/store?canceled=true",
-      })
+  items: payloadItems,
+  successPath: "/?order_success=true",
+  cancelPath: "/store?canceled=true",
+})
+
 
       if (res?.data?.url) {
         window.location.href = res.data.url

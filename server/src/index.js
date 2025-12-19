@@ -71,6 +71,9 @@ app.use(cookieParser())
 // ---------------------------------------------------------------
 // 3) STRIPE WEBHOOK  (трябва да е ПРЕДИ express.json())
 // ---------------------------------------------------------------
+// ---------------------------------------------------------------
+// 2. STRIPE WEBHOOK  (трябва да е ПРЕДИ express.json())
+// ---------------------------------------------------------------
 app.post(
   "/api/stripe-webhook",
   express.raw({ type: "application/json" }),
@@ -86,29 +89,115 @@ app.post(
       return res.status(400).send(`Webhook Error: ${err.message}`)
     }
 
-    if (event.type === "checkout.session.completed") {
-      const session = event.data.object
-      const customerEmail = session.customer_details.email
+    try {
+      if (event.type === "checkout.session.completed") {
+        const session = event.data.object
+        const customerEmail = session?.customer_details?.email || ""
 
-      if (session.payment_status === "paid" && session.mode === "subscription") {
-        let plan = "free"
-        if (session.amount_total === 499) plan = "monthly"
-        if (session.amount_total === 4999) plan = "yearly"
+        // -----------------------------------------------------------
+        // ✅ SUBSCRIPTIONS (existing logic)
+        // -----------------------------------------------------------
+        if (session.payment_status === "paid" && session.mode === "subscription") {
+          let plan = "free"
+          if (session.amount_total === 499) plan = "monthly"
+          if (session.amount_total === 4999) plan = "yearly"
 
-        try {
-          await db.query("UPDATE subscriptions SET plan = $1 WHERE email = $2", [
-            plan,
-            customerEmail,
-          ])
-        } catch (dbErr) {
-          console.error("DB UPDATE ERROR:", dbErr)
+          try {
+            await db.query("UPDATE subscriptions SET plan = $1 WHERE email = $2", [
+              plan,
+              customerEmail,
+            ])
+          } catch (dbErr) {
+            console.error("DB UPDATE ERROR:", dbErr)
+          }
+        }
+
+        // -----------------------------------------------------------
+        // ✅ STORE ORDERS EMAIL (mode=payment)
+        // Sends shipping address + phone + “Three names”
+        // -----------------------------------------------------------
+        if (session.payment_status === "paid" && session.mode === "payment") {
+          try {
+            const adminTo = [
+              "mirenmagazine@gmail.com",
+              "icaki06@gmail.com",
+              "icaki2k@gmail.com",
+            ]
+
+            // line items
+            let lines = "(no items)"
+            try {
+              const items = await stripe.checkout.sessions.listLineItems(session.id, {
+                limit: 100,
+              })
+              lines = (items.data || [])
+                .map((x) => `• ${x.description} x${x.quantity}`)
+                .join("<br/>") || "(no items)"
+            } catch (liErr) {
+              console.error("LINE ITEMS ERROR:", liErr)
+            }
+
+            const customer = session.customer_details || {}
+            const shipping = session.shipping_details || {}
+            const addr = shipping.address || {}
+
+            // custom_fields contains your “Three names”
+            const customFields = Array.isArray(session.custom_fields)
+              ? session.custom_fields
+              : []
+            const fullNameField = customFields.find((f) => f?.key === "full_name")
+            const fullName = fullNameField?.text?.value || ""
+
+            const total = ((session.amount_total || 0) / 100).toFixed(2)
+            const currency = String(session.currency || "").toUpperCase()
+
+            const html = `
+              <h2>✅ New Paid Order</h2>
+
+              <p><b>Session:</b> ${session.id}</p>
+              <p><b>Total:</b> ${total} ${currency}</p>
+
+              <hr/>
+
+              <p><b>Three names (Три имена):</b> ${fullName || "(not provided)"}</p>
+              <p><b>Email:</b> ${customer.email || ""}</p>
+              <p><b>Phone:</b> ${customer.phone || ""}</p>
+
+              <p><b>Shipping name:</b> ${shipping.name || ""}</p>
+
+              <p><b>Address:</b><br/>
+                ${addr.line1 || ""}<br/>
+                ${addr.line2 || ""}<br/>
+                ${addr.postal_code || ""} ${addr.city || ""}<br/>
+                ${addr.country || ""}
+              </p>
+
+              <hr/>
+
+              <p><b>Items:</b><br/>${lines}</p>
+            `
+
+            await transporter.sendMail({
+              from: `"MIREN Orders" <${process.env.EMAIL_USER}>`,
+              to: adminTo.join(","),
+              subject: `New Order • ${session.id}`,
+              html,
+            })
+          } catch (mailErr) {
+            console.error("ORDER EMAIL ERROR:", mailErr)
+          }
         }
       }
-    }
 
-    res.json({ received: true })
+      // Stripe expects 200 fast
+      return res.json({ received: true })
+    } catch (e) {
+      console.error("WEBHOOK HANDLER ERROR:", e)
+      return res.json({ received: true }) // still 200 so Stripe doesn't keep retrying forever
+    }
   }
 )
+
 
 // ---------------------------------------------------------------
 // 4) BODY PARSERS (след webhook-а)

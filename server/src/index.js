@@ -3,7 +3,7 @@
 // ================================================================
 
 require("dotenv").config()
-express = require("express")
+const express = require("express")
 const rateLimit = require("express-rate-limit")
 const cors = require("cors")
 const cookieParser = require("cookie-parser")
@@ -14,44 +14,33 @@ const crypto = require("crypto")
 const db = require("./db")
 const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY)
 const helmet = require("helmet")
-const storeRouter = require("./routes/store")
 
+// ✅ ROUTERS
+const storeRouter = require("./routes/store")
+const userStreakRouter = require("./routes/userStreak")
+const leaderboardsRouter = require("./routes/leaderboards")
 
 const app = express()
+
 const PORT = process.env.PORT || 8080
 const JWT_SECRET = process.env.JWT_SECRET || "super-secret-key-change-this"
 const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:5173"
 const APP_URL = process.env.APP_URL || "http://localhost:5173"
 
-const ALLOWED_ORIGINS = [
-  FRONTEND_URL,
-  "https://miren-app.onrender.com",
-  "http://localhost:5173",
-].filter(Boolean)
-
-// ✅ ROUTERS (must exist as files)
-
 // ---------------------------------------------------------------
-// 1. CONFIG & BASE MIDDLEWARE
+// 0) TRUST PROXY (Render)
 // ---------------------------------------------------------------
-app.set("trust proxy", 1) // за Render
-
-app.use(helmet())
-app.use(cookieParser())
-
-app.use("/api", storeRouter)
-
 app.set("trust proxy", 1)
 
 // ---------------------------------------------------------------
-// CORS (FIX: allow Render frontend + localhost + credentials)
+// 1) CORS (FIXED) — MUST be BEFORE ANY /api routes
 // ---------------------------------------------------------------
-const allowedOrigins = [
-  process.env.FRONTEND_URL,          // e.g. https://miren-app.onrender.com
-  process.env.APP_URL,               // ако ползваш отделно
+const ALLOWED_ORIGINS = [
+  FRONTEND_URL,
+  APP_URL,
+  "https://miren-app.onrender.com",
   "http://localhost:5173",
   "http://localhost:8080",
-  "https://miren-app.onrender.com",
 ].filter(Boolean)
 
 const corsOptions = {
@@ -59,8 +48,10 @@ const corsOptions = {
     // allow server-to-server / curl / Postman (no Origin header)
     if (!origin) return cb(null, true)
 
-    if (allowedOrigins.includes(origin)) return cb(null, true)
+    // ✅ allow your known frontends
+    if (ALLOWED_ORIGINS.includes(origin)) return cb(null, true)
 
+    // (if you want "works no matter what", replace next line with: return cb(null, true)
     return cb(new Error(`CORS blocked for origin: ${origin}`))
   },
   credentials: true,
@@ -69,13 +60,16 @@ const corsOptions = {
 }
 
 app.use(cors(corsOptions))
-
-// IMPORTANT: preflight must use SAME options
 app.options("*", cors(corsOptions))
 
+// ---------------------------------------------------------------
+// 2) SECURITY + COOKIES
+// ---------------------------------------------------------------
+app.use(helmet())
+app.use(cookieParser())
 
 // ---------------------------------------------------------------
-// 2. STRIPE WEBHOOK  (трябва да е ПРЕДИ express.json())
+// 3) STRIPE WEBHOOK  (трябва да е ПРЕДИ express.json())
 // ---------------------------------------------------------------
 app.post(
   "/api/stripe-webhook",
@@ -117,16 +111,16 @@ app.post(
 )
 
 // ---------------------------------------------------------------
-// 3. BODY PARSERS (след webhook-а)
+// 4) BODY PARSERS (след webhook-а)
 // ---------------------------------------------------------------
 app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
 
 // ---------------------------------------------------------------
-// 4. AUTH HELPERS
+// 5) AUTH HELPERS
 // ---------------------------------------------------------------
 function authMiddleware(req, res, next) {
-  let token = req.cookies["auth"]
+  let token = req.cookies?.auth
 
   // allow Bearer token (mobile / Safari)
   if (!token && req.headers.authorization) {
@@ -177,14 +171,12 @@ function setAuthCookie(res, token) {
   })
 }
 
-
-
 // ---------------------------------------------------------------
-// 5. RATE LIMITING
+// 6) RATE LIMITING
 // ---------------------------------------------------------------
 const loginLimiter = rateLimit({
-  windowMs: 10 * 60 * 1000, // 10 минути
-  max: 10, // макс 10 login опита / 10 мин
+  windowMs: 10 * 60 * 1000,
+  max: 10,
   message: { error: "Too many login attempts, try again later." },
 })
 
@@ -199,7 +191,7 @@ app.use("/api/auth/reset-password-request", loginLimiter)
 app.use("/api/contact", contactLimiter)
 
 // ---------------------------------------------------------------
-// 6. EMAIL TRANSPORTER (Gmail SMTP + verify + pool)
+// 7) EMAIL TRANSPORTER
 // ---------------------------------------------------------------
 const transporter = nodemailer.createTransport({
   host: "smtp.gmail.com",
@@ -210,34 +202,28 @@ const transporter = nodemailer.createTransport({
   maxMessages: 50,
   auth: {
     user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS, // MUST be Gmail App Password
+    pass: process.env.EMAIL_PASS,
   },
 })
 
-// ✅ Verify on boot (shows real auth/TLS problems immediately in Render logs)
 transporter.verify((err) => {
   if (err) console.error("❌ EMAIL TRANSPORT VERIFY FAILED:", err)
   else console.log("✅ EMAIL TRANSPORT READY")
 })
 
-
 // ---------------------------------------------------------------
-// ✅ 7. ROUTERS (IMPORTANT: mount under /api)
+// ✅ 8) ROUTERS (AFTER CORS!)
 // ---------------------------------------------------------------
-const userStreakRouter = require("./routes/userStreak")
-const leaderboardsRouter = require("./routes/leaderboards")
-
+app.use("/api", storeRouter)
 app.use("/api", leaderboardsRouter)
 app.use("/api", userStreakRouter)
-
-
 
 // ================================================================
 // API ROUTES
 // ================================================================
 
 // ---------------------------------------------------------------
-// 🔧 MAGIC DB FIX ROUTE – ПУСНИ ГО ВЕДНЪЖ: /api/fix-db
+// 🔧 MAGIC DB FIX ROUTE – /api/fix-db
 // ---------------------------------------------------------------
 app.get("/api/fix-db", async (req, res) => {
   try {
@@ -448,7 +434,7 @@ app.delete("/api/magazines/:id", adminMiddleware, async (req, res) => {
 })
 
 // ---------------------------------------------------------------
-// 📰 ARTICLES (home / news / events / gallery)
+// 📰 ARTICLES
 // ---------------------------------------------------------------
 app.get("/api/articles", async (req, res) => {
   try {
@@ -600,7 +586,7 @@ app.delete("/api/articles/:id", adminMiddleware, async (req, res) => {
 })
 
 // ---------------------------------------------------------------
-// 🔔 EVENT REMINDERS (per user)
+// 🔔 EVENT REMINDERS
 // ---------------------------------------------------------------
 app.get("/api/events/reminders", authMiddleware, async (req, res) => {
   try {
@@ -646,9 +632,6 @@ app.post("/api/events/:id/reminder", authMiddleware, async (req, res) => {
   }
 })
 
-// ---------------------------------------------------------------
-// ⏰ SEND REMINDER EMAILS (call this once per day)
-// ---------------------------------------------------------------
 app.post("/api/events/send-reminders", async (req, res) => {
   try {
     const tomorrow = new Date()
@@ -743,19 +726,18 @@ app.post("/api/auth/register", async (req, res) => {
 
     const confirmationUrl = `${APP_URL}/confirm?token=${token}`
     setImmediate(async () => {
-  try {
-    const info = await transporter.sendMail({
-      from: `"MIREN" <${process.env.EMAIL_USER}>`,
-      to: email,
-      subject: "Confirm Account",
-      html: `<p>Confirm your account:</p><a href="${confirmationUrl}">Click to Confirm Email</a>`,
+      try {
+        const info = await transporter.sendMail({
+          from: `"MIREN" <${process.env.EMAIL_USER}>`,
+          to: email,
+          subject: "Confirm Account",
+          html: `<p>Confirm your account:</p><a href="${confirmationUrl}">Click to Confirm Email</a>`,
+        })
+        console.log("✅ CONFIRM EMAIL SENT:", info.messageId, info.response)
+      } catch (err) {
+        console.error("❌ CONFIRM EMAIL SEND ERROR:", err)
+      }
     })
-    console.log("✅ CONFIRM EMAIL SENT:", info.messageId, info.response)
-  } catch (err) {
-    console.error("❌ CONFIRM EMAIL SEND ERROR:", err)
-  }
-})
-
 
     res.status(201).json({ ok: true, message: "Check email!" })
   } catch (err) {
@@ -856,8 +838,6 @@ app.post("/api/auth/reset-password-request", async (req, res) => {
   if (!email) return res.status(400).json({ error: "Email required" })
 
   try {
-    // ✅ (optional) don't leak whether user exists
-    // but still do DB update safely
     const token = crypto.randomBytes(32).toString("hex")
     const expiry = new Date(Date.now() + 3600000)
 
@@ -868,10 +848,8 @@ app.post("/api/auth/reset-password-request", async (req, res) => {
 
     const url = `${APP_URL}/reset-password?token=${token}`
 
-    // ✅ respond immediately (fast UX)
     res.json({ ok: true })
 
-    // ✅ send email after response (no res.* here!)
     setImmediate(async () => {
       try {
         const info = await transporter.sendMail({
@@ -890,7 +868,6 @@ app.post("/api/auth/reset-password-request", async (req, res) => {
     res.status(500).json({ error: "Error" })
   }
 })
-
 
 // --- 2FA ---
 app.post("/api/auth/send-2fa", async (req, res) => {
@@ -949,9 +926,10 @@ app.post("/api/auth/verify-2fa", async (req, res) => {
 // 💳 SUBSCRIPTIONS & STRIPE CHECKOUT
 // ---------------------------------------------------------------
 app.get("/api/subscriptions", authMiddleware, async (req, res) => {
-  const { rows } = await db.query("SELECT plan FROM subscriptions WHERE email = $1", [
-    req.user.email,
-  ])
+  const { rows } = await db.query(
+    "SELECT plan FROM subscriptions WHERE email = $1",
+    [req.user.email]
+  )
   res.json(rows)
 })
 
@@ -1007,34 +985,23 @@ app.post("/api/contact", async (req, res) => {
 })
 
 // ---------------------------------------------------------------
-// 🎮 WORD GAME STREAK (SERVER-SIDE SOURCE OF TRUTH)
-// Fixes:
-// - 1 win per UTC day (no multi-device double increments in same day)
-// - auto reset if you miss a day
-// - leaderboard shows "effectiveStreak" based on last win date
+// 🎮 WORD GAME HELPERS (kept)
 // ---------------------------------------------------------------
-
 function utcYmd(date = new Date()) {
-  return date.toISOString().slice(0, 10) // YYYY-MM-DD (UTC)
+  return date.toISOString().slice(0, 10)
 }
-
 function ymdToDate(ymd) {
-  // ymd is 'YYYY-MM-DD'
-  // create UTC date at midnight
   return new Date(`${ymd}T00:00:00.000Z`)
 }
-
 function daysBetweenUtcYmd(aYmd, bYmd) {
   const a = ymdToDate(aYmd)
   const b = ymdToDate(bYmd)
   const ms = b.getTime() - a.getTime()
   return Math.floor(ms / (1000 * 60 * 60 * 24))
 }
-
 function computeEffectiveStreak(streak, lastWinYmd, todayYmd) {
   if (!streak || !lastWinYmd) return 0
   const diff = daysBetweenUtcYmd(lastWinYmd, todayYmd)
-  // diff=0 -> won today, diff=1 -> won yesterday (still valid), diff>=2 -> broken
   if (diff === 0 || diff === 1) return Number(streak) || 0
   return 0
 }

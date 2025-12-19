@@ -172,6 +172,7 @@ export default function NavBar() {
           <Link className="drawer-item" to="/news" onClick={handleProtectedClick}>{t("news")}</Link>
           <Link className="drawer-item" to="/events" onClick={handleProtectedClick}>{t("events")}</Link>
           <Link className="drawer-item" to="/gallery" onClick={handleProtectedClick}>{t("gallery")}</Link>
+          <Link className="drawer-item" to="/store" onClick={closeDrawer}>{t("store")}</Link>
           <Link className="drawer-item" to="/subscriptions" onClick={closeDrawer}>{t("subscriptions")}</Link>
           <Link className="drawer-item" to="/games" onClick={handleProtectedClick}>{t("games")}</Link>
 

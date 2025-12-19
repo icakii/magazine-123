@@ -220,19 +220,29 @@ router.post("/store/checkout", async (req, res) => {
 
       // ✅ “Tri imena”
       custom_fields: [
-        {
-          key: "full_name",
-          label: { type: "custom", custom: "Three names (Три имена)" },
-          type: "text",
-          text: { minimum_length: 5, maximum_length: 80 },
-          optional: false,
-        },
-      ],
+  {
+    key: "full_name",
+    label: { type: "custom", custom: "Three names (Три имена)" },
+    type: "text",
+    text: { minimum_length: 5, maximum_length: 80 },
+    optional: false,
+  },
+  {
+    key: "courier_notes",
+    label: { type: "custom", custom: "Courier notes (Бележки към куриер)" },
+    type: "text",
+    text: { minimum_length: 0, maximum_length: 250 },
+    optional: true,
+  },
+],
+// показва да има по-“официален” purchase контекст
+submit_type: "pay",
 
-      // ✅ Useful to find in Stripe
-      metadata: {
-        source: "miren_store",
-      },
+// за да можеш да филтрираш в Stripe по source
+metadata: {
+  source: "miren_store",
+},
+
     })
 
     res.json({ url: session.url })

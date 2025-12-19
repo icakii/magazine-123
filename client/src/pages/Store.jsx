@@ -20,6 +20,14 @@ function normalizeItem(raw) {
           : true,
   }
 }
+const STORE_RELEASE = "2026-02-27"
+function ymdTodayUTC() {
+  return new Date().toISOString().slice(0, 10)
+}
+function isStoreOpen() {
+  return ymdTodayUTC() >= STORE_RELEASE
+}
+
 
 const prettyTitle = (t) =>
   t ? String(t).replace(/e-?magazine/gi, "Magazine") : ""
@@ -98,7 +106,15 @@ export default function Store() {
       alert("This item is missing Stripe priceId (stripe_price_id).")
       return
     }
-    setCart(addToCart(priceId, 1))
+    setCart(addToCart(
+  {
+    priceId: it.priceId,
+    title: it.title,
+    imageUrl: it.imageUrl,
+  },
+  1
+)
+)
     openCart()
   }
 

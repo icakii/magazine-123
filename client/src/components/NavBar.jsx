@@ -8,6 +8,8 @@ import { t, getLang, setLang } from "../lib/i18n"
 import { useEffect, useLayoutEffect, useRef, useState } from "react"
 
 const ADMIN_EMAILS = ["icaki06@gmail.com", "icaki2k@gmail.com", "mirenmagazine@gmail.com"]
+const STORE_RELEASE = "2026-02-27"
+const storeOpen = new Date().toISOString().slice(0,10) >= STORE_RELEASE
 
 function applyTheme(theme) {
   const html = document.documentElement
@@ -172,8 +174,18 @@ export default function NavBar() {
           <Link className="drawer-item" to="/news" onClick={handleProtectedClick}>{t("news")}</Link>
           <Link className="drawer-item" to="/events" onClick={handleProtectedClick}>{t("events")}</Link>
           <Link className="drawer-item" to="/gallery" onClick={handleProtectedClick}>{t("gallery")}</Link>
-          <Link className="drawer-item" to="/store" onClick={closeDrawer}>{t("store")}</Link>
-          <Link className="drawer-item" to="/subscriptions" onClick={closeDrawer}>{t("subscriptions")}</Link>
+{storeOpen ? (
+  <a className="drawer-item" href="/store">Store</a>
+) : (
+  <button
+    className="drawer-item drawer-item--locked"
+    type="button"
+    onClick={() => alert("Store is locked. Available on 27.02.26")}
+  >
+    Store <span className="drawer-lock">(🔒 Available on 27.02.26)</span>
+  </button>
+)}          
+<Link className="drawer-item" to="/subscriptions" onClick={closeDrawer}>{t("subscriptions")}</Link>
           <Link className="drawer-item" to="/games" onClick={handleProtectedClick}>{t("games")}</Link>
 
           <Link className="drawer-item" to="/about" onClick={closeDrawer}>{t("about")}</Link>

@@ -2311,3 +2311,22 @@ body.cart-open .cart-drawer{
   font-size: .85rem;
   opacity: .9;
 }
+.drawer-item--locked {
+  cursor: not-allowed;
+  opacity: 0.78;
+  background: rgba(196, 106, 74, 0.08);
+}
+
+.drawer-item--locked:hover {
+  transform: none !important;
+  background: rgba(196, 106, 74, 0.10);
+  color: var(--text);
+}
+
+.drawer-lock {
+  margin-left: 10px;
+  font-weight: 900;
+  font-size: 0.9rem;
+  color: var(--clay);
+  opacity: 0.95;
+}

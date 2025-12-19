@@ -23,6 +23,12 @@ const JWT_SECRET = process.env.JWT_SECRET || "super-secret-key-change-this"
 const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:5173"
 const APP_URL = process.env.APP_URL || "http://localhost:5173"
 
+const ALLOWED_ORIGINS = [
+  FRONTEND_URL,
+  "https://miren-app.onrender.com",
+  "http://localhost:5173",
+].filter(Boolean)
+
 // ✅ ROUTERS (must exist as files)
 
 // ---------------------------------------------------------------
@@ -39,12 +45,24 @@ app.set("trust proxy", 1)
 
 app.use(
   cors({
-    origin: [FRONTEND_URL], // важно: точен домейн
+    origin: (origin, cb) => {
+      // allow server-to-server / curl (no origin)
+      if (!origin) return cb(null, true)
+
+      if (ALLOWED_ORIGINS.includes(origin)) return cb(null, true)
+
+      // block everything else
+      return cb(new Error("CORS blocked: " + origin))
+    },
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
   })
 )
+
+// ✅ make sure preflight always works for /api/*
+app.options("/api/*", cors())
+
 
 app.options("*", cors())
 

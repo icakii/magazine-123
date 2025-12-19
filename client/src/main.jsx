@@ -23,7 +23,7 @@ import News from "./pages/News"
 import Events from "./pages/Events"
 import WordGameArchive from "./pages/WGArchive"
 import ResetPassword from "./pages/ResetPassword"
-
+import Store from "./pages/Store"
 // Компоненти
 import NavBar from "./components/NavBar"
 import Footer from "./components/Footer"
@@ -93,7 +93,7 @@ ReactDOM.createRoot(document.getElementById("root")).render(
         <Route path="/gallery" element={<Gallery />} />
         <Route path="/contact" element={<Contact />} />
         <Route path="/help" element={<Help />} />
-
+        <Route path="/store" element={<Store />} />
         {/* Auth страници */}
         <Route path="/register" element={<Register />} />
         <Route path="/login" element={<Login />} />

@@ -14,6 +14,8 @@ const crypto = require("crypto")
 const db = require("./db")
 const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY)
 const helmet = require("helmet")
+const storeRouter = require("./routes/store")
+
 
 const app = express()
 const PORT = process.env.PORT || 8080
@@ -30,6 +32,8 @@ app.set("trust proxy", 1) // за Render
 
 app.use(helmet())
 app.use(cookieParser())
+
+app.use("/api", storeRouter)
 
 app.set("trust proxy", 1)
 

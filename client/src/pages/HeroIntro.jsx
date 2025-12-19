@@ -1,10 +1,29 @@
 import { useEffect, useRef, useState } from "react"
 import { api } from "../lib/api"
 import { t } from "../lib/i18n"
+import { useNavigate } from "react-router-dom"
+
+const ADMIN_EMAILS = [
+  "icaki06@gmail.com",
+  "icaki2k@gmail.com",
+  "mirenmagazine@gmail.com",
+]
+
+// ⚠️ смени годината ако трябва
+const RELEASE_UTC_YMD = "2026-02-27"
+
+function todayUtcYmd() {
+  return new Date().toISOString().slice(0, 10)
+}
 
 export default function HeroIntro() {
+  const navigate = useNavigate()
+
   const [coverUrl, setCoverUrl] = useState(null)
   const [heroVfxUrl, setHeroVfxUrl] = useState(null)
+
+  const [me, setMe] = useState(null)
+  const [meLoaded, setMeLoaded] = useState(false)
 
   const heroRef = useRef(null)
   const lockRef = useRef(false)
@@ -23,7 +42,18 @@ export default function HeroIntro() {
       .catch(() => {})
   }, [])
 
-  // ✅ helper: get nav offset from CSS var (set by NavBar ResizeObserver)
+  // get current user (optional)
+  useEffect(() => {
+    api
+      .get("/user/me")
+      .then((res) => setMe(res.data || null))
+      .catch(() => setMe(null))
+      .finally(() => setMeLoaded(true))
+  }, [])
+
+  const isAdmin = !!me?.email && ADMIN_EMAILS.includes(me.email)
+  const released = todayUtcYmd() >= RELEASE_UTC_YMD
+
   const getNavOffset = () => {
     try {
       const v = getComputedStyle(document.documentElement).getPropertyValue("--nav-offset")
@@ -34,7 +64,6 @@ export default function HeroIntro() {
     }
   }
 
-  // ✅ FIX: scroll to JUST under hero, not to newsletter (prevents overshooting)
   const scrollToTarget = () => {
     const hero = heroRef.current
     const navOffset = getNavOffset()
@@ -43,31 +72,24 @@ export default function HeroIntro() {
     if (hero) {
       const rect = hero.getBoundingClientRect()
       const heroBottomAbs = window.scrollY + rect.bottom
-
-      // Scroll to the point where hero ends and content starts (under nav)
       const targetTop = Math.max(0, heroBottomAbs - navOffset + extraPad)
-
       window.scrollTo({ top: targetTop, behavior: "smooth" })
       return
     }
-
-    // fallback
     window.scrollTo({ top: window.innerHeight, behavior: "smooth" })
   }
 
   const scrollToHero = () => {
     const hero = heroRef.current
-    const navOffset = getNavOffset()
     const extraPad = 6
 
     if (hero) {
       const rect = hero.getBoundingClientRect()
       const heroTopAbs = window.scrollY + rect.top
-      const targetTop = Math.max(0, heroTopAbs - extraPad - (navOffset > 0 ? 0 : 0))
+      const targetTop = Math.max(0, heroTopAbs - extraPad)
       window.scrollTo({ top: targetTop, behavior: "smooth" })
       return
     }
-
     window.scrollTo({ top: 0, behavior: "smooth" })
   }
 
@@ -81,12 +103,10 @@ export default function HeroIntro() {
       return r.top < vh * 0.35 && r.bottom > vh * 0.45
     }
 
-    // ✅ FIX: detect “we are at top of main” based on hero bottom proximity (more stable)
     const isAtTopOfMain = () => {
       const r = el.getBoundingClientRect()
       const navOffset = getNavOffset()
       const threshold = 120
-      // when hero bottom is close-ish to nav area -> we’re near the seam (top of main)
       return r.bottom <= navOffset + threshold && r.bottom >= navOffset - 6
     }
 
@@ -99,7 +119,6 @@ export default function HeroIntro() {
       if (lockRef.current) return
       const dy = e.deltaY
 
-      // down from Hero -> to just under hero (NOT newsletter)
       if (isHeroVisible() && dy > 12) {
         e.preventDefault()
         lock()
@@ -107,7 +126,6 @@ export default function HeroIntro() {
         return
       }
 
-      // up from start of main -> back to hero
       if (!isHeroVisible() && dy < -12 && isAtTopOfMain()) {
         e.preventDefault()
         lock()
@@ -115,7 +133,6 @@ export default function HeroIntro() {
       }
     }
 
-    // touch (mobile)
     const onTouchStart = (e) => {
       touchStartY.current = e.touches?.[0]?.clientY ?? 0
     }
@@ -125,13 +142,11 @@ export default function HeroIntro() {
       const endY = e.changedTouches?.[0]?.clientY ?? 0
       const diff = touchStartY.current - endY
 
-      // swipe up (content goes down)
       if (isHeroVisible() && diff > 18) {
         lock()
         scrollToTarget()
       }
 
-      // swipe down (content goes up)
       if (!isHeroVisible() && diff < -18 && isAtTopOfMain()) {
         lock()
         scrollToHero()
@@ -149,26 +164,24 @@ export default function HeroIntro() {
     }
   }, [])
 
+  const onOrderClick = () => {
+    // Option A: go to store page
+    navigate("/store")
+
+    // Option B: open cart drawer instantly (ако го ползваш):
+    // document.body.classList.add("cart-open")
+  }
+
+  const orderLocked = !released && !isAdmin
+
   return (
     <section className="hero-intro" ref={heroRef}>
       <div className="hero-inner">
         <div className="hero-media">
           {heroVfxUrl ? (
-            <video
-              className="hero-vfx"
-              src={heroVfxUrl}
-              autoPlay
-              muted
-              loop
-              playsInline
-            />
+            <video className="hero-vfx" src={heroVfxUrl} autoPlay muted loop playsInline />
           ) : coverUrl ? (
-            <img
-              src={coverUrl}
-              alt="MIREN cover"
-              className="hero-cover"
-              loading="lazy"
-            />
+            <img src={coverUrl} alt="MIREN cover" className="hero-cover" loading="lazy" />
           ) : (
             <div className="hero-cover hero-cover--placeholder">
               <span>MIREN</span>
@@ -184,6 +197,24 @@ export default function HeroIntro() {
           <p className="hero-kicker">{t("hero_kicker")}</p>
           <h1 className="hero-title">MIREN</h1>
           <p className="hero-subtitle">{t("hero_subtitle")}</p>
+
+          {/* CTA ROW */}
+          <div className="hero-cta-row">
+            <button
+              className={`btn ${orderLocked ? "outline" : "primary"} hero-order-btn`}
+              onClick={onOrderClick}
+              type="button"
+              disabled={orderLocked}
+              title={orderLocked ? "Order opens on 27 Feb" : "Open store"}
+            >
+              {orderLocked ? "Order on 27 Feb 🔒" : "Order Now ⚡"}
+            </button>
+
+            {/* optional: show admin badge */}
+            {meLoaded && isAdmin && (
+              <span className="hero-admin-pill">ADMIN</span>
+            )}
+          </div>
 
           <button className="hero-scroll" onClick={scrollToTarget} type="button">
             <span className="hero-scroll-icon">↓</span>

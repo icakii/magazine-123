@@ -9,6 +9,8 @@ import HeroIntro from "./HeroIntro"
 import { clearCart } from "../lib/cart"
 
 export default function Home() {
+  const { user, loading } = useAuth()
+
   useEffect(() => {
     const url = new URL(window.location.href)
     const ok = url.searchParams.get("order_success") === "true"

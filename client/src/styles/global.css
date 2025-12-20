@@ -2352,3 +2352,26 @@ body.cart-open .cart-drawer{
   opacity: 0.75;
   font-size: 0.92rem;
 }
+.qty {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid rgba(0,0,0,0.15);
+  border-radius: 999px;
+  padding: 6px 10px;
+}
+
+.qty-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  border: 1px solid rgba(0,0,0,0.2);
+  background: transparent;
+  cursor: pointer;
+}
+
+.qty-val {
+  min-width: 20px;
+  text-align: center;
+  font-weight: 600;
+}

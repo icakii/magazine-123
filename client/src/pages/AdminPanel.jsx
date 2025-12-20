@@ -6,7 +6,6 @@ const CLOUDINARY_IMAGE_URL = "https://api.cloudinary.com/v1_1/dwezdx5zn/image/up
 const CLOUDINARY_VIDEO_URL = "https://api.cloudinary.com/v1_1/dwezdx5zn/video/upload"
 const UPLOAD_PRESET = "ml_default"
 const ADMIN_EMAILS = ["icaki06@gmail.com", "icaki2k@gmail.com", "mirenmagazine@gmail.com"]
-const [orders, setOrders] = useState([])
 
 const NEWS_CATEGORIES = [
   "Sports",
@@ -30,14 +29,15 @@ const MONTHS = [
 
 export default function AdminPanel() {
   const { user, loading } = useAuth()
-
+  
+  const [orders, setOrders] = useState([])
   const [activeTab, setActiveTab] = useState("home")
   const [items, setItems] = useState([])
   const [showForm, setShowForm] = useState(false)
   const [editingId, setEditingId] = useState(null)
   const [msg, setMsg] = useState("")
   const [uploading, setUploading] = useState(false)
-
+  
   // Newsletter
   const [subscribers, setSubscribers] = useState([])
   const [emailSubject, setEmailSubject] = useState("")

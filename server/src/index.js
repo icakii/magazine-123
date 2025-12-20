@@ -1096,31 +1096,7 @@ function computeEffectiveStreak(streak, lastWinYmd, todayYmd) {
 }
 const path = require("path")
 
-// ---------------------------------------------------------------
-// ✅ SERVE FRONTEND (Vite build) - PRODUCTION ONLY
-// This fixes blank screen on /store, /profile, /anything (React Router).
-// ---------------------------------------------------------------
-if (process.env.NODE_ENV === "production") {
-  const distPath = path.join(__dirname, "..", "client", "dist")
 
-  // serve static assets
-  app.use(express.static(distPath, {
-    index: false,
-    // safer caching: html no-cache, assets can cache
-    setHeaders: (res, filePath) => {
-      if (filePath.endsWith(".html")) {
-        res.setHeader("Cache-Control", "no-store")
-      }
-    },
-  }))
-
-  // React Router fallback (IMPORTANT)
-  app.get("*", (req, res) => {
-    // don't hijack API routes
-    if (req.path.startsWith("/api")) return res.status(404).end()
-    res.sendFile(path.join(distPath, "index.html"))
-  })
-}
 
 
 //ZZ

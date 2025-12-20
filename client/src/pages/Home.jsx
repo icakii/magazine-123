@@ -1,95 +1,49 @@
-// client/src/pages/Store.jsx
+// client/src/pages/Home.jsx
+"use client"
+
 import { useEffect, useMemo, useState } from "react"
+import NewsletterManager from "../components/NewsletterManager"
+import { useAuth } from "../hooks/useAuth"
+import { t } from "../lib/i18n"
 import { api } from "../lib/api"
-import {
-  addToCart,
-  getCart,
-  removeFromCart,
-  clearCart,
-  setQty,
-  incQty,
-  decQty,
-  formatMoneyCents,
-} from "../lib/cart"
-import { useLocation, useNavigate } from "react-router-dom"
+import HeroIntro from "./HeroIntro"
+import { clearCart } from "../lib/cart"
 
-function normalizeItem(raw) {
-  const it = raw || {}
-  const title = it.title ? String(it.title) : ""
+export default function Home() {
+  const { user, hasSubscription } = useAuth()
 
-  return {
-    id: it.id ?? null,
-    title: title.replace(/e-?magazine/gi, "Magazine"),
-    description: it.description || "",
-    imageUrl: it.imageUrl || it.image_url || "",
-    category: it.category || "misc",
-
-    // required for checkout
-    priceId: it.priceId || it.stripe_price_id || it.stripePriceId || "",
-
-    // optional for UI
-    unitAmount: Number(it.unitAmount ?? it.unit_amount ?? it.price_cents ?? NaN), // cents
-    currency: (it.currency || "eur").toLowerCase(),
-
-    isActive: typeof it.isActive === "boolean" ? it.isActive : true,
-  }
-}
-
-export default function Store() {
-  const [items, setItems] = useState([])
-  const [cart, setCart] = useState(getCart())
+  const [articles, setArticles] = useState([])
   const [loading, setLoading] = useState(true)
-  const [err, setErr] = useState("")
-  const [notice, setNotice] = useState("")
-  const [qtyPick, setQtyPick] = useState({}) // { [priceId]: number }
+  const [selectedArticle, setSelectedArticle] = useState(null)
 
-  const location = useLocation()
-  const navigate = useNavigate()
-
-  // handle Stripe redirect (success/cancel)
+  // ✅ clears cart if Stripe redirected here with ?order_success=true
   useEffect(() => {
-    const params = new URLSearchParams(location.search)
-    const success = params.get("success")
-    const canceled = params.get("canceled")
-
-    if (success === "true") {
+    const url = new URL(window.location.href)
+    const ok = url.searchParams.get("order_success") === "true"
+    if (ok) {
       clearCart()
-      setCart([])
-      setNotice("✅ Order successful! Thank you for your purchase.")
       document.body.classList.remove("cart-open")
-      navigate("/store", { replace: true })
-    } else if (canceled === "true") {
-      setNotice("❌ Payment canceled.")
-      navigate("/store", { replace: true })
-    }
-  }, [location.search, navigate])
 
-  // load store items
+      // remove query so it doesn't repeat on refresh
+      url.searchParams.delete("order_success")
+      window.history.replaceState({}, "", url.pathname + url.search)
+    }
+  }, [])
+
+  // ✅ load featured articles safely (never crash)
   useEffect(() => {
     let alive = true
 
     ;(async () => {
       try {
         setLoading(true)
-        setErr("")
-        const res = await api.get("/store/items")
-        if (!alive) return
-
+        const res = await api.get("/articles")
         const arr = Array.isArray(res.data) ? res.data : []
-        const normalized = arr
-          .map(normalizeItem)
-          .filter((x) => x.isActive && x.priceId)
-
-        setItems(normalized)
-
-        // init qty picker defaults
-        const next = {}
-        for (const it of normalized) next[it.priceId] = 1
-        setQtyPick(next)
-      } catch (e) {
         if (!alive) return
-        setErr("Failed to load store.")
-        setItems([])
+        setArticles(arr)
+      } catch {
+        if (!alive) return
+        setArticles([])
       } finally {
         if (!alive) return
         setLoading(false)
@@ -101,265 +55,188 @@ export default function Store() {
     }
   }, [])
 
-  const cartCount = useMemo(
-    () => cart.reduce((a, b) => a + (Number(b.qty) || 0), 0),
-    [cart]
-  )
-
-  const cartTotalCents = useMemo(() => {
-    return cart.reduce((sum, c) => {
-      const unit = Number(c.unitAmount)
-      const qty = Number(c.qty) || 0
-      if (!Number.isFinite(unit)) return sum
-      return sum + unit * qty
-    }, 0)
-  }, [cart])
-
-  const currency = useMemo(() => {
-    const c = cart.find((x) => x.currency)?.currency
-    return c || "eur"
-  }, [cart])
-
-  const openCart = () => document.body.classList.add("cart-open")
-  const closeCart = () => document.body.classList.remove("cart-open")
-  const toggleCart = () => document.body.classList.toggle("cart-open")
-
-  const changePick = (priceId, next) => {
-    const n = Math.max(1, Math.min(99, Number(next) || 1))
-    setQtyPick((p) => ({ ...p, [priceId]: n }))
-  }
-
-  const addItem = (it) => {
-    if (!it?.priceId) return alert("Missing Stripe priceId for this item.")
-
-    const qty = qtyPick[it.priceId] || 1
-
-    const next = addToCart(
-      {
-        priceId: it.priceId,
-        title: it.title,
-        imageUrl: it.imageUrl,
-        unitAmount: Number.isFinite(it.unitAmount) ? it.unitAmount : null,
-        currency: it.currency || "eur",
-      },
-      qty
-    )
-
-    setCart(next)
-    openCart()
-  }
-
-  const startCheckout = async () => {
-    try {
-      if (!cart?.length) return
-
-      const payloadItems = cart.map((c) => ({
-        priceId: c.priceId,
-        qty: Number(c.qty) || 1,
-      }))
-
-      const res = await api.post("/store/checkout", {
-        items: payloadItems,
-        successPath: "/store?success=true",
-        cancelPath: "/store?canceled=true",
-      })
-
-      if (res?.data?.url) {
-        window.location.href = res.data.url
-        return
-      }
-
-      alert("Checkout failed: missing url.")
-    } catch (e) {
-      const msg = e?.response?.data?.details || e?.response?.data?.error || "Checkout failed."
-      alert(msg)
-      console.error("Checkout error:", e?.response?.data || e)
-    }
-  }
+  // ✅ choose "featured" (first 6 newest)
+  const featured = useMemo(() => {
+    const arr = Array.isArray(articles) ? articles : []
+    return arr.slice(0, 6)
+  }, [articles])
 
   return (
-    <div className="page">
-      <div className="store-head">
-        <div>
-          <h2 className="headline">Store</h2>
-          <p className="subhead">Magazine & clothing — powered by Stripe.</p>
+    <div className="home-shell">
+      <HeroIntro />
 
-          {!!notice && <p className="msg">{notice}</p>}
-          {!loading && err && <p className="msg warning">{err}</p>}
-          {!loading && !err && items.length === 0 && <p className="msg">No items yet. Add one in DB.</p>}
+      <div id="home-main-content" className="page anim-fade-up">
+        <div id="home-newsletter">
+          <NewsletterManager user={user} type="static" />
         </div>
 
-        <button className="cart-fab" onClick={toggleCart} type="button">
-          Cart <span className="cart-badge">{cartCount}</span>
-        </button>
-      </div>
+        <div
+          className="hero-bg anim-zoom-in anim-delay-1"
+          style={{ padding: "40px 20px", textAlign: "center", marginBottom: 40 }}
+        >
+          <h1 className="headline" style={{ fontSize: "3rem" }}>
+            {user ? `${t("welcome")}, ${user.displayName}!` : t("home_title")}
+          </h1>
 
-      {loading ? (
-        <p className="subhead">Loading…</p>
-      ) : (
-        <div className="store-grid">
-          {items.map((it) => (
-            <div key={it.id || it.priceId} className="store-card">
-              {it.imageUrl ? (
-                <img className="store-img" src={it.imageUrl} alt={it.title} loading="lazy" />
-              ) : (
-                <div className="store-img store-img--ph">MIREN</div>
-              )}
+          <p className="subhead" style={{ fontSize: "1.2rem" }}>
+            {user ? t("home_user_sub") : t("home_sub")}
+          </p>
 
-              <div className="store-body">
-                <div className="store-title">{it.title}</div>
-
-                {Number.isFinite(it.unitAmount) && (
-                  <div className="text-muted" style={{ marginTop: 6 }}>
-                    {formatMoneyCents(it.unitAmount, it.currency)}
-                  </div>
-                )}
-
-                {it.description && <div className="store-desc">{it.description}</div>}
-
-                {/* qty picker */}
-                <div style={{ display: "flex", gap: 10, alignItems: "center", marginTop: 12 }}>
-                  <div className="qty">
-                    <button
-                      type="button"
-                      className="qty-btn"
-                      onClick={() => changePick(it.priceId, (qtyPick[it.priceId] || 1) - 1)}
-                    >
-                      −
-                    </button>
-                    <div className="qty-val">{qtyPick[it.priceId] || 1}</div>
-                    <button
-                      type="button"
-                      className="qty-btn"
-                      onClick={() => changePick(it.priceId, (qtyPick[it.priceId] || 1) + 1)}
-                    >
-                      +
-                    </button>
-                  </div>
-
-                  <button className="btn primary store-btn" onClick={() => addItem(it)} type="button">
-                    Add
-                  </button>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* CART DRAWER */}
-      <div className="cart-drawer">
-        <div className="cart-top">
-          <div className="cart-title">Your Cart</div>
-          <button className="cart-close" onClick={closeCart} type="button">
-            ✕
-          </button>
+          <div className="btn-group mt-3" style={{ justifyContent: "center" }}>
+            {!user && (
+              <a className="btn primary" href="/register">
+                {t("start")}
+              </a>
+            )}
+            <a className="btn ghost" href="/news">
+              {t("read_news")}
+            </a>
+          </div>
         </div>
 
-        {cart.length === 0 ? (
-          <p className="text-muted">Cart is empty.</p>
-        ) : (
-          <>
-            <div className="cart-items">
-              {cart.map((c) => {
-                const unitOk = Number.isFinite(Number(c.unitAmount))
-                const unit = Number(c.unitAmount)
-                const qty = Number(c.qty) || 1
-                const rowTotal = unitOk ? unit * qty : null
+        {loading ? (
+          <p className="subhead">Loading…</p>
+        ) : featured.length > 0 ? (
+          <div className="stack anim-fade-up anim-delay-2">
+            <h3 className="headline">{t("featured")}</h3>
+
+            <div className="grid">
+              {featured.map((f) => {
+                const isLocked = !!f.isPremium && !hasSubscription
 
                 return (
-                  <div key={c.priceId} className="cart-row">
-                    <div className="cart-left">
-                      {c.imageUrl ? (
-                        <img className="cart-thumb" src={c.imageUrl} alt={c.title || "Item"} />
-                      ) : (
-                        <div className="cart-thumb cart-thumb--ph">M</div>
+                  <div key={f.id} className="col-6 anim-fade-up anim-delay-1">
+                    <div
+                      className="card"
+                      style={{
+                        position: "relative",
+                        textAlign: "center",
+                        display: "flex",
+                        flexDirection: "column",
+                        alignItems: "center",
+                        height: "100%",
+                      }}
+                    >
+                      {f.isPremium && (
+                        <div
+                          style={{
+                            position: "absolute",
+                            top: 10,
+                            right: 10,
+                            background: "#e63946",
+                            color: "white",
+                            padding: "2px 8px",
+                            borderRadius: 4,
+                            fontWeight: "bold",
+                            zIndex: 2,
+                          }}
+                        >
+                          🔒 Premium
+                        </div>
                       )}
 
-                      <div className="cart-meta">
-                        <div className="cart-name">{c.title || "Item"}</div>
-
-                        {unitOk && (
-                          <div className="text-muted" style={{ fontSize: 13 }}>
-                            {formatMoneyCents(unit, c.currency)} / pc
-                            {rowTotal != null ? ` • ${formatMoneyCents(rowTotal, c.currency)}` : ""}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
-                    <div className="cart-right">
-                      <div className="qty">
-                        <button
-                          type="button"
-                          className="qty-btn"
-                          onClick={() => {
-                            const next = decQty(c.priceId, 1)
-                            setCart(next)
+                      {isLocked && (
+                        <div
+                          style={{
+                            position: "absolute",
+                            inset: 0,
+                            background: "rgba(255,255,255,0.7)",
+                            backdropFilter: "blur(5px)",
+                            zIndex: 1,
+                            display: "flex",
+                            flexDirection: "column",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            borderRadius: 8,
                           }}
                         >
-                          −
-                        </button>
+                          <span style={{ fontSize: "3rem" }}>🔒</span>
+                          <p style={{ marginTop: 8, marginBottom: 12 }}>
+                            {t("premium_content")}
+                          </p>
+                          <a href="/subscriptions" className="btn primary">
+                            {t("subscribe_unlock")}
+                          </a>
+                        </div>
+                      )}
 
-                        <div className="qty-val">{qty}</div>
+                      {f.imageUrl && (
+                        <img
+                          src={f.imageUrl}
+                          style={{
+                            width: "100%",
+                            height: 200,
+                            objectFit: "cover",
+                            borderRadius: 8,
+                            marginBottom: 15,
+                          }}
+                          alt={f.title}
+                          loading="lazy"
+                        />
+                      )}
 
-                        <button
-                          type="button"
-                          className="qty-btn"
-                          onClick={() => {
-                            const next = incQty(c.priceId, 1)
-                            setCart(next)
+                      <h4 style={{ marginBottom: 12 }}>{f.title}</h4>
+
+                      {f.excerpt && (
+                        <p
+                          style={{
+                            color: "var(--text-muted)",
+                            fontSize: "0.95rem",
+                            marginBottom: 15,
                           }}
                         >
-                          +
+                          {f.excerpt}
+                        </p>
+                      )}
+
+                      <div style={{ marginTop: "auto" }}>
+                        <button
+                          className="btn outline"
+                          onClick={() => !isLocked && setSelectedArticle(f)}
+                          disabled={isLocked}
+                          type="button"
+                        >
+                          {t("read_more")}
                         </button>
                       </div>
-
-                      <button
-                        className="cart-remove"
-                        onClick={() => {
-                          const next = removeFromCart(c.priceId)
-                          setCart(next)
-                        }}
-                        type="button"
-                      >
-                        remove
-                      </button>
                     </div>
                   </div>
                 )
               })}
             </div>
+          </div>
+        ) : (
+          <p className="subhead">No featured articles yet.</p>
+        )}
 
-            {/* total */}
-            {cartTotalCents > 0 && (
-              <div style={{ marginTop: 12, display: "flex", justifyContent: "space-between" }}>
-                <strong>Total</strong>
-                <strong>{formatMoneyCents(cartTotalCents, currency)}</strong>
-              </div>
-            )}
+        {selectedArticle && (
+          <div className="modal-backdrop" onClick={() => setSelectedArticle(null)}>
+            <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+              <button
+                className="modal-close"
+                onClick={() => setSelectedArticle(null)}
+                type="button"
+              >
+                ×
+              </button>
 
-            <button className="btn primary cart-checkout" onClick={startCheckout} type="button">
-              Checkout with Stripe ⚡
-            </button>
+              <h2 className="headline" style={{ textAlign: "center" }}>
+                {selectedArticle.title}
+              </h2>
 
-            <button
-              className="btn ghost"
-              style={{ marginTop: 10, width: "100%" }}
-              onClick={() => {
-                clearCart()
-                setCart([])
-                document.body.classList.remove("cart-open")
-              }}
-              type="button"
-            >
-              Clear cart
-            </button>
-          </>
+              {selectedArticle.imageUrl && (
+                <img
+                  src={selectedArticle.imageUrl}
+                  style={{ width: "100%", borderRadius: 8, marginBottom: 20 }}
+                  alt={selectedArticle.title}
+                />
+              )}
+
+              <div className="modal-text">{selectedArticle.text}</div>
+            </div>
+          </div>
         )}
       </div>
-
-      <div className="cart-backdrop" onClick={closeCart} />
     </div>
   )
 }

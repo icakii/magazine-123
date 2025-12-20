@@ -1,17 +1,17 @@
 // client/src/components/NavBar.jsx
 "use client"
 
-import { Link, useLocation, useNavigate } from "react-router-dom"
+import { Link, useNavigate } from "react-router-dom"
 import { useAuth } from "../hooks/useAuth"
 import { api } from "../lib/api"
 import { t, getLang, setLang } from "../lib/i18n"
 import { useEffect, useLayoutEffect, useRef, useState } from "react"
 
-const ADMIN_EMAILS = [
-  "icaki06@gmail.com",
-  "icaki2k@gmail.com",
-  "mirenmagazine@gmail.com",
-]
+const ADMIN_EMAILS = ["icaki06@gmail.com", "icaki2k@gmail.com", "mirenmagazine@gmail.com"]
+
+// store release gate (UTC date)
+const STORE_RELEASE = "2026-02-27"
+const storeOpen = new Date().toISOString().slice(0, 10) >= STORE_RELEASE
 
 function toggleTheme() {
   const html = document.documentElement
@@ -24,42 +24,17 @@ function toggleTheme() {
 }
 
 export default function NavBar() {
+  const navigate = useNavigate()
   const { user, loading } = useAuth()
+
   const [open, setOpen] = useState(false)
   const [lang, setLangState] = useState(getLang())
   const [showLoginModal, setShowLoginModal] = useState(false)
 
   const navRef = useRef(null)
-  const [isAdmin, setIsAdmin] = useState(false)
 
-  const navigate = useNavigate()
-  const location = useLocation()
+  const isAdmin = !!user?.email && ADMIN_EMAILS.includes(user.email)
 
-  // --- ADMIN CHECK (cookie auth) ---
-  useEffect(() => {
-    let alive = true
-    api
-      .get("/user/me")
-      .then((res) => {
-        if (!alive) return
-        const email = res?.data?.email
-        setIsAdmin(ADMIN_EMAILS.includes(email))
-      })
-      .catch(() => {
-        if (!alive) return
-        setIsAdmin(false)
-      })
-    return () => {
-      alive = false
-    }
-  }, [])
-
-  // --- close drawer on route change (fixes "stuck overlay") ---
-  useEffect(() => {
-    setOpen(false)
-  }, [location.pathname])
-
-  // --- language updates ---
   useEffect(() => {
     function onLangChange(e) {
       setLangState(e.detail.lang)
@@ -76,7 +51,6 @@ export default function NavBar() {
     const apply = () => {
       const h = el.offsetHeight || 72
       document.documentElement.style.setProperty("--nav-offset", `${h}px`)
-      document.documentElement.style.setProperty("--navbar-h", `${h}px`) // за cart sticky
     }
 
     apply()
@@ -96,13 +70,12 @@ export default function NavBar() {
     try {
       await api.post("/auth/logout")
     } catch {}
-
     try {
       localStorage.removeItem("auth_token")
+      localStorage.removeItem("miren_token")
     } catch {}
-
-    // SPA navigation (без full reload)
-    navigate("/home", { replace: true })
+    setOpen(false)
+    navigate("/", { replace: true })
   }
 
   function changeLang() {
@@ -117,7 +90,6 @@ export default function NavBar() {
     setOpen(false)
   }
 
-  // ✅ За защитени страници: ако няма user -> popup login
   const handleProtectedClick = (e) => {
     if (!user) {
       e.preventDefault()
@@ -128,28 +100,25 @@ export default function NavBar() {
     }
   }
 
+  const allowStore = storeOpen || isAdmin
+
   return (
     <>
       <nav className="nav" ref={navRef}>
         <div className="nav-inner">
           <div className="nav-top">
             <div className="nav-left">
-              <button
-                className="hamburger"
-                aria-label="Open menu"
-                onClick={toggleDrawer}
-                type="button"
-              >
+              <button className="hamburger" aria-label="Open menu" onClick={toggleDrawer} type="button">
                 <span className="lines">
-                  <span className="line"></span>
-                  <span className="line"></span>
-                  <span className="line"></span>
+                  <span className="line" />
+                  <span className="line" />
+                  <span className="line" />
                 </span>
               </button>
             </div>
 
             <div className="nav-center">
-              {/* ✅ Logo/Home link - ALWAYS works */}
+              {/* ✅ IMPORTANT: go to "/" (your router redirects to /home) */}
               <Link className="brand" to="/" onClick={closeDrawer}>
                 {t("brand")}
               </Link>
@@ -160,12 +129,7 @@ export default function NavBar() {
             <div className="nav-actions">
               {!loading && !user && (
                 <>
-                  <Link
-                    to="/register"
-                    className="btn ghost nav-btn"
-                    style={{ border: "none" }}
-                    onClick={closeDrawer}
-                  >
+                  <Link to="/register" className="btn ghost nav-btn" style={{ border: "none" }} onClick={closeDrawer}>
                     {t("register")}
                   </Link>
                   <Link to="/login" className="btn primary nav-btn" onClick={closeDrawer}>
@@ -196,19 +160,15 @@ export default function NavBar() {
         </div>
       </nav>
 
-      <div
-        className={`drawer-backdrop ${open ? "open" : ""}`}
-        onClick={closeDrawer}
-      />
+      <div className={`drawer-backdrop ${open ? "open" : ""}`} onClick={closeDrawer} />
 
       <aside className={`drawer ${open ? "open" : ""}`} aria-hidden={!open}>
         <nav className="drawer-list">
-          {/* ✅ PUBLIC */}
+          {/* ✅ IMPORTANT: Home to "/" */}
           <Link className="drawer-item" to="/" onClick={closeDrawer}>
             {t("home")}
           </Link>
 
-          {/* ✅ PROTECTED */}
           <Link className="drawer-item" to="/e-magazine" onClick={handleProtectedClick}>
             {t("emag")}
           </Link>
@@ -222,8 +182,7 @@ export default function NavBar() {
             {t("gallery")}
           </Link>
 
-          {/* ✅ STORE: admin only (no <a href>!) */}
-          {isAdmin ? (
+          {allowStore ? (
             <Link className="drawer-item" to="/store" onClick={closeDrawer}>
               Store
             </Link>
@@ -242,7 +201,6 @@ export default function NavBar() {
             {t("games")}
           </Link>
 
-          {/* ✅ PUBLIC */}
           <Link className="drawer-item" to="/about" onClick={closeDrawer}>
             {t("about")}
           </Link>
@@ -255,8 +213,7 @@ export default function NavBar() {
 
           <div className="drawer-sep" />
 
-          {/* ✅ PROFILE: protected-ish (ако няма user -> popup) */}
-          <Link className="drawer-item" to="/profile" onClick={handleProtectedClick}>
+          <Link className="drawer-item" to="/profile" onClick={closeDrawer}>
             {t("profile")}
           </Link>
 
@@ -280,7 +237,7 @@ export default function NavBar() {
             onClick={(e) => e.stopPropagation()}
             style={{ textAlign: "center", maxWidth: "400px" }}
           >
-            <button className="modal-close" onClick={() => setShowLoginModal(false)}>
+            <button className="modal-close" onClick={() => setShowLoginModal(false)} type="button">
               ×
             </button>
             <div style={{ fontSize: "3rem", marginBottom: "10px" }}>🔒</div>
@@ -292,20 +249,10 @@ export default function NavBar() {
               Join MIREN today!
             </p>
             <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-              <Link
-                to="/register"
-                className="btn primary"
-                onClick={() => setShowLoginModal(false)}
-                style={{ textDecoration: "none" }}
-              >
+              <Link to="/register" className="btn primary" onClick={() => setShowLoginModal(false)} style={{ textDecoration: "none" }}>
                 Create Account
               </Link>
-              <Link
-                to="/login"
-                className="btn ghost"
-                onClick={() => setShowLoginModal(false)}
-                style={{ textDecoration: "none" }}
-              >
+              <Link to="/login" className="btn ghost" onClick={() => setShowLoginModal(false)} style={{ textDecoration: "none" }}>
                 Login
               </Link>
             </div>

@@ -36,30 +36,25 @@ const APP_URL = process.env.APP_URL || "http://localhost:5173"
 app.set("trust proxy", 1)
 
 // ---------------------------------------------------------------
-// 1) CORS (FINAL) — MUST be BEFORE ANY /api routes
+// 1) CORS — DON'T THROW (prevents breaking /assets requests)
 // ---------------------------------------------------------------
 const ALLOWED_ORIGINS = [
   process.env.FRONTEND_URL,
   process.env.APP_URL,
-
-  // your Render domains (IMPORTANT)
   "https://magazine-123.onrender.com",
   "https://miren-app.onrender.com",
-
   "http://localhost:5173",
   "http://localhost:8080",
 ].filter(Boolean)
 
 const corsOptions = {
   origin: (origin, cb) => {
-    // allow server-to-server / curl / Postman (no Origin header)
     if (!origin) return cb(null, true)
 
-    // allow your frontends
+    // allow known origins
     if (ALLOWED_ORIGINS.includes(origin)) return cb(null, true)
 
-    // ✅ IMPORTANT: DO NOT throw Error (it causes 500 and breaks assets)
-    // Just disallow via false:
+    // ✅ IMPORTANT: do NOT throw (throwing breaks assets & SPA randomly)
     return cb(null, false)
   },
   credentials: true,
@@ -69,6 +64,7 @@ const corsOptions = {
 
 app.use(cors(corsOptions))
 app.options("*", cors(corsOptions))
+
 
 // ---------------------------------------------------------------
 // 2) SECURITY + COOKIES

@@ -1,14 +1,19 @@
-// client/src/lib/api.js
 import axios from "axios"
 
+const baseURL =
+  import.meta.env.VITE_API_URL?.trim() ||
+  "https://magazine-123.onrender.com/api"
+
 export const api = axios.create({
-  baseURL: "/api",
-  withCredentials: true,
+  baseURL,
+  withCredentials: true, // защото ползваш cookies auth
 })
 
-// Bearer token fallback (Safari/mobile)
+// (optional) attach bearer if ти трябва някога
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem("auth_token")
-  if (token) config.headers.Authorization = `Bearer ${token}`
+  try {
+    const token = localStorage.getItem("miren_token")
+    if (token) config.headers.Authorization = `Bearer ${token}`
+  } catch {}
   return config
 })

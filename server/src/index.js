@@ -1094,6 +1094,8 @@ function computeEffectiveStreak(streak, lastWinYmd, todayYmd) {
   return 0
 }
 const path = require("path")
+const fs = require("fs")
+
 
 // ---------------------------------------------------------------
 // ✅ SERVE FRONTEND (Vite build) - PRODUCTION ONLY
@@ -1101,9 +1103,17 @@ const path = require("path")
 //   /server/src/index.js
 //   /client/dist
 // ---------------------------------------------------------------
+// ---------------------------------------------------------------
+// ✅ SERVE FRONTEND (Vite build) - Render-safe (with diagnostics)
+// ---------------------------------------------------------------
 const distPath = path.join(__dirname, "..", "..", "client", "dist")
+const indexHtml = path.join(distPath, "index.html")
 
-// serve static assets (css/js/images)
+console.log("✅ FRONTEND distPath =", distPath)
+console.log("✅ FRONTEND indexHtml =", indexHtml)
+console.log("✅ FRONTEND index exists =", fs.existsSync(indexHtml))
+
+// serve static assets
 app.use(express.static(distPath, {
   index: false,
   setHeaders: (res, filePath) => {
@@ -1111,11 +1121,23 @@ app.use(express.static(distPath, {
   },
 }))
 
-// React Router fallback (IMPORTANT)
-// Any non-API route should return index.html
+// explicit root (so "/" is always handled)
+app.get("/", (req, res) => {
+  if (!fs.existsSync(indexHtml)) {
+    return res.status(500).send("Frontend build missing: client/dist/index.html")
+  }
+  return res.sendFile(indexHtml)
+})
+
+// SPA fallback (React Router)
 app.get("*", (req, res) => {
   if (req.path.startsWith("/api")) return res.status(404).end()
-  return res.sendFile(path.join(distPath, "index.html"))
+
+  if (!fs.existsSync(indexHtml)) {
+    return res.status(500).send("Frontend build missing: client/dist/index.html")
+  }
+
+  return res.sendFile(indexHtml)
 })
 
 

@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import NewsletterManager from "../components/NewsletterManager"
 import { useAuth } from "../hooks/useAuth"
 import { t } from "../lib/i18n"
@@ -9,8 +9,12 @@ import HeroIntro from "./HeroIntro"
 import { clearCart } from "../lib/cart"
 
 export default function Home() {
-  const { user, loading } = useAuth()
+  const { user, loading, hasSubscription } = useAuth()
 
+  const [featured, setFeatured] = useState([])
+  const [selectedArticle, setSelectedArticle] = useState(null)
+
+  // ✅ Clear cart after successful store order (/?order_success=true)
   useEffect(() => {
     const url = new URL(window.location.href)
     const ok = url.searchParams.get("order_success") === "true"
@@ -23,6 +27,41 @@ export default function Home() {
       window.history.replaceState({}, "", url.pathname + url.search)
     }
   }, [])
+
+  // ✅ Load featured content (safe)
+  useEffect(() => {
+    let alive = true
+
+    ;(async () => {
+      try {
+        // Your backend: GET /api/articles
+        const res = await api.get("/articles")
+        if (!alive) return
+
+        const arr = Array.isArray(res.data) ? res.data : []
+
+        // keep only "news" by default (or show mixed if you want)
+        const news = arr.filter((a) => (a?.category || "").toLowerCase() === "news")
+
+        // pick top 6
+        setFeatured(news.slice(0, 6))
+      } catch (e) {
+        if (!alive) return
+        setFeatured([])
+        console.error("HOME featured load error:", e?.response?.data || e)
+      }
+    })()
+
+    return () => {
+      alive = false
+    }
+  }, [])
+
+  // (optional) nice safe name
+  const displayName = useMemo(() => {
+    if (!user) return ""
+    return user.displayName || user.display_name || "User"
+  }, [user])
 
   return (
     <div className="home-shell">
@@ -41,8 +80,9 @@ export default function Home() {
           style={{ padding: "40px 20px", textAlign: "center", marginBottom: 40 }}
         >
           <h1 className="headline" style={{ fontSize: "3rem" }}>
-            {user ? `${t("welcome")}, ${user.displayName}!` : t("home_title")}
+            {user ? `${t("welcome")}, ${displayName}!` : t("home_title")}
           </h1>
+
           <p className="subhead" style={{ fontSize: "1.2rem" }}>
             {user ? t("home_user_sub") : t("home_sub")}
           </p>
@@ -57,6 +97,12 @@ export default function Home() {
               {t("read_news")}
             </a>
           </div>
+
+          {loading && (
+            <p className="subhead" style={{ marginTop: 14 }}>
+              Loading…
+            </p>
+          )}
         </div>
 
         {featured.length > 0 && (
@@ -64,7 +110,7 @@ export default function Home() {
             <h3 className="headline">{t("featured")}</h3>
             <div className="grid">
               {featured.map((f) => {
-                const isLocked = f.isPremium && !hasSubscription
+                const isLocked = !!f.isPremium && !hasSubscription
 
                 return (
                   <div key={f.id} className="col-6 anim-fade-up anim-delay-1">
@@ -79,7 +125,7 @@ export default function Home() {
                         height: "100%",
                       }}
                     >
-                      {f.isPremium && (
+                      {!!f.isPremium && (
                         <div
                           style={{
                             position: "absolute",
@@ -155,6 +201,7 @@ export default function Home() {
                           className="btn outline"
                           onClick={() => !isLocked && setSelectedArticle(f)}
                           disabled={isLocked}
+                          type="button"
                         >
                           {t("read_more")}
                         </button>
@@ -170,12 +217,14 @@ export default function Home() {
         {selectedArticle && (
           <div className="modal-backdrop" onClick={() => setSelectedArticle(null)}>
             <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-              <button className="modal-close" onClick={() => setSelectedArticle(null)}>
+              <button className="modal-close" onClick={() => setSelectedArticle(null)} type="button">
                 ×
               </button>
+
               <h2 className="headline" style={{ textAlign: "center" }}>
                 {selectedArticle.title}
               </h2>
+
               {selectedArticle.imageUrl && (
                 <img
                   src={selectedArticle.imageUrl}
@@ -183,6 +232,7 @@ export default function Home() {
                   alt={selectedArticle.title}
                 />
               )}
+
               <div className="modal-text">{selectedArticle.text}</div>
             </div>
           </div>

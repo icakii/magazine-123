@@ -14,6 +14,9 @@ const crypto = require("crypto")
 const db = require("./db")
 const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY)
 const helmet = require("helmet")
+const path = require("path")
+const fs = require("fs")
+
 
 // ✅ ROUTERS
 const storeRouter = require("./routes/store")
@@ -1098,57 +1101,57 @@ function computeEffectiveStreak(streak, lastWinYmd, todayYmd) {
   if (diff === 0 || diff === 1) return Number(streak) || 0
   return 0
 }
-const path = require("path")
-const fs = require("fs")
-
 
 // ---------------------------------------------------------------
-// ✅ SERVE FRONTEND (Vite build) - PRODUCTION ONLY
-// Works with project structure:
-//   /server/src/index.js
-//   /client/dist
+// ✅ SERVE FRONTEND (Vite build) - PRODUCTION + Render
+// Fixes: blank screen + MIME text/html for /assets/*.css
+// Works even if Render Root Directory is "" OR "server"
 // ---------------------------------------------------------------
-// ---------------------------------------------------------------
-// ✅ SERVE FRONTEND (Vite build) - Render-safe (with diagnostics)
-// ---------------------------------------------------------------
-const distPath = path.join(__dirname, "..", "..", "client", "dist")
+const candidates = [
+  // when running from repo root (most common)
+  path.join(__dirname, "..", "..", "client", "dist"),
+  // when Render Root Directory is "server"
+  path.join(__dirname, "..", "..", "..", "client", "dist"),
+]
+
+const distPath = candidates.find((p) => fs.existsSync(p)) || candidates[0]
 const indexHtml = path.join(distPath, "index.html")
 
 console.log("✅ FRONTEND distPath =", distPath)
 console.log("✅ FRONTEND indexHtml =", indexHtml)
 console.log("✅ FRONTEND index exists =", fs.existsSync(indexHtml))
 
-// serve static assets
-app.use(express.static(distPath, {
-  index: false,
-  setHeaders: (res, filePath) => {
-    if (filePath.endsWith(".html")) res.setHeader("Cache-Control", "no-store")
-  },
-}))
+// serve static assets first (css/js/images)
+app.use(
+  express.static(distPath, {
+    index: false,
+    setHeaders: (res, filePath) => {
+      // stop caching html so you don't get old broken index
+      if (filePath.endsWith(".html")) res.setHeader("Cache-Control", "no-store")
+    },
+  })
+)
 
-// explicit root (so "/" is always handled)
-app.get("/", (req, res) => {
-  if (!fs.existsSync(indexHtml)) {
-    return res.status(500).send("Frontend build missing: client/dist/index.html")
-  }
-  return res.sendFile(indexHtml)
+// IMPORTANT: if an asset is missing, return 404 (do NOT return index.html)
+// This prevents MIME-type errors like you saw.
+app.get("/assets/*", (req, res) => {
+  return res.status(404).end()
 })
 
-// SPA fallback (React Router)
+// React Router fallback (any non-API route -> index.html)
 app.get("*", (req, res) => {
   if (req.path.startsWith("/api")) return res.status(404).end()
 
+  // if index.html missing, show clear error instead of silent blank screen
   if (!fs.existsSync(indexHtml)) {
-    return res.status(500).send("Frontend build missing: client/dist/index.html")
+    return res
+      .status(500)
+      .send("Frontend build not found (client/dist/index.html missing).")
   }
 
   return res.sendFile(indexHtml)
 })
 
-
-
-
-//ZZ
 // ---------------------------------------------------------------
 // START SERVER
 // ---------------------------------------------------------------

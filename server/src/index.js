@@ -41,7 +41,11 @@ app.set("trust proxy", 1)
 const ALLOWED_ORIGINS = [
   process.env.FRONTEND_URL,
   process.env.APP_URL,
+
+  // your Render domains (IMPORTANT)
+  "https://magazine-123.onrender.com",
   "https://miren-app.onrender.com",
+
   "http://localhost:5173",
   "http://localhost:8080",
 ].filter(Boolean)
@@ -51,9 +55,12 @@ const corsOptions = {
     // allow server-to-server / curl / Postman (no Origin header)
     if (!origin) return cb(null, true)
 
+    // allow your frontends
     if (ALLOWED_ORIGINS.includes(origin)) return cb(null, true)
 
-    return cb(new Error(`CORS blocked for origin: ${origin}`))
+    // ✅ IMPORTANT: DO NOT throw Error (it causes 500 and breaks assets)
+    // Just disallow via false:
+    return cb(null, false)
   },
   credentials: true,
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
@@ -61,13 +68,17 @@ const corsOptions = {
 }
 
 app.use(cors(corsOptions))
-// preflight
 app.options("*", cors(corsOptions))
 
 // ---------------------------------------------------------------
 // 2) SECURITY + COOKIES
 // ---------------------------------------------------------------
-app.use(helmet())
+app.use(
+  helmet({
+    crossOriginResourcePolicy: { policy: "cross-origin" },
+  })
+)
+
 app.use(cookieParser())
 
 // ---------------------------------------------------------------

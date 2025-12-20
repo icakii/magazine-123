@@ -1136,6 +1136,9 @@ app.get("*", (req, res) => {
   if (req.path.startsWith("/api")) return res.status(404).json({ error: "Not found" })
   return res.sendFile(indexHtml)
 })
+
+app.use("/api", require("./routes/upload"))
+
 // ---------------------------------------------------------------
 // START SERVER
 // ---------------------------------------------------------------

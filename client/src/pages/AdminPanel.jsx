@@ -1,997 +1,1254 @@
-import { useState, useEffect } from "react"
-import { api } from "../lib/api"
+"use client"
+
+import { useEffect, useMemo, useState } from "react"
 import { useAuth } from "../hooks/useAuth"
+import { api } from "../lib/api"
 
-const CLOUDINARY_IMAGE_URL = "https://api.cloudinary.com/v1_1/dwezdx5zn/image/upload"
-const CLOUDINARY_VIDEO_URL = "https://api.cloudinary.com/v1_1/dwezdx5zn/video/upload"
-const UPLOAD_PRESET = "ml_default"
-const ADMIN_EMAILS = ["icaki06@gmail.com", "icaki2k@gmail.com", "mirenmagazine@gmail.com"]
-
-const NEWS_CATEGORIES = [
-  "Sports",
-  "E-Sports",
-  "Photography",
-  "Lifestyle",
-  "Art",
-  "Music",
-  "Movies & Series",
-  "Business",
-  "Science",
-  "Culture",
-  "Health & Fitness",
-  "Travel",
+const ADMIN_EMAILS = [
+  "icaki06@gmail.com",
+  "icaki2k@gmail.com",
+  "mirenmagazine@gmail.com",
 ]
 
-const MONTHS = [
-  "January","February","March","April","May","June",
-  "July","August","September","October","November","December"
-]
+function isAdminEmail(email) {
+  return !!email && ADMIN_EMAILS.includes(String(email).toLowerCase())
+}
+
+function ymd(dateLike) {
+  try {
+    const d = new Date(dateLike)
+    if (Number.isNaN(d.getTime())) return ""
+    return d.toISOString().slice(0, 10)
+  } catch {
+    return ""
+  }
+}
+
+function fmtMoney(cents, currency) {
+  const c = Number(cents || 0)
+  const cur = String(currency || "EUR").toUpperCase()
+  const v = (c / 100).toFixed(2)
+  return `${v} ${cur}`
+}
+
+async function uploadToCloudinaryViaApi(file) {
+  const form = new FormData()
+  form.append("file", file)
+
+  const res = await api.post("/upload", form, {
+    headers: { "Content-Type": "multipart/form-data" },
+  })
+
+  return res?.data?.url || ""
+}
 
 export default function AdminPanel() {
   const { user, loading } = useAuth()
-  
+
+  // ✅ tabs
+  const [activeTab, setActiveTab] = useState("articles") // articles | magazines | store | orders | newsletter
+
+  // ✅ global msg
+  const [msg, setMsg] = useState({ type: "", text: "" })
+
+  // ✅ data
+  const [articles, setArticles] = useState([])
+  const [magazines, setMagazines] = useState([])
+  const [storeItems, setStoreItems] = useState([])
   const [orders, setOrders] = useState([])
-  const [activeTab, setActiveTab] = useState("home")
-  const [items, setItems] = useState([])
-  const [showForm, setShowForm] = useState(false)
-  const [editingId, setEditingId] = useState(null)
-  const [msg, setMsg] = useState("")
-  const [uploading, setUploading] = useState(false)
-  
-  // Newsletter
   const [subscribers, setSubscribers] = useState([])
-  const [emailSubject, setEmailSubject] = useState("")
-  const [emailBody, setEmailBody] = useState("")
 
-  // HERO (VFX)
-  const [heroIssue, setHeroIssue] = useState(null)
-  const [heroVfxUrl, setHeroVfxUrl] = useState("")
+  // ✅ loading states
+  const [busy, setBusy] = useState(false)
 
-  // Article Form
+  // ✅ forms
+  const [editingArticleId, setEditingArticleId] = useState(null)
   const [articleForm, setArticleForm] = useState({
     title: "",
     text: "",
     excerpt: "",
-    date: new Date().toISOString().split("T")[0],
-    time: "",
-    imageUrl: "",
-    articleCategory: "Lifestyle", // само за news
+    author: "MIREN",
+    date: ymd(new Date()),
+    category: "news", // news | events
+    articleCategory: "",
     isPremium: false,
+    time: "",
+    reminderEnabled: false,
+    imageUrl: "",
   })
 
-  // Magazine Form
+  const [editingMagId, setEditingMagId] = useState(null)
   const [magForm, setMagForm] = useState({
     issueNumber: "",
-    month: "January",
+    month: "",
     year: new Date().getFullYear(),
     isLocked: true,
     coverUrl: "",
-    pages: [],
-    heroVfxUrl: "", // NEW
+    heroVfxUrl: "",
+    pages: [], // array of image urls
   })
 
-  // добавяме hero tab
-  const tabs = ["home", "news", "events", "gallery", "magazine", "hero", "newsletter", "orders"]
+  const [editingStoreId, setEditingStoreId] = useState(null)
+  const [storeForm, setStoreForm] = useState({
+    title: "",
+    description: "",
+    imageUrl: "",
+    category: "magazine",
+    priceId: "",
+    isActive: true,
+    releaseAt: "",
+  })
 
+  // newsletter
+  const [emailSubject, setEmailSubject] = useState("")
+  const [emailBody, setEmailBody] = useState("")
+
+  const canAccess = useMemo(() => {
+    return isAdminEmail(user?.email)
+  }, [user?.email])
+
+  // ---------------------------------------------
+  // ✅ LOADERS per tab
+  // ---------------------------------------------
   useEffect(() => {
-    if (!loading && user && ADMIN_EMAILS.includes(user.email)) {
-      loadData()
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [loading, user, activeTab])
+    if (loading) return
+    if (!canAccess) return
 
-  async function loadData() {
-    try {
-      if (activeTab === "magazine") {
-        const res = await api.get("/magazines")
-        setItems(res.data || [])
-      } else if (activeTab === "hero") {
-        const res = await api.get("/magazines")
-        const list = res.data || []
-        const first = list[0] || null
-        setHeroIssue(first)
-        setHeroVfxUrl(first?.heroVfxUrl || "")
-      } else if (activeTab === "newsletter") {
-        const res = await api.get("/newsletter/subscribers")
-        setSubscribers(res.data || [])
-      }
-      else if (activeTab === "orders") {
-  const res = await api.get("/admin/store/orders")
-  setOrders(res.data || [])
-}
- else {
-        const res = await api.get(`/articles?category=${activeTab}`)
-        setItems(res.data || [])
-      }
-      
-    } catch (err) {
-      console.error(err)
-    }
-  }
+    ;(async () => {
+      try {
+        setMsg({ type: "", text: "" })
 
-  // ---------------- IMAGE UPLOAD ----------------
-  async function handleImageUpload(e, type) {
-    const file = e.target.files[0]
-    if (!file) return
-
-    setUploading(true)
-    const formData = new FormData()
-    formData.append("file", file)
-    formData.append("upload_preset", UPLOAD_PRESET)
-
-    try {
-      const res = await fetch(CLOUDINARY_IMAGE_URL, {
-        method: "POST",
-        body: formData,
-      })
-      const data = await res.json()
-
-      if (data.secure_url) {
-        if (type === "cover") {
-          setMagForm(prev => ({ ...prev, coverUrl: data.secure_url }))
-        } else if (type === "page") {
-          setMagForm(prev => ({ ...prev, pages: [...prev.pages, data.secure_url] }))
-        } else {
-          setArticleForm(prev => ({ ...prev, imageUrl: data.secure_url }))
-        }
-        setMsg("Image uploaded successfully! ✅")
-      }
-    } catch (error) {
-      console.error(error)
-      setMsg("Upload failed.")
-    } finally {
-      setUploading(false)
-      e.target.value = null
-    }
-  }
-
-  // ---------------- VIDEO UPLOAD (HERO VFX) ----------------
-  async function handleHeroVideoUpload(e) {
-    const file = e.target.files[0]
-    if (!file) return
-
-    setUploading(true)
-    setMsg("")
-
-    const formData = new FormData()
-    formData.append("file", file)
-    formData.append("upload_preset", UPLOAD_PRESET)
-
-    try {
-      const res = await fetch(CLOUDINARY_VIDEO_URL, {
-        method: "POST",
-        body: formData,
-      })
-      const data = await res.json()
-
-      if (data.secure_url) {
-        setHeroVfxUrl(data.secure_url)
-        setMsg("Hero VFX video uploaded ✅ (don’t forget Save)")
-      } else {
-        setMsg("Video upload failed.")
-      }
-    } catch (error) {
-      console.error(error)
-      setMsg("Video upload failed.")
-    } finally {
-      setUploading(false)
-      e.target.value = null
-    }
-  }
-
-  async function saveHeroVfx() {
-    if (!heroIssue?.id) {
-      setMsg("No magazine issue found. Create an Issue first in Magazine tab.")
-      return
-    }
-    try {
-      setUploading(true)
-      await api.put(`/magazines/${heroIssue.id}`, {
-        ...heroIssue,
-        heroVfxUrl: heroVfxUrl || null,
-      })
-      setMsg("Hero VFX saved ✅")
-      loadData()
-    } catch (err) {
-      console.error(err)
-      setMsg("Error saving Hero VFX.")
-    } finally {
-      setUploading(false)
-    }
-  }
-
-  function removePage(indexToRemove) {
-    setMagForm(prev => ({
-      ...prev,
-      pages: prev.pages.filter((_, idx) => idx !== indexToRemove),
-    }))
-  }
-
-  // ---------------- SAVE ----------------
-  async function handleSave(e) {
-    e.preventDefault()
-    try {
-      if (activeTab === "magazine") {
-        const dataToSave = {
-          ...magForm,
-          year: parseInt(magForm.year, 10) || new Date().getFullYear(),
-          isLocked: !!magForm.isLocked,
-          heroVfxUrl: magForm.heroVfxUrl || null,
-        }
-        if (editingId) {
-          await api.put(`/magazines/${editingId}`, dataToSave)
-        } else {
-          await api.post("/magazines", dataToSave)
-        }
-        setMsg("Magazine saved!")
-      } else if (activeTab === "newsletter" || activeTab === "hero") {
-        return
-      } else {
-        const payload = {
-          title: articleForm.title,
-          text: activeTab === "gallery" ? "" : articleForm.text,
-          excerpt: activeTab === "gallery" ? "" : articleForm.excerpt,
-          date: articleForm.date,
-          time: activeTab === "events" ? articleForm.time : null,
-          imageUrl: articleForm.imageUrl,
-          category: activeTab, // home | news | events | gallery
-          articleCategory: activeTab === "news" ? articleForm.articleCategory : null,
-          isPremium: articleForm.isPremium,
-          author: user.displayName || "Admin",
+        if (activeTab === "articles") {
+          const res = await api.get("/articles")
+          setArticles(Array.isArray(res.data) ? res.data : [])
         }
 
-        if (editingId) {
-          await api.put(`/articles/${editingId}`, payload)
-        } else {
-          await api.post("/articles", payload)
+        if (activeTab === "magazines") {
+          const res = await api.get("/magazines")
+          setMagazines(Array.isArray(res.data) ? res.data : [])
         }
-        setMsg("Article saved!")
+
+        if (activeTab === "store") {
+          // admin CRUD endpoints
+          // list public store items:
+          const res = await api.get("/store/items")
+          setStoreItems(Array.isArray(res.data) ? res.data : [])
+        }
+
+        if (activeTab === "orders") {
+          const res = await api.get("/admin/store/orders")
+          setOrders(Array.isArray(res.data) ? res.data : [])
+        }
+
+        if (activeTab === "newsletter") {
+          const res = await api.get("/newsletter/subscribers")
+          setSubscribers(Array.isArray(res.data) ? res.data : [])
+        }
+      } catch (e) {
+        setMsg({
+          type: "error",
+          text:
+            e?.response?.data?.error ||
+            e?.message ||
+            "Failed to load admin data.",
+        })
       }
+    })()
+  }, [activeTab, canAccess, loading])
 
-      setTimeout(() => {
-        resetForms()
-        loadData()
-      }, 800)
-    } catch (err) {
-      console.error(err)
-      setMsg("Error: " + (err.response?.data?.error || err.message))
-    }
+  // ---------------------------------------------
+  // ✅ GUARD UI
+  // ---------------------------------------------
+  if (loading) {
+    return (
+      <div className="page">
+        <h2 className="headline">Admin Panel</h2>
+        <p className="subhead">Loading…</p>
+      </div>
+    )
   }
 
-  // ---------------- DELETE ----------------
-  async function handleDelete(id) {
-    if (!window.confirm("Delete this item?")) return
-    try {
-      if (activeTab === "magazine") {
-        await api.delete(`/magazines/${id}`)
-      } else {
-        await api.delete(`/articles/${id}`)
-      }
-      loadData()
-    } catch (err) {
-      alert("Error deleting.")
-    }
+  if (!user) {
+    return (
+      <div className="page">
+        <h2 className="headline">Admin Panel</h2>
+        <p className="msg warning">You must be logged in.</p>
+      </div>
+    )
   }
 
-  // ---------------- NEWSLETTER SEND ----------------
-  async function handleSendEmail(e) {
-    e.preventDefault()
-    try {
-      const res = await api.post("/newsletter/send", {
-        subject: emailSubject,
-        body: emailBody,
-      })
-      setMsg(`Sent to ${res.data.count} subscribers.`)
-      setEmailSubject("")
-      setEmailBody("")
-    } catch (err) {
-      setMsg("Error sending emails.")
-    }
+  if (!canAccess) {
+    return (
+      <div className="page">
+        <h2 className="headline">Admin Panel</h2>
+        <p className="msg warning">Admin access required.</p>
+      </div>
+    )
   }
 
-  // ---------------- EDIT ----------------
-  function handleEdit(item) {
-    setEditingId(item.id)
+  // ---------------------------------------------
+  // ✅ HELPERS
+  // ---------------------------------------------
+  const setOk = (text) => setMsg({ type: "ok", text })
+  const setErr = (text) => setMsg({ type: "error", text })
 
-    if (activeTab === "magazine" || item.issueNumber) {
-      setActiveTab("magazine")
-      setMagForm({
-        issueNumber: item.issueNumber || "",
-        month: item.month || "January",
-        year: item.year || new Date().getFullYear(),
-        isLocked: !!item.isLocked,
-        coverUrl: item.coverUrl || "",
-        pages: Array.isArray(item.pages) ? item.pages : [],
-        heroVfxUrl: item.heroVfxUrl || "",
-      })
-    } else if (activeTab === "newsletter" || activeTab === "hero") {
-      return
-    } else {
-      setArticleForm({
-        title: item.title || "",
-        text: item.text || "",
-        excerpt: item.excerpt || "",
-        date: item.date ? item.date.split("T")[0] : new Date().toISOString().split("T")[0],
-        time: item.time || "",
-        imageUrl: item.imageUrl || "",
-        articleCategory: item.articleCategory || "Lifestyle",
-        isPremium: !!item.isPremium,
-      })
-    }
-
-    setShowForm(true)
-    window.scrollTo({ top: 0, behavior: "smooth" })
+  const reloadCurrentTab = async () => {
+    // quick refresh
+    const tab = activeTab
+    setActiveTab("___tmp___")
+    setTimeout(() => setActiveTab(tab), 0)
   }
 
-  function resetForms() {
-    setEditingId(null)
-    setShowForm(false)
-    setMsg("")
+  // ---------------------------------------------
+  // ✅ ARTICLE CRUD
+  // ---------------------------------------------
+  const resetArticleForm = () => {
+    setEditingArticleId(null)
     setArticleForm({
       title: "",
       text: "",
       excerpt: "",
-      date: new Date().toISOString().split("T")[0],
-      time: "",
-      imageUrl: "",
-      articleCategory: "Lifestyle",
+      author: user?.displayName || "MIREN",
+      date: ymd(new Date()),
+      category: "news",
+      articleCategory: "",
       isPremium: false,
+      time: "",
+      reminderEnabled: false,
+      imageUrl: "",
     })
+  }
+
+  const startEditArticle = (a) => {
+    setEditingArticleId(a?.id)
+    setArticleForm({
+      title: a?.title || "",
+      text: a?.text || "",
+      excerpt: a?.excerpt || "",
+      author: a?.author || (user?.displayName || "MIREN"),
+      date: a?.date || ymd(new Date()),
+      category: a?.category || "news",
+      articleCategory: a?.articleCategory || "",
+      isPremium: !!a?.isPremium,
+      time: a?.time || "",
+      reminderEnabled: !!a?.reminderEnabled,
+      imageUrl: a?.imageUrl || "",
+    })
+  }
+
+  const saveArticle = async () => {
+    try {
+      setBusy(true)
+      setMsg({ type: "", text: "" })
+
+      const payload = {
+        title: articleForm.title,
+        text: articleForm.text,
+        excerpt: articleForm.excerpt,
+        author: articleForm.author,
+        date: articleForm.date,
+        imageUrl: articleForm.imageUrl,
+        category: articleForm.category,
+        articleCategory: articleForm.articleCategory,
+        isPremium: !!articleForm.isPremium,
+        time: articleForm.time,
+        reminderEnabled: !!articleForm.reminderEnabled,
+      }
+
+      if (!payload.title || !payload.text) {
+        setErr("Title + Text are required.")
+        return
+      }
+
+      if (editingArticleId) {
+        await api.put(`/articles/${editingArticleId}`, payload)
+        setOk("✅ Article updated.")
+      } else {
+        await api.post("/articles", payload)
+        setOk("✅ Article created.")
+      }
+
+      resetArticleForm()
+      await reloadCurrentTab()
+    } catch (e) {
+      setErr(e?.response?.data?.error || e?.message || "Failed to save article.")
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const deleteArticle = async (id) => {
+    if (!id) return
+    if (!confirm("Delete this article?")) return
+    try {
+      setBusy(true)
+      await api.delete(`/articles/${id}`)
+      setOk("🗑️ Article deleted.")
+      await reloadCurrentTab()
+    } catch (e) {
+      setErr(e?.response?.data?.error || e?.message || "Delete failed.")
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  // upload for article image
+  const onPickArticleImage = async (file) => {
+    try {
+      if (!file) return
+      setBusy(true)
+      setMsg({ type: "", text: "" })
+      const url = await uploadToCloudinaryViaApi(file)
+      if (!url) {
+        setErr("Upload failed (missing URL).")
+        return
+      }
+      setArticleForm((s) => ({ ...s, imageUrl: url }))
+      setOk("✅ Image uploaded.")
+    } catch (e) {
+      setErr(e?.response?.data?.error || e?.message || "Upload failed.")
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  // ---------------------------------------------
+  // ✅ MAGAZINES CRUD
+  // ---------------------------------------------
+  const resetMagForm = () => {
+    setEditingMagId(null)
     setMagForm({
       issueNumber: "",
-      month: "January",
+      month: "",
       year: new Date().getFullYear(),
       isLocked: true,
       coverUrl: "",
-      pages: [],
       heroVfxUrl: "",
+      pages: [],
     })
   }
 
-  if (loading) return <div className="page"><p>Loading...</p></div>
-  if (!user || !ADMIN_EMAILS.includes(user.email)) {
-    return <div className="page"><p>Access denied.</p></div>
+  const startEditMag = (m) => {
+    setEditingMagId(m?.id)
+    setMagForm({
+      issueNumber: m?.issueNumber || "",
+      month: m?.month || "",
+      year: Number(m?.year) || new Date().getFullYear(),
+      isLocked: !!m?.isLocked,
+      coverUrl: m?.coverUrl || "",
+      heroVfxUrl: m?.heroVfxUrl || "",
+      pages: Array.isArray(m?.pages) ? m.pages : [],
+    })
   }
 
+  const saveMagazine = async () => {
+    try {
+      setBusy(true)
+      setMsg({ type: "", text: "" })
+
+      const payload = {
+        issueNumber: magForm.issueNumber,
+        month: magForm.month,
+        year: Number(magForm.year) || new Date().getFullYear(),
+        isLocked: !!magForm.isLocked,
+        coverUrl: magForm.coverUrl,
+        heroVfxUrl: magForm.heroVfxUrl || null,
+        pages: Array.isArray(magForm.pages) ? magForm.pages : [],
+      }
+
+      if (!payload.issueNumber || !payload.month || !payload.year) {
+        setErr("Issue number + month + year are required.")
+        return
+      }
+
+      if (editingMagId) {
+        await api.put(`/magazines/${editingMagId}`, payload)
+        setOk("✅ Magazine updated.")
+      } else {
+        await api.post("/magazines", payload)
+        setOk("✅ Magazine created.")
+      }
+
+      resetMagForm()
+      await reloadCurrentTab()
+    } catch (e) {
+      setErr(e?.response?.data?.error || e?.message || "Failed to save magazine.")
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const deleteMagazine = async (id) => {
+    if (!id) return
+    if (!confirm("Delete this magazine issue?")) return
+    try {
+      setBusy(true)
+      await api.delete(`/magazines/${id}`)
+      setOk("🗑️ Magazine deleted.")
+      await reloadCurrentTab()
+    } catch (e) {
+      setErr(e?.response?.data?.error || e?.message || "Delete failed.")
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const onPickCover = async (file) => {
+    try {
+      if (!file) return
+      setBusy(true)
+      setMsg({ type: "", text: "" })
+      const url = await uploadToCloudinaryViaApi(file)
+      if (!url) {
+        setErr("Upload failed (missing URL).")
+        return
+      }
+      setMagForm((s) => ({ ...s, coverUrl: url }))
+      setOk("✅ Cover uploaded.")
+    } catch (e) {
+      setErr(e?.response?.data?.error || e?.message || "Upload failed.")
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const onPickHeroVfx = async (file) => {
+    try {
+      if (!file) return
+      setBusy(true)
+      setMsg({ type: "", text: "" })
+      const url = await uploadToCloudinaryViaApi(file)
+      if (!url) {
+        setErr("Upload failed (missing URL).")
+        return
+      }
+      setMagForm((s) => ({ ...s, heroVfxUrl: url }))
+      setOk("✅ Hero VFX uploaded.")
+    } catch (e) {
+      setErr(e?.response?.data?.error || e?.message || "Upload failed.")
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const onPickPages = async (files) => {
+    try {
+      const arr = Array.from(files || [])
+      if (arr.length === 0) return
+      setBusy(true)
+      setMsg({ type: "", text: "" })
+
+      // upload sequentially (safe)
+      const uploaded = []
+      for (const f of arr) {
+        const url = await uploadToCloudinaryViaApi(f)
+        if (url) uploaded.push(url)
+      }
+
+      setMagForm((s) => ({ ...s, pages: [...s.pages, ...uploaded] }))
+      setOk(`✅ Uploaded ${uploaded.length} page(s).`)
+    } catch (e) {
+      setErr(e?.response?.data?.error || e?.message || "Upload failed.")
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  // ---------------------------------------------
+  // ✅ STORE CRUD
+  // ---------------------------------------------
+  const resetStoreForm = () => {
+    setEditingStoreId(null)
+    setStoreForm({
+      title: "",
+      description: "",
+      imageUrl: "",
+      category: "magazine",
+      priceId: "",
+      isActive: true,
+      releaseAt: "",
+    })
+  }
+
+  const startEditStore = (it) => {
+    setEditingStoreId(it?.id)
+    setStoreForm({
+      title: it?.title || "",
+      description: it?.description || "",
+      imageUrl: it?.imageUrl || "",
+      category: it?.category || "magazine",
+      priceId: it?.priceId || "",
+      isActive: it?.isActive !== false,
+      releaseAt: it?.releaseAt ? String(it.releaseAt) : "",
+    })
+  }
+
+  const saveStoreItem = async () => {
+    try {
+      setBusy(true)
+      setMsg({ type: "", text: "" })
+
+      const payload = {
+        title: storeForm.title,
+        description: storeForm.description,
+        imageUrl: storeForm.imageUrl,
+        category: storeForm.category,
+        priceId: storeForm.priceId,
+        isActive: storeForm.isActive !== false,
+        releaseAt: storeForm.releaseAt ? storeForm.releaseAt : null,
+      }
+
+      if (!payload.title || !payload.priceId) {
+        setErr("Title + Stripe priceId are required.")
+        return
+      }
+
+      if (editingStoreId) {
+        await api.put(`/admin/store/items/${editingStoreId}`, payload)
+        setOk("✅ Store item updated.")
+      } else {
+        await api.post("/admin/store/items", payload)
+        setOk("✅ Store item created.")
+      }
+
+      resetStoreForm()
+      await reloadCurrentTab()
+    } catch (e) {
+      setErr(e?.response?.data?.error || e?.message || "Failed to save store item.")
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const deleteStoreItem = async (id) => {
+    if (!id) return
+    if (!confirm("Delete this store item?")) return
+    try {
+      setBusy(true)
+      await api.delete(`/admin/store/items/${id}`)
+      setOk("🗑️ Store item deleted.")
+      await reloadCurrentTab()
+    } catch (e) {
+      setErr(e?.response?.data?.error || e?.message || "Delete failed.")
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const onPickStoreImage = async (file) => {
+    try {
+      if (!file) return
+      setBusy(true)
+      setMsg({ type: "", text: "" })
+      const url = await uploadToCloudinaryViaApi(file)
+      if (!url) {
+        setErr("Upload failed (missing URL).")
+        return
+      }
+      setStoreForm((s) => ({ ...s, imageUrl: url }))
+      setOk("✅ Store image uploaded.")
+    } catch (e) {
+      setErr(e?.response?.data?.error || e?.message || "Upload failed.")
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  // ---------------------------------------------
+  // ✅ NEWSLETTER
+  // ---------------------------------------------
+  const sendNewsletter = async () => {
+    try {
+      if (!emailSubject.trim() || !emailBody.trim()) {
+        setErr("Subject + Body are required.")
+        return
+      }
+      setBusy(true)
+      await api.post("/newsletter/send", {
+        subject: emailSubject,
+        body: emailBody,
+      })
+      setOk("✅ Newsletter sent.")
+      setEmailSubject("")
+      setEmailBody("")
+    } catch (e) {
+      setErr(e?.response?.data?.error || e?.message || "Send failed.")
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  // ---------------------------------------------
+  // ✅ ORDERS (render FIX)
+  // ---------------------------------------------
+  const renderOrder = (o) => {
+    // ✅ ONLY whitelist fields (fixes the “random fields” bug)
+    const id = o?.id || ""
+    const created = o?.created ? new Date(o.created * 1000) : null
+    const createdStr = created ? created.toLocaleString() : ""
+    const total = fmtMoney(o?.amount_total || 0, o?.currency || "EUR")
+
+    const fullName = o?.full_name || ""
+    const email = o?.customer_email || ""
+    const phone = o?.customer_phone || ""
+    const shipName = o?.shipping_name || ""
+    const addr = o?.shipping_address || null
+
+    const addrLines = []
+    if (addr?.line1) addrLines.push(addr.line1)
+    if (addr?.line2) addrLines.push(addr.line2)
+    const cityLine = [addr?.postal_code, addr?.city].filter(Boolean).join(" ")
+    if (cityLine) addrLines.push(cityLine)
+    if (addr?.country) addrLines.push(addr.country)
+
+    const items = Array.isArray(o?.line_items) ? o.line_items : []
+
+    return (
+      <div key={id} className="card" style={{ marginBottom: 12 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+          <div>
+            <div style={{ fontWeight: 800 }}>Order</div>
+            <div className="text-muted" style={{ fontSize: 13 }}>
+              {id}
+            </div>
+          </div>
+
+          <div style={{ textAlign: "right" }}>
+            <div style={{ fontWeight: 800 }}>{total}</div>
+            <div className="text-muted" style={{ fontSize: 13 }}>
+              {createdStr}
+            </div>
+          </div>
+        </div>
+
+        <div style={{ marginTop: 10, display: "grid", gap: 10, gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))" }}>
+          <div>
+            <div style={{ fontWeight: 700, marginBottom: 4 }}>Customer</div>
+            {fullName ? <div><b>Three names:</b> {fullName}</div> : null}
+            {email ? <div><b>Email:</b> {email}</div> : null}
+            {phone ? <div><b>Phone:</b> {phone}</div> : null}
+          </div>
+
+          <div>
+            <div style={{ fontWeight: 700, marginBottom: 4 }}>Shipping</div>
+            {shipName ? <div><b>Name:</b> {shipName}</div> : null}
+            {addrLines.length > 0 ? (
+              <div>
+                <b>Address:</b>
+                <div className="text-muted" style={{ marginTop: 2 }}>
+                  {addrLines.map((x, i) => (
+                    <div key={i}>{x}</div>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div className="text-muted">No shipping address</div>
+            )}
+          </div>
+
+          <div>
+            <div style={{ fontWeight: 700, marginBottom: 4 }}>Items</div>
+            {items.length === 0 ? (
+              <div className="text-muted">No line items</div>
+            ) : (
+              <div style={{ display: "grid", gap: 6 }}>
+                {items.map((li, idx) => (
+                  <div key={idx} style={{ display: "flex", justifyContent: "space-between", gap: 10 }}>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontWeight: 600 }}>{li?.description || "Item"}</div>
+                      <div className="text-muted" style={{ fontSize: 13 }}>
+                        x{li?.quantity || 1}
+                      </div>
+                    </div>
+                    {typeof li?.amount_total === "number" ? (
+                      <div style={{ whiteSpace: "nowrap" }}>
+                        {fmtMoney(li.amount_total, li.currency || o?.currency || "EUR")}
+                      </div>
+                    ) : null}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // ---------------------------------------------
+  // UI
+  // ---------------------------------------------
   return (
     <div className="page">
-      <h2 className="headline">Admin Panel</h2>
+      <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap", alignItems: "center" }}>
+        <div>
+          <h2 className="headline">Admin Panel</h2>
+          <p className="subhead">Manage content, store items, orders & newsletter.</p>
+        </div>
 
-      {/* Tabs */}
-      <div
-        style={{
-          display: "flex",
-          gap: 8,
-          marginBottom: 24,
-          flexWrap: "wrap",
-          borderBottom: "2px solid #ccc",
-          paddingBottom: 12,
-        }}
-      >
-        {tabs.map(tab => (
-          <button
-            key={tab}
-            onClick={() => {
-              setActiveTab(tab)
-              resetForms()
-            }}
-            className={`btn ${activeTab === tab ? "primary" : "ghost"}`}
-            style={{ textTransform: "capitalize" }}
-            type="button"
-          >
-            {tab}
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          <button className={`btn ${activeTab === "articles" ? "primary" : "ghost"}`} onClick={() => setActiveTab("articles")} type="button">
+            Articles
           </button>
-        ))}
+          <button className={`btn ${activeTab === "magazines" ? "primary" : "ghost"}`} onClick={() => setActiveTab("magazines")} type="button">
+            Magazines
+          </button>
+          <button className={`btn ${activeTab === "store" ? "primary" : "ghost"}`} onClick={() => setActiveTab("store")} type="button">
+            Store
+          </button>
+          <button className={`btn ${activeTab === "orders" ? "primary" : "ghost"}`} onClick={() => setActiveTab("orders")} type="button">
+            Orders
+          </button>
+          <button className={`btn ${activeTab === "newsletter" ? "primary" : "ghost"}`} onClick={() => setActiveTab("newsletter")} type="button">
+            Newsletter
+          </button>
+        </div>
       </div>
 
-      {/* HERO TAB */}
-      {activeTab === "hero" && (
-        <div className="stack">
-          <h3>Hero Intro VFX</h3>
-          <p style={{ color: "var(--text-muted)" }}>
-            Upload a video that will show in the Home HeroIntro (autoplay, muted, loop).
-          </p>
-
-          {!heroIssue ? (
-            <div className="card" style={{ padding: 18 }}>
-              <p><strong>No magazine issue found.</strong></p>
-              <p>Create at least one issue in the <b>Magazine</b> tab first.</p>
-            </div>
-          ) : (
-            <div className="card" style={{ padding: 20 }}>
-              <div style={{ marginBottom: 10 }}>
-                Current issue: <b>{heroIssue.issueNumber}</b> {heroIssue.month} {heroIssue.year}
-              </div>
-
-              <div
-                style={{
-                  marginBottom: 12,
-                  padding: 10,
-                  background: "var(--bg-muted)",
-                  border: "1px dashed var(--nav-border)",
-                  borderRadius: 10,
-                }}
-              >
-                <label style={{ fontWeight: "bold" }}>Upload Hero Video (mp4/webm)</label>
-                <input
-                  type="file"
-                  accept="video/*"
-                  onChange={handleHeroVideoUpload}
-                  disabled={uploading}
-                  style={{ marginTop: 6, display: "block" }}
-                />
-
-                <div style={{ marginTop: 12 }}>
-                  <label style={{ fontWeight: 700, fontSize: ".9rem" }}>Or paste URL</label>
-                  <input
-                    className="input"
-                    placeholder="https://..."
-                    value={heroVfxUrl}
-                    onChange={(e) => setHeroVfxUrl(e.target.value)}
-                    style={{ marginTop: 6 }}
-                  />
-                </div>
-
-                {heroVfxUrl && (
-                  <div style={{ marginTop: 14 }}>
-                    <video
-                      src={heroVfxUrl}
-                      controls
-                      style={{ width: "100%", borderRadius: 12, border: "1px solid var(--nav-border)" }}
-                    />
-                  </div>
-                )}
-              </div>
-
-              <button
-                className="btn primary"
-                type="button"
-                onClick={saveHeroVfx}
-                disabled={uploading}
-              >
-                Save Hero VFX
-              </button>
-
-              {msg && <p style={{ marginTop: 10 }}>{msg}</p>}
-            </div>
-          )}
+      {msg?.text ? (
+        <div className={`msg ${msg.type === "error" ? "warning" : ""}`} style={{ marginTop: 12 }}>
+          {msg.text}
         </div>
-      )}
+      ) : null}
 
-      {/* Newsletter tab */}
-      {activeTab === "newsletter" && (
-        <div className="stack">
-          <h3>Newsletter Manager</h3>
-          <p>
-            Total Subscribers: <strong>{subscribers.length}</strong>
-          </p>
+      {busy ? (
+        <div className="msg" style={{ marginTop: 12 }}>
+          Working…
+        </div>
+      ) : null}
 
-          <div className="card" style={{ padding: 20 }}>
-            <form onSubmit={handleSendEmail} className="form">
+      {/* ---------------- ARTICLES ---------------- */}
+      {activeTab === "articles" && (
+        <div style={{ marginTop: 16, display: "grid", gap: 16, gridTemplateColumns: "1fr 1fr" }}>
+          {/* form */}
+          <div className="card">
+            <div style={{ fontWeight: 800, marginBottom: 8 }}>
+              {editingArticleId ? `Edit Article #${editingArticleId}` : "Create Article"}
+            </div>
+
+            <div className="stack" style={{ gap: 10 }}>
               <input
                 className="input"
-                placeholder="Subject"
-                value={emailSubject}
-                onChange={e => setEmailSubject(e.target.value)}
-                required
+                placeholder="Title"
+                value={articleForm.title}
+                onChange={(e) => setArticleForm((s) => ({ ...s, title: e.target.value }))}
               />
+
               <textarea
-                className="textarea"
-                placeholder="Message."
-                value={emailBody}
-                onChange={e => setEmailBody(e.target.value)}
-                required
-                style={{ minHeight: 150 }}
+                className="input"
+                placeholder="Excerpt (short)"
+                value={articleForm.excerpt}
+                onChange={(e) => setArticleForm((s) => ({ ...s, excerpt: e.target.value }))}
+                rows={3}
               />
-              <button
-                className="btn primary"
-                style={{ backgroundColor: "#e63946", color: "white" }}
-              >
-                Send to All
-              </button>
-            </form>
-            {msg && <p style={{ marginTop: 10 }}>{msg}</p>}
+
+              <textarea
+                className="input"
+                placeholder="Text (full)"
+                value={articleForm.text}
+                onChange={(e) => setArticleForm((s) => ({ ...s, text: e.target.value }))}
+                rows={8}
+              />
+
+              <div style={{ display: "grid", gap: 10, gridTemplateColumns: "1fr 1fr" }}>
+                <input
+                  className="input"
+                  placeholder="Author"
+                  value={articleForm.author}
+                  onChange={(e) => setArticleForm((s) => ({ ...s, author: e.target.value }))}
+                />
+                <input
+                  className="input"
+                  type="date"
+                  value={articleForm.date}
+                  onChange={(e) => setArticleForm((s) => ({ ...s, date: e.target.value }))}
+                />
+              </div>
+
+              <div style={{ display: "grid", gap: 10, gridTemplateColumns: "1fr 1fr" }}>
+                <select
+                  className="input"
+                  value={articleForm.category}
+                  onChange={(e) => setArticleForm((s) => ({ ...s, category: e.target.value }))}
+                >
+                  <option value="news">news</option>
+                  <option value="events">events</option>
+                </select>
+
+                <input
+                  className="input"
+                  placeholder="Article category (only for news)"
+                  value={articleForm.articleCategory}
+                  onChange={(e) => setArticleForm((s) => ({ ...s, articleCategory: e.target.value }))}
+                />
+              </div>
+
+              {articleForm.category === "events" && (
+                <div style={{ display: "grid", gap: 10, gridTemplateColumns: "1fr 1fr" }}>
+                  <input
+                    className="input"
+                    placeholder="Time (e.g. 19:30)"
+                    value={articleForm.time}
+                    onChange={(e) => setArticleForm((s) => ({ ...s, time: e.target.value }))}
+                  />
+                  <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                    <input
+                      type="checkbox"
+                      checked={!!articleForm.reminderEnabled}
+                      onChange={(e) => setArticleForm((s) => ({ ...s, reminderEnabled: e.target.checked }))}
+                    />
+                    Reminder enabled
+                  </label>
+                </div>
+              )}
+
+              <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                <input
+                  type="checkbox"
+                  checked={!!articleForm.isPremium}
+                  onChange={(e) => setArticleForm((s) => ({ ...s, isPremium: e.target.checked }))}
+                />
+                Premium
+              </label>
+
+              <div className="card" style={{ padding: 12 }}>
+                <div style={{ fontWeight: 700, marginBottom: 8 }}>Image</div>
+                {articleForm.imageUrl ? (
+                  <img
+                    src={articleForm.imageUrl}
+                    alt="article"
+                    style={{ width: "100%", maxHeight: 220, objectFit: "cover", borderRadius: 10, marginBottom: 10 }}
+                  />
+                ) : (
+                  <div className="text-muted" style={{ marginBottom: 10 }}>
+                    No image yet.
+                  </div>
+                )}
+
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => onPickArticleImage(e.target.files?.[0])}
+                />
+
+                <input
+                  className="input"
+                  placeholder="or paste image URL"
+                  value={articleForm.imageUrl}
+                  onChange={(e) => setArticleForm((s) => ({ ...s, imageUrl: e.target.value }))}
+                  style={{ marginTop: 10 }}
+                />
+              </div>
+
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                <button className="btn primary" onClick={saveArticle} type="button">
+                  {editingArticleId ? "Save" : "Create"}
+                </button>
+                <button className="btn ghost" onClick={resetArticleForm} type="button">
+                  Clear
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* list */}
+          <div className="card">
+            <div style={{ fontWeight: 800, marginBottom: 10 }}>Articles ({articles.length})</div>
+
+            <div style={{ display: "grid", gap: 10 }}>
+              {articles.map((a) => (
+                <div key={a.id} className="card" style={{ padding: 12 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", gap: 10 }}>
+                    <div style={{ fontWeight: 800 }}>
+                      {a.title} {a.isPremium ? "🔒" : ""}
+                    </div>
+                    <div className="text-muted" style={{ fontSize: 13 }}>
+                      #{a.id}
+                    </div>
+                  </div>
+
+                  <div className="text-muted" style={{ marginTop: 4 }}>
+                    {a.category} • {a.date}
+                  </div>
+
+                  <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap" }}>
+                    <button className="btn ghost" onClick={() => startEditArticle(a)} type="button">
+                      Edit
+                    </button>
+                    <button className="btn secondary" onClick={() => deleteArticle(a.id)} type="button">
+                      Delete
+                    </button>
+                  </div>
+                </div>
+              ))}
+              {articles.length === 0 ? <div className="text-muted">No articles.</div> : null}
+            </div>
           </div>
         </div>
       )}
 
-      {/* Add button */}
-      {activeTab !== "newsletter" && activeTab !== "hero" && !showForm && (
-        <button
-          onClick={() => {
-            setShowForm(true)
-            setEditingId(null)
-          }}
-          className="btn primary"
-          style={{
-            marginBottom: 24,
-            backgroundColor: "#e63946",
-            color: "white",
-          }}
-          type="button"
-        >
-          + Create New {activeTab === "magazine" ? "Issue" : "Article"}
-        </button>
-      )}
+      {/* ---------------- MAGAZINES ---------------- */}
+      {activeTab === "magazines" && (
+        <div style={{ marginTop: 16, display: "grid", gap: 16, gridTemplateColumns: "1fr 1fr" }}>
+          {/* form */}
+          <div className="card">
+            <div style={{ fontWeight: 800, marginBottom: 8 }}>
+              {editingMagId ? `Edit Issue #${editingMagId}` : "Create Issue"}
+            </div>
 
-      {/* FORM */}
-      {showForm && activeTab !== "newsletter" && activeTab !== "hero" && (
-        <div className="card" style={{ padding: 20, marginBottom: 20 }}>
-          <h3 style={{ marginBottom: 10 }}>
-            {editingId ? "Edit" : "Create New"}{" "}
-            {activeTab === "magazine" ? "Magazine Issue" : activeTab}
-          </h3>
-
-          <form onSubmit={handleSave}>
-            {activeTab === "magazine" ? (
-              // MAGAZINE FORM
-              <div className="stack">
+            <div className="stack" style={{ gap: 10 }}>
+              <div style={{ display: "grid", gap: 10, gridTemplateColumns: "1fr 1fr 1fr" }}>
                 <input
                   className="input"
-                  placeholder="Issue Number (e.g. #1)"
+                  placeholder="Issue number"
                   value={magForm.issueNumber}
-                  onChange={e =>
-                    setMagForm(prev => ({ ...prev, issueNumber: e.target.value }))
-                  }
-                  required
+                  onChange={(e) => setMagForm((s) => ({ ...s, issueNumber: e.target.value }))}
                 />
-                <div style={{ display: "flex", gap: 10 }}>
-                  <select
-                    className="input"
-                    value={magForm.month}
-                    onChange={e =>
-                      setMagForm(prev => ({ ...prev, month: e.target.value }))
-                    }
-                  >
-                    {MONTHS.map(m => (
-                      <option key={m} value={m}>
-                        {m}
-                      </option>
-                    ))}
-                  </select>
-                  <input
-                    className="input"
-                    type="number"
-                    value={magForm.year}
-                    onChange={e =>
-                      setMagForm(prev => ({ ...prev, year: e.target.value }))
-                    }
-                  />
-                </div>
+                <input
+                  className="input"
+                  placeholder="Month"
+                  value={magForm.month}
+                  onChange={(e) => setMagForm((s) => ({ ...s, month: e.target.value }))}
+                />
+                <input
+                  className="input"
+                  type="number"
+                  placeholder="Year"
+                  value={magForm.year}
+                  onChange={(e) => setMagForm((s) => ({ ...s, year: e.target.value }))}
+                />
+              </div>
 
-                <div
-                  style={{
-                    marginBottom: 10,
-                    padding: 10,
-                    background: "#f9f9f9",
-                    border: "1px dashed #ccc",
-                  }}
-                >
-                  <label style={{ fontWeight: "bold" }}>Cover Image</label>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={e => handleImageUpload(e, "cover")}
-                    disabled={uploading}
-                    style={{ marginTop: 5 }}
-                  />
-                  {magForm.coverUrl && (
-                    <img
-                      src={magForm.coverUrl}
-                      alt="Cover"
-                      style={{ height: 120, marginTop: 10, borderRadius: 5 }}
-                    />
-                  )}
-                </div>
+              <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                <input
+                  type="checkbox"
+                  checked={!!magForm.isLocked}
+                  onChange={(e) => setMagForm((s) => ({ ...s, isLocked: e.target.checked }))}
+                />
+                Locked (premium)
+              </label>
 
-                <div
-                  style={{
-                    marginBottom: 10,
-                    padding: 10,
-                    background: "#f9f9f9",
-                    border: "1px dashed #ccc",
-                  }}
-                >
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                      marginBottom: 8,
-                    }}
-                  >
-                    <span style={{ fontWeight: "bold" }}>Pages</span>
-                    <label
-                      style={{
-                        padding: "6px 12px",
-                        background: "#e63946",
-                        color: "white",
-                        borderRadius: 4,
-                        cursor: "pointer",
-                      }}
-                    >
-                      + Add Page
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={e => handleImageUpload(e, "page")}
-                        style={{ display: "none" }}
-                        disabled={uploading}
-                      />
-                    </label>
-                  </div>
-                  {magForm.pages.length === 0 && (
-                    <p style={{ fontSize: "0.9rem" }}>No pages yet.</p>
-                  )}
-                  <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                    {magForm.pages.map((p, idx) => (
-                      <div key={idx} style={{ position: "relative" }}>
+              {/* cover */}
+              <div className="card" style={{ padding: 12 }}>
+                <div style={{ fontWeight: 700, marginBottom: 8 }}>Cover</div>
+                {magForm.coverUrl ? (
+                  <img
+                    src={magForm.coverUrl}
+                    alt="cover"
+                    style={{ width: "100%", maxHeight: 240, objectFit: "cover", borderRadius: 10, marginBottom: 10 }}
+                  />
+                ) : (
+                  <div className="text-muted" style={{ marginBottom: 10 }}>No cover yet.</div>
+                )}
+                <input type="file" accept="image/*" onChange={(e) => onPickCover(e.target.files?.[0])} />
+                <input
+                  className="input"
+                  placeholder="or paste cover URL"
+                  value={magForm.coverUrl}
+                  onChange={(e) => setMagForm((s) => ({ ...s, coverUrl: e.target.value }))}
+                  style={{ marginTop: 10 }}
+                />
+              </div>
+
+              {/* hero vfx */}
+              <div className="card" style={{ padding: 12 }}>
+                <div style={{ fontWeight: 700, marginBottom: 8 }}>Hero VFX (optional video)</div>
+                {magForm.heroVfxUrl ? (
+                  <video
+                    src={magForm.heroVfxUrl}
+                    style={{ width: "100%", maxHeight: 240, borderRadius: 10, marginBottom: 10 }}
+                    muted
+                    loop
+                    controls
+                  />
+                ) : (
+                  <div className="text-muted" style={{ marginBottom: 10 }}>No hero VFX yet.</div>
+                )}
+                <input type="file" accept="video/*" onChange={(e) => onPickHeroVfx(e.target.files?.[0])} />
+                <input
+                  className="input"
+                  placeholder="or paste video URL"
+                  value={magForm.heroVfxUrl}
+                  onChange={(e) => setMagForm((s) => ({ ...s, heroVfxUrl: e.target.value }))}
+                  style={{ marginTop: 10 }}
+                />
+              </div>
+
+              {/* pages */}
+              <div className="card" style={{ padding: 12 }}>
+                <div style={{ fontWeight: 700, marginBottom: 8 }}>Pages ({magForm.pages.length})</div>
+                <input type="file" accept="image/*" multiple onChange={(e) => onPickPages(e.target.files)} />
+
+                {magForm.pages.length > 0 ? (
+                  <div style={{ marginTop: 10, display: "grid", gap: 10, gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))" }}>
+                    {magForm.pages.map((p, i) => (
+                      <div key={p + i} className="card" style={{ padding: 8 }}>
                         <img
                           src={p}
-                          alt={`Page ${idx + 1}`}
-                          style={{ height: 100, borderRadius: 4 }}
+                          alt={`page-${i}`}
+                          style={{ width: "100%", height: 120, objectFit: "cover", borderRadius: 8 }}
                         />
                         <button
+                          className="btn ghost"
+                          style={{ marginTop: 8, width: "100%" }}
+                          onClick={() => setMagForm((s) => ({ ...s, pages: s.pages.filter((_, idx) => idx !== i) }))}
                           type="button"
-                          onClick={() => removePage(idx)}
-                          style={{
-                            position: "absolute",
-                            top: -6,
-                            right: -6,
-                            borderRadius: "50%",
-                            border: "none",
-                            background: "#e63946",
-                            color: "white",
-                            width: 20,
-                            height: 20,
-                            cursor: "pointer",
-                          }}
                         >
-                          ×
+                          remove
                         </button>
                       </div>
                     ))}
                   </div>
-                </div>
-
-                <label
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 6,
-                    cursor: "pointer",
-                  }}
-                >
-                  <input
-                    type="checkbox"
-                    checked={magForm.isLocked}
-                    onChange={e =>
-                      setMagForm(prev => ({
-                        ...prev,
-                        isLocked: e.target.checked,
-                      }))
-                    }
-                  />
-                  <span
-                    style={{
-                      fontWeight: "bold",
-                      color: magForm.isLocked ? "#e63946" : "green",
-                    }}
-                  >
-                    {magForm.isLocked
-                      ? "🔒 Premium Locked"
-                      : "🔓 Free for Everyone"}
-                  </span>
-                </label>
+                ) : (
+                  <div className="text-muted" style={{ marginTop: 8 }}>No pages yet.</div>
+                )}
               </div>
-            ) : (
-              // ARTICLE FORM
-              <>
+
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                <button className="btn primary" onClick={saveMagazine} type="button">
+                  {editingMagId ? "Save" : "Create"}
+                </button>
+                <button className="btn ghost" onClick={resetMagForm} type="button">
+                  Clear
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* list */}
+          <div className="card">
+            <div style={{ fontWeight: 800, marginBottom: 10 }}>Issues ({magazines.length})</div>
+
+            <div style={{ display: "grid", gap: 10 }}>
+              {magazines.map((m) => (
+                <div key={m.id} className="card" style={{ padding: 12 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", gap: 10 }}>
+                    <div style={{ fontWeight: 800 }}>
+                      Issue {m.issueNumber} • {m.month} {m.year} {m.isLocked ? "🔒" : ""}
+                    </div>
+                    <div className="text-muted" style={{ fontSize: 13 }}>#{m.id}</div>
+                  </div>
+
+                  <div className="text-muted" style={{ marginTop: 4 }}>
+                    Pages: {Array.isArray(m.pages) ? m.pages.length : 0}
+                  </div>
+
+                  <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap" }}>
+                    <button className="btn ghost" onClick={() => startEditMag(m)} type="button">
+                      Edit
+                    </button>
+                    <button className="btn secondary" onClick={() => deleteMagazine(m.id)} type="button">
+                      Delete
+                    </button>
+                  </div>
+                </div>
+              ))}
+              {magazines.length === 0 ? <div className="text-muted">No issues.</div> : null}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ---------------- STORE ---------------- */}
+      {activeTab === "store" && (
+        <div style={{ marginTop: 16, display: "grid", gap: 16, gridTemplateColumns: "1fr 1fr" }}>
+          <div className="card">
+            <div style={{ fontWeight: 800, marginBottom: 8 }}>
+              {editingStoreId ? `Edit Store Item #${editingStoreId}` : "Create Store Item"}
+            </div>
+
+            <div className="stack" style={{ gap: 10 }}>
+              <input
+                className="input"
+                placeholder="Title"
+                value={storeForm.title}
+                onChange={(e) => setStoreForm((s) => ({ ...s, title: e.target.value }))}
+              />
+              <textarea
+                className="input"
+                placeholder="Description"
+                value={storeForm.description}
+                onChange={(e) => setStoreForm((s) => ({ ...s, description: e.target.value }))}
+                rows={4}
+              />
+
+              <div style={{ display: "grid", gap: 10, gridTemplateColumns: "1fr 1fr" }}>
                 <input
                   className="input"
-                  type="text"
-                  placeholder="Title"
-                  value={articleForm.title}
-                  onChange={e =>
-                    setArticleForm(prev => ({ ...prev, title: e.target.value }))
-                  }
-                  required
-                  style={{ width: "100%", marginBottom: 10 }}
+                  placeholder="Category"
+                  value={storeForm.category}
+                  onChange={(e) => setStoreForm((s) => ({ ...s, category: e.target.value }))}
                 />
+                <input
+                  className="input"
+                  placeholder="Stripe priceId (price_...)"
+                  value={storeForm.priceId}
+                  onChange={(e) => setStoreForm((s) => ({ ...s, priceId: e.target.value }))}
+                />
+              </div>
 
-                {/* Image */}
-                <div
-                  style={{
-                    marginBottom: 10,
-                    padding: 10,
-                    background: "#f9f9f9",
-                    border: "1px dashed #ccc",
-                  }}
-                >
-                  <label style={{ fontWeight: "bold", fontSize: "0.9rem" }}>
-                    Article Image
-                  </label>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    disabled={uploading}
-                    onChange={e => handleImageUpload(e, "article")}
-                    style={{ marginTop: 5 }}
-                  />
-                  {uploading && <span>Uploading...</span>}
-                  {articleForm.imageUrl && (
-                    <img
-                      src={articleForm.imageUrl}
-                      alt="preview"
-                      style={{ height: 100, marginTop: 10, borderRadius: 5 }}
-                    />
-                  )}
-                  <input
-                    className="input"
-                    placeholder="Or paste image URL"
-                    value={articleForm.imageUrl}
-                    onChange={e =>
-                      setArticleForm(prev => ({
-                        ...prev,
-                        imageUrl: e.target.value,
-                      }))
-                    }
-                    style={{ width: "100%", marginTop: 10 }}
-                  />
-                </div>
-
-                {/* Date + Time */}
-                <div style={{ display: "flex", gap: 10, marginBottom: 10 }}>
-                  <input
-                    className="input"
-                    type="date"
-                    value={articleForm.date}
-                    onChange={e =>
-                      setArticleForm(prev => ({
-                        ...prev,
-                        date: e.target.value,
-                      }))
-                    }
-                    style={{ flex: 1 }}
-                  />
-                  {activeTab === "events" && (
-                    <input
-                      className="input"
-                      type="time"
-                      value={articleForm.time}
-                      onChange={e =>
-                        setArticleForm(prev => ({
-                          ...prev,
-                          time: e.target.value,
-                        }))
-                      }
-                      style={{ flex: 1 }}
-                    />
-                  )}
-                </div>
-
-                {/* News category dropdown */}
-                {activeTab === "news" && (
-                  <select
-                    className="input"
-                    value={articleForm.articleCategory}
-                    onChange={e =>
-                      setArticleForm(prev => ({
-                        ...prev,
-                        articleCategory: e.target.value,
-                      }))
-                    }
-                    style={{ width: "100%", marginBottom: 10 }}
-                  >
-                    {NEWS_CATEGORIES.map(cat => (
-                      <option key={cat} value={cat}>
-                        {cat}
-                      </option>
-                    ))}
-                  </select>
-                )}
-
-                {/* Short text & Long text (без gallery) */}
-                {activeTab !== "gallery" && (
-                  <>
-                    <textarea
-                      className="textarea"
-                      placeholder="Short text (excerpt)..."
-                      value={articleForm.excerpt}
-                      onChange={e =>
-                        setArticleForm(prev => ({
-                          ...prev,
-                          excerpt: e.target.value,
-                        }))
-                      }
-                      style={{ width: "100%", minHeight: 60, marginBottom: 10 }}
-                    />
-                    <textarea
-                      className="textarea"
-                      placeholder="Full text..."
-                      value={articleForm.text}
-                      onChange={e =>
-                        setArticleForm(prev => ({
-                          ...prev,
-                          text: e.target.value,
-                        }))
-                      }
-                      style={{ width: "100%", minHeight: 120, marginBottom: 10 }}
-                    />
-                  </>
-                )}
-
-                {/* Premium checkbox */}
-                <label
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 6,
-                    marginTop: 4,
-                  }}
-                >
+              <div style={{ display: "grid", gap: 10, gridTemplateColumns: "1fr 1fr" }}>
+                <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
                   <input
                     type="checkbox"
-                    checked={articleForm.isPremium}
-                    onChange={e =>
-                      setArticleForm(prev => ({
-                        ...prev,
-                        isPremium: e.target.checked,
-                      }))
-                    }
+                    checked={storeForm.isActive !== false}
+                    onChange={(e) => setStoreForm((s) => ({ ...s, isActive: e.target.checked }))}
                   />
-                  <span>
-                    {articleForm.isPremium ? "🔒 Premium only" : "🔓 Public (free)"}
-                  </span>
+                  Active
                 </label>
-              </>
-            )}
 
-            <div style={{ display: "flex", gap: 12, marginTop: 20 }}>
-              <button
-                type="submit"
-                className="btn primary"
-                style={{ backgroundColor: "#e63946", color: "white" }}
-                disabled={uploading}
-              >
-                {editingId ? "Update" : "Save"}
-              </button>
-              <button
-                type="button"
-                onClick={resetForms}
-                className="btn ghost"
-              >
-                Cancel
+                <input
+                  className="input"
+                  placeholder="ReleaseAt (optional ISO)"
+                  value={storeForm.releaseAt}
+                  onChange={(e) => setStoreForm((s) => ({ ...s, releaseAt: e.target.value }))}
+                />
+              </div>
+
+              <div className="card" style={{ padding: 12 }}>
+                <div style={{ fontWeight: 700, marginBottom: 8 }}>Image</div>
+                {storeForm.imageUrl ? (
+                  <img
+                    src={storeForm.imageUrl}
+                    alt="store"
+                    style={{ width: "100%", maxHeight: 220, objectFit: "cover", borderRadius: 10, marginBottom: 10 }}
+                  />
+                ) : (
+                  <div className="text-muted" style={{ marginBottom: 10 }}>No image yet.</div>
+                )}
+
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => onPickStoreImage(e.target.files?.[0])}
+                />
+
+                <input
+                  className="input"
+                  placeholder="or paste image URL"
+                  value={storeForm.imageUrl}
+                  onChange={(e) => setStoreForm((s) => ({ ...s, imageUrl: e.target.value }))}
+                  style={{ marginTop: 10 }}
+                />
+              </div>
+
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                <button className="btn primary" onClick={saveStoreItem} type="button">
+                  {editingStoreId ? "Save" : "Create"}
+                </button>
+                <button className="btn ghost" onClick={resetStoreForm} type="button">
+                  Clear
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div className="card">
+            <div style={{ fontWeight: 800, marginBottom: 10 }}>Store Items ({storeItems.length})</div>
+
+            <div style={{ display: "grid", gap: 10 }}>
+              {storeItems.map((it) => (
+                <div key={it.id || it.priceId} className="card" style={{ padding: 12 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", gap: 10 }}>
+                    <div style={{ fontWeight: 800 }}>{it.title}</div>
+                    <div className="text-muted" style={{ fontSize: 13 }}>
+                      #{it.id}
+                    </div>
+                  </div>
+
+                  <div className="text-muted" style={{ marginTop: 4 }}>
+                    Active: {it.isActive ? "yes" : "no"} • Category: {it.category || "—"}
+                  </div>
+
+                  <div className="text-muted" style={{ marginTop: 4, fontSize: 13 }}>
+                    priceId: {it.priceId || "—"}
+                  </div>
+
+                  <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap" }}>
+                    <button className="btn ghost" onClick={() => startEditStore(it)} type="button">
+                      Edit
+                    </button>
+                    <button className="btn secondary" onClick={() => deleteStoreItem(it.id)} type="button">
+                      Delete
+                    </button>
+                  </div>
+                </div>
+              ))}
+              {storeItems.length === 0 ? <div className="text-muted">No store items.</div> : null}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ---------------- ORDERS ---------------- */}
+      {activeTab === "orders" && (
+        <div style={{ marginTop: 16 }}>
+          <div className="card" style={{ marginBottom: 12 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 10 }}>
+              <div>
+                <div style={{ fontWeight: 800 }}>Paid Orders</div>
+                <div className="text-muted" style={{ fontSize: 13 }}>
+                  From Stripe sessions (mode=payment, paid).
+                </div>
+              </div>
+
+              <button className="btn ghost" type="button" onClick={reloadCurrentTab}>
+                Refresh
               </button>
             </div>
-          </form>
+          </div>
 
-          {msg && (
-            <p
-              style={{
-                marginTop: 10,
-                color: msg.startsWith("Error") ? "red" : "green",
-              }}
-            >
-              {msg}
-            </p>
+          {orders.length === 0 ? (
+            <div className="text-muted">No paid orders yet.</div>
+          ) : (
+            <div>{orders.map(renderOrder)}</div>
           )}
         </div>
       )}
 
-      {/* LIST */}
-      {activeTab !== "newsletter" && activeTab !== "hero" && (
-        <div className="stack">
-          {items.map(item => (
-            <div
-              key={item.id}
-              className="card inline"
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                padding: 10,
-                borderBottom: "1px solid #eee",
-              }}
-            >
-              <span>
-                <strong>{item.title || `Issue #${item.issueNumber}`}</strong>{" "}
-                {item.month || item.date}
-              </span>
-              <div>
-                <button
-                  onClick={() => handleEdit(item)}
-                  style={{ marginRight: 10 }}
-                  type="button"
-                >
-                  ✏️
-                </button>
-                <button
-                  onClick={() => handleDelete(item.id)}
-                  style={{ color: "red" }}
-                  type="button"
-                >
-                  🗑️
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-      {activeTab === "orders" && (
-  <div className="stack">
-    <h3>Orders</h3>
-    <p style={{ color: "var(--text-muted)" }}>
-      Paid orders from Stripe Checkout (no DB).
-    </p>
+      {/* ---------------- NEWSLETTER ---------------- */}
+      {activeTab === "newsletter" && (
+        <div style={{ marginTop: 16, display: "grid", gap: 16, gridTemplateColumns: "1fr 1fr" }}>
+          <div className="card">
+            <div style={{ fontWeight: 800, marginBottom: 10 }}>Subscribers ({subscribers.length})</div>
 
-    <button className="btn primary" type="button" onClick={loadData}>
-      Refresh
-    </button>
-
-    {orders.length === 0 ? (
-      <div className="card" style={{ padding: 18 }}>
-        <p>No paid orders yet.</p>
-      </div>
-    ) : (
-      <div className="stack">
-        {orders.map((o) => (
-          <div key={o.id} className="card" style={{ padding: 16 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", gap: 10, flexWrap: "wrap" }}>
-              <div>
-                <div><b>Order:</b> {o.id}</div>
-                <div className="text-muted">
-                  {new Date((o.created || 0) * 1000).toLocaleString()}
-                </div>
-              </div>
-              <div>
-                <b>Total:</b> {(o.amount_total || 0) / 100} {String(o.currency || "").toUpperCase()}
-              </div>
-            </div>
-
-            <hr style={{ margin: "12px 0" }} />
-
-            <div><b>Three names:</b> {o.full_name || "-"}</div>
-            <div><b>Email:</b> {o.customer_email || "-"}</div>
-            <div><b>Phone:</b> {o.customer_phone || "-"}</div>
-
-            {o.shipping_address && (
-              <div style={{ marginTop: 10 }}>
-                <b>Address:</b>
-                <div className="text-muted">
-                  {o.shipping_name ? <div>{o.shipping_name}</div> : null}
-                  <div>{o.shipping_address.line1 || ""}</div>
-                  {o.shipping_address.line2 ? <div>{o.shipping_address.line2}</div> : null}
-                  <div>
-                    {(o.shipping_address.postal_code || "")} {(o.shipping_address.city || "")}
+            <div style={{ display: "grid", gap: 8 }}>
+              {subscribers.map((s, idx) => (
+                <div key={s.email || idx} className="card" style={{ padding: 10 }}>
+                  <div style={{ fontWeight: 700 }}>{s.email}</div>
+                  <div className="text-muted" style={{ fontSize: 13 }}>
+                    {s.created_at ? new Date(s.created_at).toLocaleString() : ""}
                   </div>
-                  <div>{o.shipping_address.country || ""}</div>
                 </div>
-              </div>
-            )}
-
-            <div style={{ marginTop: 10 }}>
-              <b>Items:</b>
-              <div className="text-muted" style={{ marginTop: 6 }}>
-                {(o.line_items || []).length ? (
-                  <ul style={{ margin: 0, paddingLeft: 18 }}>
-                    {o.line_items.map((li, idx) => (
-                      <li key={idx}>
-                        {li.description} x{li.quantity}
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <div>-</div>
-                )}
-              </div>
+              ))}
+              {subscribers.length === 0 ? <div className="text-muted">No subscribers.</div> : null}
             </div>
           </div>
-        ))}
-      </div>
-    )}
-  </div>
-)}
 
+          <div className="card">
+            <div style={{ fontWeight: 800, marginBottom: 10 }}>Send Newsletter</div>
+
+            <div className="stack" style={{ gap: 10 }}>
+              <input
+                className="input"
+                placeholder="Subject"
+                value={emailSubject}
+                onChange={(e) => setEmailSubject(e.target.value)}
+              />
+              <textarea
+                className="input"
+                placeholder="HTML body"
+                value={emailBody}
+                onChange={(e) => setEmailBody(e.target.value)}
+                rows={10}
+              />
+              <button className="btn primary" type="button" onClick={sendNewsletter}>
+                Send
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

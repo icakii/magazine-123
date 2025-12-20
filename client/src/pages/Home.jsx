@@ -37,7 +37,7 @@ export default function Home() {
     ;(async () => {
       try {
         setLoading(true)
-        const res = await api.get("/articles")
+        const res = await api.get("/articles", { params: { category: "home" } })
         const arr = Array.isArray(res.data) ? res.data : []
         if (!alive) return
         setArticles(arr)

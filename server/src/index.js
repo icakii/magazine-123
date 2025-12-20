@@ -1114,35 +1114,28 @@ function computeEffectiveStreak(streak, lastWinYmd, todayYmd) {
 //   /server/src/index.js
 //   /client/dist
 // ---------------------------------------------------------------
-
+// ✅ correct paths when running: node server/src/index.js
 const distPath = path.resolve(__dirname, "..", "..", "client", "dist")
 const indexHtml = path.join(distPath, "index.html")
 
 console.log("✅ FRONTEND distPath =", distPath)
 console.log("✅ FRONTEND indexHtml =", indexHtml)
-console.log("✅ FRONTEND index exists =", fs.existsSync(indexHtml))
 
-// Serve assets normally (css/js/images)
 app.use(
   express.static(distPath, {
     index: false,
     setHeaders: (res, filePath) => {
-      // avoid caching index.html (so new deploys load)
+      // IMPORTANT: never cache index.html
       if (filePath.endsWith(".html")) res.setHeader("Cache-Control", "no-store")
     },
   })
 )
 
-// ✅ API 404 (so /api doesn't fall into SPA)
-app.all("/api/*", (req, res) => {
-  return res.status(404).json({ error: "Not found" })
-})
-
-// ✅ SPA fallback for EVERYTHING else (deep routes + querystrings)
+// ✅ SPA fallback: ANY non-API route must return index.html
 app.get("*", (req, res) => {
+  if (req.path.startsWith("/api")) return res.status(404).json({ error: "Not found" })
   return res.sendFile(indexHtml)
 })
-
 // ---------------------------------------------------------------
 // START SERVER
 // ---------------------------------------------------------------

@@ -150,7 +150,7 @@ export default function NavBar() {
 
             <div className="nav-center">
               {/* ✅ Logo/Home link - ALWAYS works */}
-              <Link className="brand" to="/home" onClick={closeDrawer}>
+              <Link className="brand" to="/" onClick={closeDrawer}>
                 {t("brand")}
               </Link>
             </div>
@@ -204,7 +204,7 @@ export default function NavBar() {
       <aside className={`drawer ${open ? "open" : ""}`} aria-hidden={!open}>
         <nav className="drawer-list">
           {/* ✅ PUBLIC */}
-          <Link className="drawer-item" to="/home" onClick={closeDrawer}>
+          <Link className="drawer-item" to="/" onClick={closeDrawer}>
             {t("home")}
           </Link>
 

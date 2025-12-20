@@ -1087,17 +1087,36 @@ function computeEffectiveStreak(streak, lastWinYmd, todayYmd) {
 }
 const path = require("path")
 
+// ---------------------------------------------------------------
+// ✅ SERVE FRONTEND (Vite build) - PRODUCTION ONLY
+// Works with project structure:
+//   /server/src/index.js
+//   /client/dist
+// ---------------------------------------------------------------
 if (process.env.NODE_ENV === "production") {
-  const distPath = path.join(__dirname, "..", "client", "dist")
+  // server/src -> ../../client/dist
+  const distPath = path.resolve(__dirname, "../../client/dist")
 
-  app.use(express.static(distPath, { index: false }))
+  // serve static assets (Vite build)
+  app.use(
+    express.static(distPath, {
+      index: false,
+      setHeaders: (res, filePath) => {
+        // Avoid caching index.html (prevents “blank screen after deploy”)
+        if (filePath.endsWith(".html")) {
+          res.setHeader("Cache-Control", "no-store")
+        }
+      },
+    })
+  )
 
   // React Router fallback
   app.get("*", (req, res) => {
     if (req.path.startsWith("/api")) return res.status(404).end()
-    res.sendFile(path.join(distPath, "index.html"))
+    return res.sendFile(path.join(distPath, "index.html"))
   })
 }
+
 
 
 

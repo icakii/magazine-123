@@ -2398,3 +2398,74 @@ body.cart-open .cart-drawer{
   gap: 10px;
   align-items: center;
 }
+/* --- Store card bottom alignment --- */
+.store-body {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.store-price {
+  margin-top: 8px;
+  font-weight: 700;
+}
+
+.store-bottom {
+  margin-top: auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+/* --- Quantity controls --- */
+.qty {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--border, rgba(0,0,0,0.15));
+  border-radius: 999px;
+  padding: 6px 10px;
+}
+
+.qty--sm {
+  padding: 4px 8px;
+}
+
+.qty-btn {
+  width: 30px;
+  height: 30px;
+  border-radius: 999px;
+  border: 1px solid var(--border, rgba(0,0,0,0.15));
+  background: transparent;
+  cursor: pointer;
+}
+
+.qty-input {
+  width: 34px;
+  text-align: center;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-weight: 700;
+}
+
+/* --- Cart sticky under navbar --- */
+.cart-drawer--sticky {
+  position: fixed;
+  right: 18px;
+  top: calc(var(--nav-offset, 72px) + 12px);
+  max-height: calc(100vh - (var(--nav-offset, 72px) + 24px));
+  overflow: auto;
+  z-index: 999;
+}
+
+/* total row */
+.cart-total {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 2px 4px;
+  border-top: 1px solid var(--border, rgba(0,0,0,0.12));
+  margin-top: 10px;
+}

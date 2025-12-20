@@ -1,19 +1,26 @@
+// client/src/pages/Store.jsx
 import { useEffect, useMemo, useState } from "react"
 import { api } from "../lib/api"
-import { addToCart, getCart, removeFromCart, clearCart } from "../lib/cart"
+import {
+  addToCart,
+  getCart,
+  removeFromCart,
+  clearCart,
+  setQty,
+  incQty,
+  decQty,
+  formatMoneyCents,
+  cartTotal,
+} from "../lib/cart"
 import { useLocation, useNavigate } from "react-router-dom"
 
 function normalizeItem(raw) {
   const it = raw || {}
   const title = it.title ? String(it.title) : ""
-  const cleanTitle = title.replace(/e-?magazine/gi, "Magazine").trim()
-
-  const desc = (it.description || "").trim()
-
   return {
     id: it.id ?? null,
-    title: cleanTitle,
-    description: desc,
+    title: title.replace(/e-?magazine/gi, "Magazine"),
+    description: it.description || "",
     imageUrl: it.imageUrl || it.image_url || "",
     category: it.category || "misc",
     priceId:
@@ -23,20 +30,25 @@ function normalizeItem(raw) {
       it.stripe_price_id ||
       "",
     isActive: typeof it.isActive === "boolean" ? it.isActive : true,
+
+    // ✅ price info (from backend)
+    unitAmount: typeof it.unitAmount === "number" ? it.unitAmount : null, // cents
+    currency: it.currency ? String(it.currency).toUpperCase() : "EUR",
   }
 }
 
 export default function Store() {
   const [items, setItems] = useState([])
-  const [cart, setCart] = useState(getCart())
+  const [cart, setCartState] = useState(getCart())
   const [loading, setLoading] = useState(true)
   const [err, setErr] = useState("")
   const [notice, setNotice] = useState("")
+  const [qtyByPriceId, setQtyByPriceId] = useState({})
 
   const location = useLocation()
   const navigate = useNavigate()
 
-  // ✅ success/canceled handling (clears cart + cleans URL)
+  // ✅ Stripe redirect handling
   useEffect(() => {
     const params = new URLSearchParams(location.search)
     const success = params.get("success")
@@ -44,7 +56,7 @@ export default function Store() {
 
     if (success === "true") {
       clearCart()
-      setCart([])
+      setCartState([])
       setNotice("✅ Order successful! Thank you for your purchase.")
       document.body.classList.remove("cart-open")
       navigate("/store", { replace: true })
@@ -53,12 +65,11 @@ export default function Store() {
 
     if (canceled === "true") {
       setNotice("❌ Payment canceled.")
-      document.body.classList.remove("cart-open")
       navigate("/store", { replace: true })
     }
   }, [location.search, navigate])
 
-  // ✅ load store items
+  // ✅ Load items
   useEffect(() => {
     let alive = true
 
@@ -75,6 +86,11 @@ export default function Store() {
           .filter((x) => x.isActive && x.priceId)
 
         setItems(normalized)
+
+        // init qty selectors to 1
+        const init = {}
+        for (const it of normalized) init[it.priceId] = 1
+        setQtyByPriceId(init)
       } catch (e) {
         if (!alive) return
         setErr("Failed to load store.")
@@ -95,17 +111,36 @@ export default function Store() {
     [cart]
   )
 
+  const totalCents = useMemo(() => cartTotal(cart), [cart])
+  const currency = useMemo(() => (cart?.[0]?.currency || "EUR").toUpperCase(), [cart])
+
   const openCart = () => document.body.classList.add("cart-open")
   const closeCart = () => document.body.classList.remove("cart-open")
   const toggleCart = () => document.body.classList.toggle("cart-open")
 
+  const setCardQty = (priceId, next) => {
+    setQtyByPriceId((prev) => ({
+      ...prev,
+      [priceId]: Math.max(1, Math.min(50, Number(next) || 1)),
+    }))
+  }
+
   const addItem = (it) => {
     if (!it?.priceId) return alert("Missing Stripe priceId for this item.")
+
+    const qty = Math.max(1, Math.min(50, Number(qtyByPriceId[it.priceId]) || 1))
+
     const next = addToCart(
-      { priceId: it.priceId, title: it.title, imageUrl: it.imageUrl },
-      1
+      {
+        priceId: it.priceId,
+        title: it.title,
+        imageUrl: it.imageUrl,
+        unitAmount: it.unitAmount,
+        currency: it.currency,
+      },
+      qty
     )
-    setCart(next)
+    setCartState(next)
     openCart()
   }
 
@@ -140,6 +175,21 @@ export default function Store() {
     }
   }
 
+  const updateCartQty = (priceId, nextQty) => {
+    const next = setQty(priceId, nextQty)
+    setCartState(next)
+  }
+
+  const cartInc = (priceId) => {
+    const next = incQty(priceId)
+    setCartState(next)
+  }
+
+  const cartDec = (priceId) => {
+    const next = decQty(priceId)
+    setCartState(next)
+  }
+
   return (
     <div className="page">
       <div className="store-head">
@@ -147,7 +197,7 @@ export default function Store() {
           <h2 className="headline">Store</h2>
           <p className="subhead">Magazine & clothing — powered by Stripe.</p>
 
-          {!!notice && <p className="msg">{notice}</p>}
+          {notice && <p className="msg">{notice}</p>}
           {!loading && err && <p className="msg warning">{err}</p>}
           {!loading && !err && items.length === 0 && (
             <p className="msg">No items yet. Add one in DB.</p>
@@ -164,9 +214,7 @@ export default function Store() {
       ) : (
         <div className="store-grid">
           {items.map((it) => {
-            const showDesc =
-              it.description &&
-              it.description.toLowerCase() !== it.title.toLowerCase()
+            const shownPrice = it.unitAmount != null ? formatMoneyCents(it.unitAmount, it.currency) : ""
 
             return (
               <div key={it.id || it.priceId} className="store-card">
@@ -174,8 +222,12 @@ export default function Store() {
                   <img
                     className="store-img"
                     src={it.imageUrl}
-                    alt={it.title}
+                    alt="" // ✅ prevents "double title" when image fails
                     loading="lazy"
+                    onError={(e) => {
+                      // hide broken image to avoid ugly icon + text
+                      e.currentTarget.style.display = "none"
+                    }}
                   />
                 ) : (
                   <div className="store-img store-img--ph">MIREN</div>
@@ -183,15 +235,49 @@ export default function Store() {
 
                 <div className="store-body">
                   <div className="store-title">{it.title}</div>
-                  {showDesc && <div className="store-desc">{it.description}</div>}
+                  {it.description && <div className="store-desc">{it.description}</div>}
 
-                  <button
-                    className="btn primary store-btn"
-                    onClick={() => addItem(it)}
-                    type="button"
-                  >
-                    Add to cart
-                  </button>
+                  {/* ✅ price */}
+                  {shownPrice && <div className="store-price">{shownPrice}</div>}
+
+                  {/* ✅ bottom row aligned for ALL cards */}
+                  <div className="store-bottom">
+                    <div className="qty">
+                      <button
+                        className="qty-btn"
+                        type="button"
+                        onClick={() => setCardQty(it.priceId, (qtyByPriceId[it.priceId] || 1) - 1)}
+                        aria-label="Decrease quantity"
+                      >
+                        −
+                      </button>
+
+                      <input
+                        className="qty-input"
+                        value={qtyByPriceId[it.priceId] || 1}
+                        onChange={(e) => setCardQty(it.priceId, e.target.value)}
+                        inputMode="numeric"
+                        aria-label="Quantity"
+                      />
+
+                      <button
+                        className="qty-btn"
+                        type="button"
+                        onClick={() => setCardQty(it.priceId, (qtyByPriceId[it.priceId] || 1) + 1)}
+                        aria-label="Increase quantity"
+                      >
+                        +
+                      </button>
+                    </div>
+
+                    <button
+                      className="btn primary store-btn"
+                      onClick={() => addItem(it)}
+                      type="button"
+                    >
+                      Add
+                    </button>
+                  </div>
                 </div>
               </div>
             )
@@ -200,7 +286,7 @@ export default function Store() {
       )}
 
       {/* CART DRAWER */}
-      <div className="cart-drawer">
+      <div className="cart-drawer cart-drawer--sticky">
         <div className="cart-top">
           <div className="cart-title">Your Cart</div>
           <button className="cart-close" onClick={closeCart} type="button">
@@ -213,44 +299,86 @@ export default function Store() {
         ) : (
           <>
             <div className="cart-items">
-              {cart.map((c) => (
-                <div key={c.priceId} className="cart-row">
-                  <div className="cart-left">
-                    {c.imageUrl ? (
-                      <img
-                        className="cart-thumb"
-                        src={c.imageUrl}
-                        alt={c.title || "Item"}
-                      />
-                    ) : (
-                      <div className="cart-thumb cart-thumb--ph">M</div>
-                    )}
-                    <div className="cart-meta">
-                      <div className="cart-name">{c.title || "Item"}</div>
-                      {/* ✅ removed priceId line */}
+              {cart.map((c) => {
+                const unit = c.unitAmount
+                const lineTotal =
+                  Number.isFinite(Number(unit)) ? Number(unit) * (Number(c.qty) || 1) : null
+
+                return (
+                  <div key={c.priceId} className="cart-row">
+                    <div className="cart-left">
+                      {c.imageUrl ? (
+                        <img
+                          className="cart-thumb"
+                          src={c.imageUrl}
+                          alt=""
+                          onError={(e) => {
+                            e.currentTarget.style.display = "none"
+                          }}
+                        />
+                      ) : (
+                        <div className="cart-thumb cart-thumb--ph">M</div>
+                      )}
+
+                      <div className="cart-meta">
+                        <div className="cart-name">{c.title || "Item"}</div>
+
+                        {/* ✅ show price instead of priceId */}
+                        {Number.isFinite(Number(unit)) && (
+                          <div className="cart-sub text-muted">
+                            {formatMoneyCents(unit, c.currency)}
+                            {lineTotal != null && (
+                              <span style={{ marginLeft: 10 }}>
+                                • {formatMoneyCents(lineTotal, c.currency)}
+                              </span>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="cart-right">
+                      {/* ✅ qty controls in cart */}
+                      <div className="qty qty--sm">
+                        <button className="qty-btn" type="button" onClick={() => cartDec(c.priceId)}>
+                          −
+                        </button>
+
+                        <input
+                          className="qty-input"
+                          value={c.qty}
+                          onChange={(e) => updateCartQty(c.priceId, e.target.value)}
+                          inputMode="numeric"
+                        />
+
+                        <button className="qty-btn" type="button" onClick={() => cartInc(c.priceId)}>
+                          +
+                        </button>
+                      </div>
+
+                      <button
+                        className="cart-remove"
+                        onClick={() => setCartState(removeFromCart(c.priceId))}
+                        type="button"
+                        title="Remove item"
+                      >
+                        remove
+                      </button>
                     </div>
                   </div>
-
-                  <div className="cart-right">
-                    <div className="cart-qty">x{c.qty}</div>
-                    <button
-                      className="cart-remove"
-                      onClick={() => setCart(removeFromCart(c.priceId))}
-                      type="button"
-                    >
-                      remove
-                    </button>
-                  </div>
-                </div>
-              ))}
+                )
+              })}
             </div>
-            <div className="store-controls" style={{ marginTop: 12 }}>
 
-            <button
-              className="btn primary cart-checkout"
-              onClick={startCheckout}
-              type="button"
-            >
+            {/* ✅ totals */}
+            {totalCents > 0 && (
+              <div className="cart-total">
+                <span>Total</span>
+                <strong>{formatMoneyCents(totalCents, currency)}</strong>
+              </div>
+            )}
+
+            <button className="btn primary cart-checkout" onClick={startCheckout} type="button">
               Checkout with Stripe ⚡
             </button>
 
@@ -259,14 +387,12 @@ export default function Store() {
               style={{ marginTop: 10, width: "100%" }}
               onClick={() => {
                 clearCart()
-                setCart([])
-                document.body.classList.remove("cart-open")
+                setCartState([])
               }}
               type="button"
             >
               Clear cart
             </button>
-            </div>
           </>
         )}
       </div>

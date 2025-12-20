@@ -30,6 +30,8 @@ function toAbsoluteUrl(pathOrUrl, base) {
 // PUBLIC: list active store items
 // GET /api/store/items
 // ----------------------------------------------------
+// PUBLIC: list active store items
+// GET /api/store/items
 router.get("/store/items", async (req, res) => {
   try {
     const { rows } = await db.query(
@@ -45,7 +47,30 @@ router.get("/store/items", async (req, res) => {
        WHERE is_active = true
        ORDER BY created_at DESC`
     )
-    res.json(rows)
+
+    // ✅ attach Stripe price info so frontend can show price + totals
+    const mapped = await Promise.all(
+      rows.map(async (r) => {
+        let unitAmount = null
+        let currency = "EUR"
+        try {
+          const p = await stripe.prices.retrieve(String(r.priceId))
+          unitAmount = typeof p?.unit_amount === "number" ? p.unit_amount : null
+          currency = p?.currency ? String(p.currency).toUpperCase() : "EUR"
+        } catch {
+          unitAmount = null
+          currency = "EUR"
+        }
+
+        return {
+          ...r,
+          unitAmount,
+          currency,
+        }
+      })
+    )
+
+    res.json(mapped)
   } catch (e) {
     console.error("STORE ITEMS ERROR:", e)
     res.status(500).json({ error: "Failed to load store items" })

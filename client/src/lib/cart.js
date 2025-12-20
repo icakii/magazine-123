@@ -1,119 +1,132 @@
 // client/src/lib/cart.js
-
 const KEY = "miren_cart_v1"
 
-function safeParse(json, fallback) {
+function safeRead() {
   try {
-    const v = JSON.parse(json)
-    return v ?? fallback
+    const raw = localStorage.getItem(KEY)
+    const parsed = raw ? JSON.parse(raw) : []
+    return Array.isArray(parsed) ? parsed : []
   } catch {
-    return fallback
+    return []
   }
+}
+
+function safeWrite(items) {
+  try {
+    localStorage.setItem(KEY, JSON.stringify(items))
+  } catch {}
 }
 
 export function getCart() {
-  if (typeof window === "undefined") return []
-  const raw = window.localStorage.getItem(KEY)
-  const arr = raw ? safeParse(raw, []) : []
-  return Array.isArray(arr) ? arr : []
-}
-
-function saveCart(next) {
-  if (typeof window === "undefined") return next
-  window.localStorage.setItem(KEY, JSON.stringify(next))
-  return next
+  return safeRead()
 }
 
 export function clearCart() {
-  if (typeof window === "undefined") return
-  window.localStorage.removeItem(KEY)
+  safeWrite([])
+  return []
+}
+
+export function setCart(next) {
+  const arr = Array.isArray(next) ? next : []
+  safeWrite(arr)
+  return arr
 }
 
 export function addToCart(item, qty = 1) {
-  const q = Math.max(1, Math.min(99, Number(qty) || 1))
-  const cart = getCart()
-
+  const cart = safeRead()
   const priceId = String(item?.priceId || "")
   if (!priceId) return cart
 
+  const addQty = Math.max(1, Math.min(50, Number(qty) || 1))
   const idx = cart.findIndex((x) => x.priceId === priceId)
 
   if (idx >= 0) {
-    const next = [...cart]
-    next[idx] = { ...next[idx], qty: Math.max(1, Math.min(99, (next[idx].qty || 1) + q)) }
-    return saveCart(next)
-  }
-
-  const next = [
-    ...cart,
-    {
+    cart[idx] = {
+      ...cart[idx],
+      qty: Math.max(1, Math.min(50, (Number(cart[idx].qty) || 1) + addQty)),
+      // keep newest title/image/price fields if provided
+      title: item.title ?? cart[idx].title,
+      imageUrl: item.imageUrl ?? cart[idx].imageUrl,
+      unitAmount: item.unitAmount ?? cart[idx].unitAmount,
+      currency: item.currency ?? cart[idx].currency,
+    }
+  } else {
+    cart.push({
       priceId,
       title: item?.title || "Item",
       imageUrl: item?.imageUrl || "",
-      unitAmount: Number(item?.unitAmount) || null, // in cents
-      currency: item?.currency || "eur",
-      qty: q,
-    },
-  ]
+      qty: addQty,
+      // ✅ price info (optional but we’ll use it for totals)
+      unitAmount: typeof item?.unitAmount === "number" ? item.unitAmount : null, // cents
+      currency: item?.currency ? String(item.currency).toUpperCase() : null,
+    })
+  }
 
-  return saveCart(next)
+  safeWrite(cart)
+  return cart
 }
 
 export function removeFromCart(priceId) {
-  const cart = getCart()
-  const next = cart.filter((x) => x.priceId !== priceId)
-  return saveCart(next)
+  const id = String(priceId || "")
+  const cart = safeRead().filter((x) => x.priceId !== id)
+  safeWrite(cart)
+  return cart
 }
 
 export function setQty(priceId, qty) {
-  const cart = getCart()
-  const q = Number(qty)
-  if (!Number.isFinite(q)) return cart
+  const id = String(priceId || "")
+  const nextQty = Math.max(1, Math.min(50, Number(qty) || 1))
+  const cart = safeRead()
 
-  if (q <= 0) {
-    return removeFromCart(priceId)
+  const idx = cart.findIndex((x) => x.priceId === id)
+  if (idx < 0) return cart
+
+  cart[idx] = { ...cart[idx], qty: nextQty }
+  safeWrite(cart)
+  return cart
+}
+
+export function incQty(priceId) {
+  const cart = safeRead()
+  const id = String(priceId || "")
+  const idx = cart.findIndex((x) => x.priceId === id)
+  if (idx < 0) return cart
+  return setQty(id, (Number(cart[idx].qty) || 1) + 1)
+}
+
+export function decQty(priceId) {
+  const cart = safeRead()
+  const id = String(priceId || "")
+  const idx = cart.findIndex((x) => x.priceId === id)
+  if (idx < 0) return cart
+
+  const q = Number(cart[idx].qty) || 1
+  if (q <= 1) {
+    return removeFromCart(id)
   }
-
-  const next = cart.map((x) =>
-    x.priceId === priceId ? { ...x, qty: Math.max(1, Math.min(99, Math.floor(q))) } : x
-  )
-  return saveCart(next)
+  return setQty(id, q - 1)
 }
 
-export function incQty(priceId, step = 1) {
-  const cart = getCart()
-  const idx = cart.findIndex((x) => x.priceId === priceId)
-  if (idx < 0) return cart
-  const next = [...cart]
-  const curr = Number(next[idx].qty) || 1
-  next[idx] = { ...next[idx], qty: Math.max(1, Math.min(99, curr + (Number(step) || 1))) }
-  return saveCart(next)
-}
-
-export function decQty(priceId, step = 1) {
-  const cart = getCart()
-  const idx = cart.findIndex((x) => x.priceId === priceId)
-  if (idx < 0) return cart
-  const next = [...cart]
-  const curr = Number(next[idx].qty) || 1
-  const q = curr - (Number(step) || 1)
-  if (q <= 0) return removeFromCart(priceId)
-  next[idx] = { ...next[idx], qty: q }
-  return saveCart(next)
-}
-
-export function formatMoneyCents(amountCents, currency = "eur") {
-  const cents = Number(amountCents)
-  if (!Number.isFinite(cents)) return ""
-  const value = cents / 100
-
+export function formatMoneyCents(cents, currency = "EUR") {
+  const c = Number(cents)
+  if (!Number.isFinite(c)) return ""
+  const value = c / 100
   try {
     return new Intl.NumberFormat(undefined, {
       style: "currency",
-      currency: String(currency || "eur").toUpperCase(),
+      currency: currency || "EUR",
     }).format(value)
   } catch {
-    // fallback
-    return `${value.toFixed(2)} ${String(currency || "eur").toUpperCase()}`
+    return `${value.toFixed(2)} ${(currency || "EUR").toUpperCase()}`
   }
+}
+
+export function cartTotal(cart) {
+  const arr = Array.isArray(cart) ? cart : []
+  return arr.reduce((sum, x) => {
+    const unit = Number(x.unitAmount)
+    const qty = Number(x.qty) || 0
+    if (!Number.isFinite(unit)) return sum
+    return sum + unit * qty
+  }, 0)
 }

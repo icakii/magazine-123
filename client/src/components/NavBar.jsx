@@ -1,31 +1,26 @@
 // client/src/components/NavBar.jsx
 "use client"
 
-import { Link } from "react-router-dom"
+import { Link, useLocation, useNavigate } from "react-router-dom"
 import { useAuth } from "../hooks/useAuth"
 import { api } from "../lib/api"
 import { t, getLang, setLang } from "../lib/i18n"
 import { useEffect, useLayoutEffect, useRef, useState } from "react"
 
-const ADMIN_EMAILS = ["icaki06@gmail.com", "icaki2k@gmail.com", "mirenmagazine@gmail.com"]
-const STORE_RELEASE = "2026-02-27"
-const storeOpen = new Date().toISOString().slice(0,10) >= STORE_RELEASE
-
-function applyTheme(theme) {
-  const html = document.documentElement
-  const next = theme === "dark" ? "dark" : "light"
-  html.setAttribute("data-theme", next)
-  try {
-    localStorage.setItem("theme", next)
-  } catch {}
-}
+const ADMIN_EMAILS = [
+  "icaki06@gmail.com",
+  "icaki2k@gmail.com",
+  "mirenmagazine@gmail.com",
+]
 
 function toggleTheme() {
   const html = document.documentElement
   const current = html.getAttribute("data-theme") || "light"
   const next = current === "dark" ? "light" : "dark"
   html.setAttribute("data-theme", next)
-  localStorage.setItem("miren_theme", next)
+  try {
+    localStorage.setItem("miren_theme", next)
+  } catch {}
 }
 
 export default function NavBar() {
@@ -35,18 +30,36 @@ export default function NavBar() {
   const [showLoginModal, setShowLoginModal] = useState(false)
 
   const navRef = useRef(null)
-const [isAdmin, setIsAdmin] = useState(false)
+  const [isAdmin, setIsAdmin] = useState(false)
 
-useEffect(() => {
-  api.get("/user/me")
-    .then((res) => {
-      const email = res?.data?.email
-      setIsAdmin(ADMIN_EMAILS.includes(email))
-    })
-    .catch(() => setIsAdmin(false))
-}, [])
+  const navigate = useNavigate()
+  const location = useLocation()
 
+  // --- ADMIN CHECK (cookie auth) ---
+  useEffect(() => {
+    let alive = true
+    api
+      .get("/user/me")
+      .then((res) => {
+        if (!alive) return
+        const email = res?.data?.email
+        setIsAdmin(ADMIN_EMAILS.includes(email))
+      })
+      .catch(() => {
+        if (!alive) return
+        setIsAdmin(false)
+      })
+    return () => {
+      alive = false
+    }
+  }, [])
 
+  // --- close drawer on route change (fixes "stuck overlay") ---
+  useEffect(() => {
+    setOpen(false)
+  }, [location.pathname])
+
+  // --- language updates ---
   useEffect(() => {
     function onLangChange(e) {
       setLangState(e.detail.lang)
@@ -63,6 +76,7 @@ useEffect(() => {
     const apply = () => {
       const h = el.offsetHeight || 72
       document.documentElement.style.setProperty("--nav-offset", `${h}px`)
+      document.documentElement.style.setProperty("--navbar-h", `${h}px`) // за cart sticky
     }
 
     apply()
@@ -79,9 +93,16 @@ useEffect(() => {
 
   async function handleLogout(e) {
     if (e) e.preventDefault()
-    try { await api.post("/auth/logout") } catch {}
-    localStorage.removeItem("auth_token")
-    location.href = "/"
+    try {
+      await api.post("/auth/logout")
+    } catch {}
+
+    try {
+      localStorage.removeItem("auth_token")
+    } catch {}
+
+    // SPA navigation (без full reload)
+    navigate("/home", { replace: true })
   }
 
   function changeLang() {
@@ -89,9 +110,14 @@ useEffect(() => {
     setLang(next)
   }
 
-  function toggleDrawer() { setOpen((o) => !o) }
-  function closeDrawer() { setOpen(false) }
+  function toggleDrawer() {
+    setOpen((o) => !o)
+  }
+  function closeDrawer() {
+    setOpen(false)
+  }
 
+  // ✅ За защитени страници: ако няма user -> popup login
   const handleProtectedClick = (e) => {
     if (!user) {
       e.preventDefault()
@@ -123,21 +149,26 @@ useEffect(() => {
             </div>
 
             <div className="nav-center">
-              <Link className="brand" to="/home">
+              {/* ✅ Logo/Home link - ALWAYS works */}
+              <Link className="brand" to="/home" onClick={closeDrawer}>
                 {t("brand")}
               </Link>
             </div>
           </div>
 
-          {/* ✅ right side: wrap-able rows on mobile */}
           <div className="nav-right nav-right-wrap">
             <div className="nav-actions">
               {!loading && !user && (
                 <>
-                  <Link to="/register" className="btn ghost nav-btn" style={{ border: "none" }}>
+                  <Link
+                    to="/register"
+                    className="btn ghost nav-btn"
+                    style={{ border: "none" }}
+                    onClick={closeDrawer}
+                  >
                     {t("register")}
                   </Link>
-                  <Link to="/login" className="btn primary nav-btn">
+                  <Link to="/login" className="btn primary nav-btn" onClick={closeDrawer}>
                     {t("login")}
                   </Link>
                 </>
@@ -165,36 +196,67 @@ useEffect(() => {
         </div>
       </nav>
 
-      <div className={`drawer-backdrop ${open ? "open" : ""}`} onClick={closeDrawer} />
+      <div
+        className={`drawer-backdrop ${open ? "open" : ""}`}
+        onClick={closeDrawer}
+      />
 
       <aside className={`drawer ${open ? "open" : ""}`} aria-hidden={!open}>
         <nav className="drawer-list">
-          <Link className="drawer-item" to="/home" onClick={closeDrawer}>{t("home")}</Link>
-          <Link className="drawer-item" to="/e-magazine" onClick={handleProtectedClick}>{t("emag")}</Link>
-          <Link className="drawer-item" to="/news" onClick={handleProtectedClick}>{t("news")}</Link>
-          <Link className="drawer-item" to="/events" onClick={handleProtectedClick}>{t("events")}</Link>
-          <Link className="drawer-item" to="/gallery" onClick={handleProtectedClick}>{t("gallery")}</Link>
-{isAdmin ? (
-  <a className="drawer-item" href="/store">
-    Store
-  </a>
-) : (
-  <div className="drawer-item drawer-item--locked" aria-disabled="true">
-    Store <span className="drawer-lock">🔒</span>
-    <span className="drawer-note">(Available on 27.02.26)</span>
-  </div>
-)}
-     
-<Link className="drawer-item" to="/subscriptions" onClick={closeDrawer}>{t("subscriptions")}</Link>
-          <Link className="drawer-item" to="/games" onClick={handleProtectedClick}>{t("games")}</Link>
+          {/* ✅ PUBLIC */}
+          <Link className="drawer-item" to="/home" onClick={closeDrawer}>
+            {t("home")}
+          </Link>
 
-          <Link className="drawer-item" to="/about" onClick={closeDrawer}>{t("about")}</Link>
-          <Link className="drawer-item" to="/contact" onClick={closeDrawer}>{t("contact")}</Link>
-          <Link className="drawer-item" to="/help" onClick={closeDrawer}>{t("help")}</Link>
+          {/* ✅ PROTECTED */}
+          <Link className="drawer-item" to="/e-magazine" onClick={handleProtectedClick}>
+            {t("emag")}
+          </Link>
+          <Link className="drawer-item" to="/news" onClick={handleProtectedClick}>
+            {t("news")}
+          </Link>
+          <Link className="drawer-item" to="/events" onClick={handleProtectedClick}>
+            {t("events")}
+          </Link>
+          <Link className="drawer-item" to="/gallery" onClick={handleProtectedClick}>
+            {t("gallery")}
+          </Link>
+
+          {/* ✅ STORE: admin only (no <a href>!) */}
+          {isAdmin ? (
+            <Link className="drawer-item" to="/store" onClick={closeDrawer}>
+              Store
+            </Link>
+          ) : (
+            <div className="drawer-item drawer-item--locked" aria-disabled="true">
+              Store <span className="drawer-lock">🔒</span>
+              <span className="drawer-note">(Available on 27.02.26)</span>
+            </div>
+          )}
+
+          <Link className="drawer-item" to="/subscriptions" onClick={closeDrawer}>
+            {t("subscriptions")}
+          </Link>
+
+          <Link className="drawer-item" to="/games" onClick={handleProtectedClick}>
+            {t("games")}
+          </Link>
+
+          {/* ✅ PUBLIC */}
+          <Link className="drawer-item" to="/about" onClick={closeDrawer}>
+            {t("about")}
+          </Link>
+          <Link className="drawer-item" to="/contact" onClick={closeDrawer}>
+            {t("contact")}
+          </Link>
+          <Link className="drawer-item" to="/help" onClick={closeDrawer}>
+            {t("help")}
+          </Link>
 
           <div className="drawer-sep" />
 
-          <Link className="drawer-item" to="/profile" onClick={closeDrawer}>
+          {/* ✅ PROFILE: protected-ish (ако няма user -> popup) */}
+          <Link className="drawer-item" to="/profile" onClick={handleProtectedClick}>
             {t("profile")}
           </Link>
 
@@ -218,9 +280,13 @@ useEffect(() => {
             onClick={(e) => e.stopPropagation()}
             style={{ textAlign: "center", maxWidth: "400px" }}
           >
-            <button className="modal-close" onClick={() => setShowLoginModal(false)}>×</button>
+            <button className="modal-close" onClick={() => setShowLoginModal(false)}>
+              ×
+            </button>
             <div style={{ fontSize: "3rem", marginBottom: "10px" }}>🔒</div>
-            <h2 className="headline" style={{ fontSize: "1.8rem" }}>Access Restricted</h2>
+            <h2 className="headline" style={{ fontSize: "1.8rem" }}>
+              Access Restricted
+            </h2>
             <p style={{ marginBottom: "20px", color: "gray" }}>
               You must be a registered member to access this content. <br />
               Join MIREN today!

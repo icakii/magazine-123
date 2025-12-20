@@ -33,6 +33,9 @@
   --olive: #6b7b4e;     /* success / supportive accent */
   --ink: #1e1e1e;       /* primary text */
 
+  --navbar-h: 72px;
+  --cart-gap: 14px;
+
   /* --- TYPOGRAPHY --- */
   --font-body: "Roboto Slab", system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
   --font-display: "League Spartan", system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
@@ -2151,21 +2154,22 @@ html[data-theme="dark"] .hamburger .line {
   background: rgba(0,0,0,.55);
   opacity: 0;
   pointer-events: none;
-  transition: opacity 220ms var(--ease-in-out);
-  z-index: 8000;
+  transition: opacity 0.2s ease;
+  z-index: 9998;
 }
 .cart-drawer{
   position: fixed;
-  top: 0;
-  right: 0;
-  height: 100vh;
-  width: min(420px, 92vw);
+right: 16px;
+  top: calc(var(--navbar-h) + var(--cart-gap));
+  height: calc(100vh - (var(--navbar-h) + var(--cart-gap)) - 16px);
+  width: min(420px, calc(100vw - 32px));
+  z-index: 9999;
   background: var(--bg-elev);
   border-left: 1px solid var(--nav-border);
   box-shadow: var(--shadow-lg);
-  transform: translateX(105%);
-  transition: transform 260ms var(--ease);
-  z-index: 9000;
+  transform: translateX(110%);
+  transition: transform 0.25s ease;
+  overflow: auto;
   padding: 16px;
   display: flex;
   flex-direction: column;
@@ -2175,6 +2179,7 @@ html[data-theme="dark"] .hamburger .line {
 body.cart-open .cart-backdrop{
   opacity: 1;
   pointer-events: auto;
+  transform: translateX(0);
 }
 body.cart-open .cart-drawer{
   transform: translateX(0);
@@ -2374,4 +2379,22 @@ body.cart-open .cart-drawer{
   min-width: 20px;
   text-align: center;
   font-weight: 600;
+}
+/* ---- STORE CARD: pin bottom controls ---- */
+.store-body {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.store-desc {
+  /* за да не бутат контролите нагоре */
+  margin-bottom: 0;
+}
+
+.store-controls {
+  margin-top: auto; /* ключът */
+  display: flex;
+  gap: 10px;
+  align-items: center;
 }

@@ -244,6 +244,7 @@ export default function Store() {
                 </div>
               ))}
             </div>
+            <div className="store-controls" style={{ marginTop: 12 }}>
 
             <button
               className="btn primary cart-checkout"
@@ -265,6 +266,7 @@ export default function Store() {
             >
               Clear cart
             </button>
+            </div>
           </>
         )}
       </div>

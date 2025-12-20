@@ -36,13 +36,13 @@ const APP_URL = process.env.APP_URL || "http://localhost:5173"
 app.set("trust proxy", 1)
 
 // ---------------------------------------------------------------
-// 1) CORS — DON'T THROW (prevents breaking /assets requests)
+// 1) CORS — APPLY ONLY TO /api (НЕ глобално)
 // ---------------------------------------------------------------
 const ALLOWED_ORIGINS = [
   process.env.FRONTEND_URL,
   process.env.APP_URL,
-  "https://magazine-123.onrender.com",
-  "https://miren-app.onrender.com",
+  "https://magazine-123.onrender.com", // ✅ ТОВА Е НОВИЯТ ТИ ДОМЕЙН
+  "https://miren-app.onrender.com",    // ако още го ползваш
   "http://localhost:5173",
   "http://localhost:8080",
 ].filter(Boolean)
@@ -50,11 +50,9 @@ const ALLOWED_ORIGINS = [
 const corsOptions = {
   origin: (origin, cb) => {
     if (!origin) return cb(null, true)
-
-    // allow known origins
     if (ALLOWED_ORIGINS.includes(origin)) return cb(null, true)
 
-    // ✅ IMPORTANT: do NOT throw (throwing breaks assets & SPA randomly)
+    // ❗ НЕ хвърляме Error (това прави 500)
     return cb(null, false)
   },
   credentials: true,
@@ -62,8 +60,9 @@ const corsOptions = {
   allowedHeaders: ["Content-Type", "Authorization"],
 }
 
-app.use(cors(corsOptions))
-app.options("*", cors(corsOptions))
+// ✅ CORS само за API:
+app.use("/api", cors(corsOptions))
+app.options("/api/*", cors(corsOptions))
 
 
 // ---------------------------------------------------------------

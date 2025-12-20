@@ -1109,52 +1109,39 @@ function computeEffectiveStreak(streak, lastWinYmd, todayYmd) {
 }
 
 // ---------------------------------------------------------------
-// ✅ SERVE FRONTEND (Vite build) - PRODUCTION + Render
-// Fixes: blank screen + MIME text/html for /assets/*.css
-// Works even if Render Root Directory is "" OR "server"
+// ✅ SERVE FRONTEND (Vite build) - ALWAYS (Render one-service)
+// Project structure:
+//   /server/src/index.js
+//   /client/dist
 // ---------------------------------------------------------------
-const candidates = [
-  // when running from repo root (most common)
-  path.join(__dirname, "..", "..", "client", "dist"),
-  // when Render Root Directory is "server"
-  path.join(__dirname, "..", "..", "..", "client", "dist"),
-]
+const path = require("path")
+const fs = require("fs")
 
-const distPath = candidates.find((p) => fs.existsSync(p)) || candidates[0]
+const distPath = path.resolve(__dirname, "..", "..", "client", "dist")
 const indexHtml = path.join(distPath, "index.html")
 
 console.log("✅ FRONTEND distPath =", distPath)
 console.log("✅ FRONTEND indexHtml =", indexHtml)
 console.log("✅ FRONTEND index exists =", fs.existsSync(indexHtml))
 
-// serve static assets first (css/js/images)
+// Serve assets normally (css/js/images)
 app.use(
   express.static(distPath, {
     index: false,
     setHeaders: (res, filePath) => {
-      // stop caching html so you don't get old broken index
+      // avoid caching index.html (so new deploys load)
       if (filePath.endsWith(".html")) res.setHeader("Cache-Control", "no-store")
     },
   })
 )
 
-// IMPORTANT: if an asset is missing, return 404 (do NOT return index.html)
-// This prevents MIME-type errors like you saw.
-app.get("/assets/*", (req, res) => {
-  return res.status(404).end()
+// ✅ API 404 (so /api doesn't fall into SPA)
+app.all("/api/*", (req, res) => {
+  return res.status(404).json({ error: "Not found" })
 })
 
-// React Router fallback (any non-API route -> index.html)
+// ✅ SPA fallback for EVERYTHING else (deep routes + querystrings)
 app.get("*", (req, res) => {
-  if (req.path.startsWith("/api")) return res.status(404).end()
-
-  // if index.html missing, show clear error instead of silent blank screen
-  if (!fs.existsSync(indexHtml)) {
-    return res
-      .status(500)
-      .send("Frontend build not found (client/dist/index.html missing).")
-  }
-
   return res.sendFile(indexHtml)
 })
 

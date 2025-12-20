@@ -33,24 +33,32 @@ const APP_URL = process.env.APP_URL || "http://localhost:5173"
 app.set("trust proxy", 1)
 
 // ---------------------------------------------------------------
-// 1) CORS (FIXED) — MUST be BEFORE ANY /api routes
+// 1) CORS (FINAL) — MUST be BEFORE ANY /api routes
 // ---------------------------------------------------------------
 const ALLOWED_ORIGINS = [
+  process.env.FRONTEND_URL,
+  process.env.APP_URL,
   "https://miren-app.onrender.com",
-  "http://localhost:5173"
-]
+  "http://localhost:5173",
+  "http://localhost:8080",
+].filter(Boolean)
 
-app.use(cors({
+const corsOptions = {
   origin: (origin, cb) => {
+    // allow server-to-server / curl / Postman (no Origin header)
     if (!origin) return cb(null, true)
+
     if (ALLOWED_ORIGINS.includes(origin)) return cb(null, true)
+
     return cb(new Error(`CORS blocked for origin: ${origin}`))
   },
-  credentials: true
-}))
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+}
 
-app.options("*", cors())
-
+app.use(cors(corsOptions))
+// preflight
 app.options("*", cors(corsOptions))
 
 // ---------------------------------------------------------------

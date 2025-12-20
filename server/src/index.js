@@ -204,6 +204,11 @@ app.post(
 app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
 
+app.get("/__ping", (req, res) => {
+  res.status(200).send("OK FROM NODE: " + new Date().toISOString())
+})
+
+
 // ---------------------------------------------------------------
 // 5) AUTH HELPERS
 // ---------------------------------------------------------------

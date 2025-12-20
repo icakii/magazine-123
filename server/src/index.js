@@ -36,30 +36,21 @@ app.set("trust proxy", 1)
 // 1) CORS (FIXED) — MUST be BEFORE ANY /api routes
 // ---------------------------------------------------------------
 const ALLOWED_ORIGINS = [
-  FRONTEND_URL,
-  APP_URL,
   "https://miren-app.onrender.com",
-  "http://localhost:5173",
-  "http://localhost:8080",
-].filter(Boolean)
+  "http://localhost:5173"
+]
 
-const corsOptions = {
+app.use(cors({
   origin: (origin, cb) => {
-    // allow server-to-server / curl / Postman (no Origin header)
     if (!origin) return cb(null, true)
-
-    // ✅ allow your known frontends
     if (ALLOWED_ORIGINS.includes(origin)) return cb(null, true)
-
-    // (if you want "works no matter what", replace next line with: return cb(null, true)
     return cb(new Error(`CORS blocked for origin: ${origin}`))
   },
-  credentials: true,
-  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization"],
-}
+  credentials: true
+}))
 
-app.use(cors(corsOptions))
+app.options("*", cors())
+
 app.options("*", cors(corsOptions))
 
 // ---------------------------------------------------------------
@@ -1095,6 +1086,18 @@ function computeEffectiveStreak(streak, lastWinYmd, todayYmd) {
   return 0
 }
 const path = require("path")
+
+if (process.env.NODE_ENV === "production") {
+  const distPath = path.join(__dirname, "..", "client", "dist")
+
+  app.use(express.static(distPath, { index: false }))
+
+  // React Router fallback
+  app.get("*", (req, res) => {
+    if (req.path.startsWith("/api")) return res.status(404).end()
+    res.sendFile(path.join(distPath, "index.html"))
+  })
+}
 
 
 

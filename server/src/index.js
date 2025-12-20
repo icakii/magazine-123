@@ -1114,8 +1114,6 @@ function computeEffectiveStreak(streak, lastWinYmd, todayYmd) {
 //   /server/src/index.js
 //   /client/dist
 // ---------------------------------------------------------------
-const path = require("path")
-const fs = require("fs")
 
 const distPath = path.resolve(__dirname, "..", "..", "client", "dist")
 const indexHtml = path.join(distPath, "index.html")

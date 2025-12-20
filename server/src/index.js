@@ -1101,30 +1101,22 @@ const path = require("path")
 //   /server/src/index.js
 //   /client/dist
 // ---------------------------------------------------------------
-if (process.env.NODE_ENV === "production") {
-  // server/src -> ../../client/dist
-  const distPath = path.resolve(__dirname, "../../client/dist")
+const distPath = path.join(__dirname, "..", "..", "client", "dist")
 
-  // serve static assets (Vite build)
-  app.use(
-    express.static(distPath, {
-      index: false,
-      setHeaders: (res, filePath) => {
-        // Avoid caching index.html (prevents “blank screen after deploy”)
-        if (filePath.endsWith(".html")) {
-          res.setHeader("Cache-Control", "no-store")
-        }
-      },
-    })
-  )
+// serve static assets (css/js/images)
+app.use(express.static(distPath, {
+  index: false,
+  setHeaders: (res, filePath) => {
+    if (filePath.endsWith(".html")) res.setHeader("Cache-Control", "no-store")
+  },
+}))
 
-  // React Router fallback
-  app.get("*", (req, res) => {
-    if (req.path.startsWith("/api")) return res.status(404).end()
-    return res.sendFile(path.join(distPath, "index.html"))
-  })
-}
-
+// React Router fallback (IMPORTANT)
+// Any non-API route should return index.html
+app.get("*", (req, res) => {
+  if (req.path.startsWith("/api")) return res.status(404).end()
+  return res.sendFile(path.join(distPath, "index.html"))
+})
 
 
 

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react"
 import { api } from "../lib/api"
 import { addToCart, getCart, removeFromCart, clearCart } from "../lib/cart"
+import { useLocation, useNavigate } from "react-router-dom"
 
 function normalizeItem(raw) {
   const it = raw || {}
@@ -11,7 +12,12 @@ function normalizeItem(raw) {
     description: it.description || "",
     imageUrl: it.imageUrl || it.image_url || "",
     category: it.category || "misc",
-    priceId: it.priceId || it.stripe_price_id || it.stripePriceId || it.stripe_price_id || "",
+    priceId:
+      it.priceId ||
+      it.stripe_price_id ||
+      it.stripePriceId ||
+      it.stripe_price_id ||
+      "",
     isActive: typeof it.isActive === "boolean" ? it.isActive : true,
   }
 }
@@ -21,7 +27,33 @@ export default function Store() {
   const [cart, setCart] = useState(getCart())
   const [loading, setLoading] = useState(true)
   const [err, setErr] = useState("")
+  const [notice, setNotice] = useState("")
 
+  const location = useLocation()
+  const navigate = useNavigate()
+
+  // ✅ Handle Stripe redirect results: clear cart on success, show message
+  useEffect(() => {
+    const params = new URLSearchParams(location.search)
+    const success = params.get("success")
+    const canceled = params.get("canceled")
+
+    if (success === "true") {
+      clearCart()
+      setCart([])
+      setNotice("✅ Order successful! Thank you for your purchase.")
+      document.body.classList.remove("cart-open")
+      navigate("/store", { replace: true })
+      return
+    }
+
+    if (canceled === "true") {
+      setNotice("❌ Payment canceled.")
+      navigate("/store", { replace: true })
+    }
+  }, [location.search, navigate])
+
+  // ✅ Load items
   useEffect(() => {
     let alive = true
 
@@ -33,7 +65,9 @@ export default function Store() {
         if (!alive) return
 
         const arr = Array.isArray(res.data) ? res.data : []
-        const normalized = arr.map(normalizeItem).filter((x) => x.isActive && x.priceId)
+        const normalized = arr
+          .map(normalizeItem)
+          .filter((x) => x.isActive && x.priceId)
 
         setItems(normalized)
       } catch (e) {
@@ -62,7 +96,10 @@ export default function Store() {
 
   const addItem = (it) => {
     if (!it?.priceId) return alert("Missing Stripe priceId for this item.")
-    const next = addToCart({ priceId: it.priceId, title: it.title, imageUrl: it.imageUrl }, 1)
+    const next = addToCart(
+      { priceId: it.priceId, title: it.title, imageUrl: it.imageUrl },
+      1
+    )
     setCart(next)
     openCart()
   }
@@ -71,18 +108,16 @@ export default function Store() {
     try {
       if (!cart?.length) return
 
-      // send only what backend needs
       const payloadItems = cart.map((c) => ({
         priceId: c.priceId,
         qty: Number(c.qty) || 1,
       }))
 
       const res = await api.post("/store/checkout", {
-  items: payloadItems,
-  successPath: "/?order_success=true",
-  cancelPath: "/store?canceled=true",
-})
-
+        items: payloadItems,
+        successPath: "/store?success=true",
+        cancelPath: "/store?canceled=true",
+      })
 
       if (res?.data?.url) {
         window.location.href = res.data.url
@@ -107,6 +142,9 @@ export default function Store() {
           <h2 className="headline">Store</h2>
           <p className="subhead">Magazine & clothing — powered by Stripe.</p>
 
+          {/* ✅ SUCCESS / CANCEL message */}
+          {notice && <p className="msg success">{notice}</p>}
+
           {!loading && err && <p className="msg warning">{err}</p>}
           {!loading && !err && items.length === 0 && (
             <p className="msg">No items yet. Add one in DB.</p>
@@ -125,16 +163,27 @@ export default function Store() {
           {items.map((it) => (
             <div key={it.id || it.priceId} className="store-card">
               {it.imageUrl ? (
-                <img className="store-img" src={it.imageUrl} alt={it.title} loading="lazy" />
+                <img
+                  className="store-img"
+                  src={it.imageUrl}
+                  alt={it.title}
+                  loading="lazy"
+                />
               ) : (
                 <div className="store-img store-img--ph">MIREN</div>
               )}
 
               <div className="store-body">
                 <div className="store-title">{it.title}</div>
-                {it.description && <div className="store-desc">{it.description}</div>}
+                {it.description && (
+                  <div className="store-desc">{it.description}</div>
+                )}
 
-                <button className="btn primary store-btn" onClick={() => addItem(it)} type="button">
+                <button
+                  className="btn primary store-btn"
+                  onClick={() => addItem(it)}
+                  type="button"
+                >
                   Add to cart
                 </button>
               </div>
@@ -147,7 +196,9 @@ export default function Store() {
       <div className="cart-drawer">
         <div className="cart-top">
           <div className="cart-title">Your Cart</div>
-          <button className="cart-close" onClick={closeCart} type="button">✕</button>
+          <button className="cart-close" onClick={closeCart} type="button">
+            ✕
+          </button>
         </div>
 
         {cart.length === 0 ? (
@@ -159,13 +210,20 @@ export default function Store() {
                 <div key={c.priceId} className="cart-row">
                   <div className="cart-left">
                     {c.imageUrl ? (
-                      <img className="cart-thumb" src={c.imageUrl} alt={c.title || "Item"} />
+                      <img
+                        className="cart-thumb"
+                        src={c.imageUrl}
+                        alt={c.title || "Item"}
+                      />
                     ) : (
                       <div className="cart-thumb cart-thumb--ph">M</div>
                     )}
+
                     <div className="cart-meta">
                       <div className="cart-name">{c.title || "Item"}</div>
-                      <div className="cart-sub text-muted">{c.priceId}</div>
+
+                      {/* ✅ МАХНАТО: priceId (product key) да НЕ се показва */}
+                      {/* <div className="cart-sub text-muted">{c.priceId}</div> */}
                     </div>
                   </div>
 
@@ -183,7 +241,11 @@ export default function Store() {
               ))}
             </div>
 
-            <button className="btn primary cart-checkout" onClick={startCheckout} type="button">
+            <button
+              className="btn primary cart-checkout"
+              onClick={startCheckout}
+              type="button"
+            >
               Checkout with Stripe ⚡
             </button>
 
@@ -193,6 +255,7 @@ export default function Store() {
               onClick={() => {
                 clearCart()
                 setCart([])
+                document.body.classList.remove("cart-open")
               }}
               type="button"
             >

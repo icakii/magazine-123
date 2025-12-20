@@ -18,7 +18,7 @@ function isAdmin(email) {
 }
 
 function toAbsoluteUrl(pathOrUrl, base) {
-  // allows "/profile?x=1" OR already absolute "https://..."
+  // allows "/store?x=1" OR already absolute "https://..."
   try {
     return new URL(pathOrUrl, base).toString()
   } catch {
@@ -187,10 +187,10 @@ router.post("/store/checkout", async (req, res) => {
       return res.status(400).json({ error: "No valid items" })
     }
 
-    const successUrl = toAbsoluteUrl(successPath || "/profile?order_success=true", APP_URL)
+    // ✅ We want to ALWAYS land back on /store to clear cart and show message
+    const successUrl = toAbsoluteUrl(successPath || "/store?success=true", APP_URL)
     const cancelUrl = toAbsoluteUrl(cancelPath || "/store?canceled=true", APP_URL)
 
-    // ✅ Stripe Checkout Session
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
       payment_method_types: ["card"],
@@ -199,15 +199,12 @@ router.post("/store/checkout", async (req, res) => {
       success_url: successUrl,
       cancel_url: cancelUrl,
 
-      // ✅ Collect phone
       phone_number_collection: { enabled: true },
 
-      // ✅ Collect address (shipping)
       shipping_address_collection: {
         allowed_countries: ["BG"],
       },
 
-      // ✅ “Tri imena”
       custom_fields: [
         {
           key: "full_name",
@@ -225,7 +222,6 @@ router.post("/store/checkout", async (req, res) => {
 
     return res.json({ url: session.url })
   } catch (e) {
-    // ✅ show real Stripe error (this will instantly tell us what is wrong)
     console.error("STORE CHECKOUT ERROR:", e?.message || e, e)
     return res.status(500).json({
       error: "Failed to start checkout",
@@ -233,6 +229,7 @@ router.post("/store/checkout", async (req, res) => {
     })
   }
 })
+
 // ----------------------------------------------------
 // ADMIN: list paid orders from Stripe (no DB)
 // GET /api/admin/store/orders
@@ -243,17 +240,12 @@ router.get("/admin/store/orders", authMiddleware, async (req, res) => {
     if (!email) return res.status(401).json({ error: "Unauthorized" })
     if (!isAdmin(email)) return res.status(403).json({ error: "Admin access required" })
 
-    // last 50 sessions (paid)
-    const sessions = await stripe.checkout.sessions.list({
-      limit: 50,
-    })
+    const sessions = await stripe.checkout.sessions.list({ limit: 50 })
 
-    // keep only paid "payment" sessions
     const paid = (sessions.data || []).filter(
       (s) => s.mode === "payment" && s.payment_status === "paid"
     )
 
-    // fetch line items for each (Stripe API call per session)
     const mapped = await Promise.all(
       paid.map(async (s) => {
         let lineItems = []
@@ -272,7 +264,6 @@ router.get("/admin/store/orders", authMiddleware, async (req, res) => {
         const shipping = s.shipping_details || null
         const customer = s.customer_details || null
 
-        // custom_fields contains your “three names”
         const customFields = Array.isArray(s.custom_fields) ? s.custom_fields : []
         const fullNameField = customFields.find((f) => f?.key === "full_name")
         const fullName = fullNameField?.text?.value || ""

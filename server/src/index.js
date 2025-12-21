@@ -17,8 +17,6 @@ const helmet = require("helmet")
 const path = require("path")
 const fs = require("fs")
 
-import helmet from "helmet"
-
 // ✅ ROUTERS
 const storeRouter = require("./routes/store")
 const userStreakRouter = require("./routes/userStreak")

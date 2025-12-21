@@ -2053,6 +2053,89 @@ html[data-theme="dark"] .hamburger .line {
 /* =========================
    STORE + CART (BRUTAL)
 ========================= */
+/* ===== CART MODAL FIX ===== */
+
+/* backdrop should darken + allow click-to-close */
+.cart-backdrop {
+  position: fixed;
+  inset: 0;
+  opacity: 0;
+  pointer-events: none;
+  z-index: 1001;
+}
+
+body.cart-open .cart-backdrop {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* drawer MUST be above backdrop */
+.cart-drawer {
+  position: fixed;
+  right: 16px;
+  width: min(420px, calc(100vw - 32px));
+  z-index: 1002;
+
+  /* ✅ sticky under navbar with spacing */
+  top: calc(var(--nav-offset, 72px) + 12px);
+  max-height: calc(100vh - var(--nav-offset, 72px) - 24px);
+  overflow: auto;
+}
+
+/* hide drawer when closed (optional if you already do) */
+body:not(.cart-open) .cart-drawer {
+  transform: translateX(120%);
+  transition: transform 200ms ease;
+}
+
+body.cart-open .cart-drawer {
+  transform: translateX(0);
+}
+
+/* layout: make qty + buttons aligned */
+.cart-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+}
+
+.cart-left { min-width: 0; }
+.cart-meta { min-width: 0; }
+.cart-name { font-weight: 700; }
+
+/* qty controls */
+.qty {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.qty-btn {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--card);
+  cursor: pointer;
+}
+
+.qty-val {
+  min-width: 28px;
+  text-align: center;
+  font-weight: 700;
+}
+
+/* bottom row on store card (price + button aligned) */
+.store-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 12px;
+}
+.store-price { font-weight: 800; }
+
 .store-head {
   display: flex;
   justify-content: space-between;

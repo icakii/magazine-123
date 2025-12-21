@@ -2551,3 +2551,183 @@ body.cart-open .cart-drawer {
   margin-top: 12px;
 }
 .store-price { font-weight: 800; }
+/* =========================================================
+   MIREN — CONFLICT PATCH (CANONICAL)
+   Paste at END of globals.css to override duplicates safely
+   ========================================================= */
+
+/* --- 0) Ensure nav offset used everywhere --- */
+:root {
+  --cart-gap: 12px;
+}
+
+/* --- 1) CART OVERLAY (fix: backdrop under drawer + clickable checkout) --- */
+.cart-backdrop {
+  position: fixed !important;
+  inset: 0 !important;
+  background: rgba(0, 0, 0, 0.60) !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  transition: opacity 200ms ease !important;
+  z-index: 9998 !important;
+}
+
+body.cart-open .cart-backdrop {
+  opacity: 1 !important;
+  pointer-events: auto !important;
+}
+
+/* Drawer above backdrop + sticky under navbar with spacing */
+.cart-drawer {
+  position: fixed !important;
+  right: 16px !important;
+  top: calc(var(--nav-offset, 72px) + var(--cart-gap)) !important;
+  width: min(420px, calc(100vw - 32px)) !important;
+  max-height: calc(100vh - var(--nav-offset, 72px) - (var(--cart-gap) * 2)) !important;
+  overflow: auto !important;
+
+  z-index: 9999 !important; /* MUST be above backdrop */
+  transform: translateX(120%) !important;
+  transition: transform 240ms ease !important;
+
+  border-radius: 18px !important;
+  border: 1px solid var(--nav-border, rgba(0,0,0,0.12)) !important;
+  background: var(--bg-elev, #fff) !important;
+  box-shadow: var(--shadow-lg, 0 30px 80px rgba(0,0,0,0.16)) !important;
+
+  padding: 16px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 12px !important;
+}
+
+body.cart-open .cart-drawer {
+  transform: translateX(0) !important;
+}
+
+/* Optional: prevents page behind from scrolling when cart open */
+body.cart-open {
+  overflow: hidden;
+}
+
+/* --- 2) CART ROW ALIGNMENT (qty + buttons same level always) --- */
+.cart-row {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 12px !important;
+}
+
+.cart-left {
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  min-width: 0 !important;
+}
+
+.cart-meta {
+  min-width: 0 !important;
+}
+
+.cart-name {
+  font-weight: 900 !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  max-width: 220px !important;
+}
+
+/* If you have duplicate name lines, hide the secondary line */
+.cart-sub,
+.cart-priceid {
+  display: none !important;
+}
+
+/* thumbnail if you use it */
+.cart-thumb {
+  width: 44px !important;
+  height: 44px !important;
+  border-radius: 12px !important;
+  object-fit: cover !important;
+  border: 1px solid var(--nav-border, rgba(0,0,0,0.12)) !important;
+  background: rgba(0,0,0,0.06) !important;
+}
+
+.cart-right {
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+}
+
+/* --- 3) QTY CONTROL (single canonical) --- */
+.qty {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  border: 1px solid var(--border, rgba(0,0,0,0.15)) !important;
+  border-radius: 999px !important;
+  padding: 6px 10px !important;
+  background: rgba(255,255,255,0.35) !important;
+}
+
+html[data-theme="dark"] .qty {
+  background: rgba(0,0,0,0.22) !important;
+}
+
+.qty-btn {
+  width: 34px !important;
+  height: 34px !important;
+  border-radius: 12px !important;
+  border: 1px solid var(--border, rgba(0,0,0,0.15)) !important;
+  background: transparent !important;
+  cursor: pointer !important;
+  font-weight: 900 !important;
+}
+
+.qty-val {
+  min-width: 28px !important;
+  text-align: center !important;
+  font-weight: 900 !important;
+}
+
+/* If you use an input instead of span */
+.qty-input {
+  width: 38px !important;
+  text-align: center !important;
+  border: none !important;
+  outline: none !important;
+  background: transparent !important;
+  font-weight: 900 !important;
+}
+
+/* --- 4) STORE CARD BOTTOM ALIGN (price + qty + add aligned) --- */
+.store-body {
+  display: flex !important;
+  flex-direction: column !important;
+  height: 100% !important;
+}
+
+.store-bottom {
+  margin-top: auto !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 12px !important;
+  padding-top: 12px !important;
+}
+
+.store-price {
+  font-weight: 900 !important;
+  white-space: nowrap !important;
+}
+
+/* --- 5) Drawer locked item canonical (you had duplicates) --- */
+.drawer-item--locked {
+  opacity: 0.78 !important;
+  cursor: not-allowed !important;
+  background: rgba(196, 106, 74, 0.08) !important;
+}
+.drawer-item--locked:hover {
+  transform: none !important;
+  color: var(--text) !important;
+}

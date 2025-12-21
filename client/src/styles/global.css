@@ -2731,3 +2731,354 @@ html[data-theme="dark"] .qty {
   transform: none !important;
   color: var(--text) !important;
 }
+/* =========================================================
+   MIREN — ADMIN PANEL FIX (paste at END of globals.css)
+   ========================================================= */
+
+/* Admin page container (works even if classnames differ) */
+.page.admin,
+.admin-page,
+.admin-panel,
+.admin-shell {
+  width: 100% !important;
+  max-width: 1040px !important;
+  margin: 0 auto !important;
+}
+
+/* Headings */
+.admin-page h1,
+.admin-panel h1,
+.page.admin h1,
+.admin-page .headline,
+.admin-panel .headline {
+  font-family: var(--font-display) !important;
+  font-weight: 900 !important;
+  letter-spacing: 0.01em !important;
+}
+
+.admin-page h2,
+.admin-panel h2,
+.page.admin h2 {
+  font-family: var(--font-display) !important;
+  font-weight: 900 !important;
+  margin: 18px 0 10px !important;
+}
+
+/* ---------------------------------------------------------
+   Tabs row (your screenshot shows default ugly buttons)
+--------------------------------------------------------- */
+.admin-tabs,
+.admin-nav,
+.admin-panel-tabs,
+.admin-panel .tabs,
+.page.admin .tabs {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  gap: 10px !important;
+  align-items: center !important;
+  margin: 14px 0 18px !important;
+  padding: 0 !important;
+}
+
+/* generic tab buttons/links */
+.admin-tabs button,
+.admin-tabs a,
+.admin-nav button,
+.admin-nav a,
+.admin-panel-tabs button,
+.admin-panel-tabs a,
+.page.admin .tabs button,
+.page.admin .tabs a {
+  appearance: none !important;
+  border: 1px dashed var(--border, rgba(0,0,0,0.18)) !important;
+  background: rgba(255, 255, 255, 0.32) !important;
+  color: var(--text) !important;
+
+  padding: 10px 14px !important;
+  border-radius: 999px !important;
+  font-family: var(--font-body) !important;
+  font-weight: 900 !important;
+  cursor: pointer !important;
+
+  transition: transform 160ms var(--ease), background 160ms var(--ease), border-color 160ms var(--ease) !important;
+}
+
+.admin-tabs button:hover,
+.admin-tabs a:hover,
+.admin-nav button:hover,
+.admin-nav a:hover,
+.admin-panel-tabs button:hover,
+.admin-panel-tabs a:hover,
+.page.admin .tabs button:hover,
+.page.admin .tabs a:hover {
+  transform: translateY(-1px) !important;
+  background: rgba(196, 106, 74, 0.14) !important;
+  border-color: rgba(196, 106, 74, 0.35) !important;
+}
+
+/* active tab (supports different ways you mark active) */
+.admin-tabs .active,
+.admin-nav .active,
+.admin-panel-tabs .active,
+.page.admin .tabs .active,
+.admin-tabs button[aria-selected="true"],
+.admin-tabs a[aria-current="page"],
+.admin-tabs button[data-active="true"],
+.admin-tabs a[data-active="true"] {
+  background: linear-gradient(135deg, var(--oxide-red), var(--clay)) !important;
+  border: 1px solid rgba(30,30,30,0.18) !important;
+  color: #fff !important;
+  box-shadow: var(--shadow-sm) !important;
+}
+
+/* ---------------------------------------------------------
+   Forms: make inputs pretty & aligned
+--------------------------------------------------------- */
+.admin-panel form,
+.admin-page form,
+.page.admin form {
+  width: 100% !important;
+}
+
+.admin-panel label,
+.admin-page label,
+.page.admin label {
+  display: block !important;
+  font-weight: 900 !important;
+  margin: 10px 0 6px !important;
+  color: var(--text) !important;
+}
+
+.admin-panel input[type="text"],
+.admin-panel input[type="number"],
+.admin-panel input[type="date"],
+.admin-panel input[type="url"],
+.admin-panel input[type="email"],
+.admin-panel input[type="password"],
+.admin-panel textarea,
+.admin-panel select,
+.admin-page input[type="text"],
+.admin-page input[type="number"],
+.admin-page input[type="date"],
+.admin-page input[type="url"],
+.admin-page input[type="email"],
+.admin-page input[type="password"],
+.admin-page textarea,
+.admin-page select,
+.page.admin input[type="text"],
+.page.admin input[type="number"],
+.page.admin input[type="date"],
+.page.admin input[type="url"],
+.page.admin input[type="email"],
+.page.admin input[type="password"],
+.page.admin textarea,
+.page.admin select {
+  width: 100% !important;
+  max-width: 620px !important;
+
+  padding: 12px 14px !important;
+  border-radius: 16px !important;
+
+  border: 1px solid var(--input-border, rgba(0,0,0,0.18)) !important;
+  background: var(--input-bg, #fffaf2) !important;
+  color: var(--text) !important;
+
+  font-family: var(--font-body) !important;
+  font-weight: 700 !important;
+
+  box-shadow: inset 0 2px 10px rgba(0,0,0,0.06) !important;
+}
+
+.admin-panel input[type="checkbox"],
+.admin-page input[type="checkbox"],
+.page.admin input[type="checkbox"] {
+  transform: scale(1.15) !important;
+  margin-left: 8px !important;
+}
+
+/* file inputs look better */
+.admin-panel input[type="file"],
+.admin-page input[type="file"],
+.page.admin input[type="file"] {
+  max-width: 620px !important;
+  padding: 10px !important;
+  border-radius: 14px !important;
+  border: 1px dashed rgba(0,0,0,0.22) !important;
+  background: rgba(255,255,255,0.28) !important;
+}
+
+/* Two/three columns on wide screens for Issue fields */
+.admin-grid,
+.admin-form-grid,
+.page.admin .form-grid {
+  display: grid !important;
+  grid-template-columns: repeat(12, 1fr) !important;
+  gap: 12px !important;
+  align-items: start !important;
+  max-width: 1040px !important;
+}
+
+.admin-col-6 { grid-column: span 6 !important; }
+.admin-col-4 { grid-column: span 4 !important; }
+.admin-col-3 { grid-column: span 3 !important; }
+.admin-col-12 { grid-column: span 12 !important; }
+
+@media (max-width: 900px) {
+  .admin-grid,
+  .admin-form-grid,
+  .page.admin .form-grid {
+    grid-template-columns: repeat(6, 1fr) !important;
+  }
+  .admin-col-6,
+  .admin-col-4,
+  .admin-col-3 { grid-column: span 6 !important; }
+}
+
+/* ---------------------------------------------------------
+   Buttons inside admin
+--------------------------------------------------------- */
+.admin-panel .btn,
+.admin-page .btn,
+.page.admin .btn {
+  font-weight: 900 !important;
+}
+
+.admin-panel button,
+.admin-page button,
+.page.admin button {
+  border-radius: 999px !important;
+}
+
+.admin-panel .btn.primary,
+.admin-page .btn.primary,
+.page.admin .btn.primary {
+  background: linear-gradient(135deg, var(--oxide-red), var(--clay)) !important;
+  color: #fff !important;
+}
+
+.admin-panel .btn.ghost,
+.admin-page .btn.ghost,
+.page.admin .btn.ghost {
+  border: 1px dashed rgba(0,0,0,0.18) !important;
+  background: transparent !important;
+}
+
+/* ---------------------------------------------------------
+   Existing lists/cards rows (issues, articles, etc.)
+--------------------------------------------------------- */
+.admin-list,
+.admin-items,
+.admin-panel .items,
+.page.admin .items {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 12px !important;
+  margin-top: 14px !important;
+}
+
+.admin-row,
+.admin-item,
+.page.admin .row {
+  border: 1px solid var(--nav-border, rgba(0,0,0,0.12)) !important;
+  border-radius: 18px !important;
+  background: rgba(196, 106, 74, 0.06) !important;
+  padding: 14px 14px !important;
+  box-shadow: var(--shadow-sm) !important;
+
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 12px !important;
+}
+
+.admin-row strong,
+.admin-item strong {
+  font-weight: 900 !important;
+}
+
+/* action icons/buttons on right */
+.admin-actions,
+.admin-row .actions,
+.admin-item .actions {
+  display: flex !important;
+  gap: 10px !important;
+  align-items: center !important;
+}
+
+.admin-actions button,
+.admin-row .actions button,
+.admin-item .actions button {
+  width: 44px !important;
+  height: 44px !important;
+  border-radius: 14px !important;
+  border: 1px solid rgba(0,0,0,0.18) !important;
+  background: rgba(255,255,255,0.35) !important;
+  cursor: pointer !important;
+}
+
+/* ---------------------------------------------------------
+   Tables in Orders tab
+--------------------------------------------------------- */
+.admin-panel table,
+.admin-page table,
+.page.admin table {
+  width: 100% !important;
+  border-collapse: collapse !important;
+  border-radius: 16px !important;
+  overflow: hidden !important;
+  border: 1px solid var(--nav-border, rgba(0,0,0,0.12)) !important;
+  background: rgba(255,255,255,0.22) !important;
+}
+
+.admin-panel th,
+.admin-panel td,
+.admin-page th,
+.admin-page td,
+.page.admin th,
+.page.admin td {
+  padding: 10px 12px !important;
+  border-bottom: 1px solid rgba(0,0,0,0.10) !important;
+  text-align: left !important;
+  vertical-align: top !important;
+}
+
+.admin-panel th,
+.admin-page th,
+.page.admin th {
+  font-family: var(--font-display) !important;
+  font-weight: 900 !important;
+  background: rgba(196,106,74,0.12) !important;
+}
+
+/* ---------------------------------------------------------
+   Dark mode admin readability
+--------------------------------------------------------- */
+html[data-theme="dark"] .admin-tabs button,
+html[data-theme="dark"] .admin-tabs a,
+html[data-theme="dark"] .admin-nav button,
+html[data-theme="dark"] .admin-nav a,
+html[data-theme="dark"] .admin-panel-tabs button,
+html[data-theme="dark"] .admin-panel-tabs a {
+  background: rgba(0,0,0,0.22) !important;
+  border-color: rgba(255,255,255,0.18) !important;
+  color: var(--text) !important;
+}
+
+html[data-theme="dark"] .admin-row,
+html[data-theme="dark"] .admin-item {
+  background: rgba(255,255,255,0.06) !important;
+  border-color: rgba(255,255,255,0.12) !important;
+}
+
+html[data-theme="dark"] .admin-panel input[type="text"],
+html[data-theme="dark"] .admin-panel input[type="number"],
+html[data-theme="dark"] .admin-panel input[type="date"],
+html[data-theme="dark"] .admin-panel input[type="url"],
+html[data-theme="dark"] .admin-panel input[type="email"],
+html[data-theme="dark"] .admin-panel input[type="password"],
+html[data-theme="dark"] .admin-panel textarea,
+html[data-theme="dark"] .admin-panel select {
+  background: rgba(0,0,0,0.28) !important;
+  border-color: rgba(255,255,255,0.18) !important;
+  color: var(--text) !important;
+}

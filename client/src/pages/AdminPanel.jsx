@@ -9,6 +9,7 @@ const ADMIN_EMAILS = ["icaki06@gmail.com", "icaki2k@gmail.com", "mirenmagazine@g
 
 const TABS = [
   { key: "hero", label: "Hero" },
+  { key: "magazine", label: "Magazine" },
   { key: "home", label: "Home" },
   { key: "news", label: "News" },
   { key: "gallery", label: "Gallery" },
@@ -36,6 +37,10 @@ async function uploadToCloudinary(file) {
   }
 }
 
+function isVideoUrl(url) {
+  return !!url && /\.(mp4|webm|ogg)(\?.*)?$/i.test(url)
+}
+
 function ymd(ts) {
   try {
     const d = new Date(ts)
@@ -55,19 +60,29 @@ export default function AdminPanel() {
 
   // Articles per category
   const [articles, setArticles] = useState([])
-  const [selectedArticle, setSelectedArticle] = useState(null)
 
-  // Magazine issues (Hero)
-  const [issues, setIssues] = useState([])
-  const [issueForm, setIssueForm] = useState({
+  // ===== HERO (simple) =====
+  const [heroItems, setHeroItems] = useState([])
+  const [heroForm, setHeroForm] = useState({
+    issueNumber: "",
+    isLocked: true,
+    heroVfxUrl: "",
+  })
+  const [editingHeroId, setEditingHeroId] = useState(null)
+
+  // ===== MAGAZINE (full) =====
+  const [magazines, setMagazines] = useState([])
+  const [magazineForm, setMagazineForm] = useState({
     issueNumber: "",
     month: "",
     year: new Date().getFullYear(),
     isLocked: true,
-    heroVfxUrl: "",
-    pages: [],
+    isPremium: false,
+    isPublic: true,
+    coverUrl: "",
+    pages: [], // array of urls
   })
-  const [editingIssueId, setEditingIssueId] = useState(null)
+  const [editingMagazineId, setEditingMagazineId] = useState(null)
 
   // Store items
   const [storeItems, setStoreItems] = useState([])
@@ -88,10 +103,10 @@ export default function AdminPanel() {
     imageUrl: "",
     author: "MIREN",
     date: new Date().toISOString().slice(0, 10),
-    category: "home", // home|news|gallery|events
-    articleCategory: "", // optional extra category for "news" if you use it
+    category: "home",
+    articleCategory: "",
     isPremium: false,
-    time: "", // events time
+    time: "",
     reminderEnabled: false,
   })
   const [editingArticleId, setEditingArticleId] = useState(null)
@@ -104,7 +119,7 @@ export default function AdminPanel() {
     return null
   }, [activeTab])
 
-  // Loaders
+  // ================= LOADERS =================
   useEffect(() => {
     if (!canAccess) return
 
@@ -113,8 +128,16 @@ export default function AdminPanel() {
         setMsg("")
 
         if (activeTab === "hero") {
+          // Ако backend-а ти още ползва /magazines за hero – смени на твоя endpoint.
+          // Препоръка: направи отделен endpoint /hero (по-долу ти казвам).
+          const res = await api.get("/hero")
+          setHeroItems(Array.isArray(res.data) ? res.data : [])
+          return
+        }
+
+        if (activeTab === "magazine") {
           const res = await api.get("/magazines")
-          setIssues(Array.isArray(res.data) ? res.data : [])
+          setMagazines(Array.isArray(res.data) ? res.data : [])
           return
         }
 
@@ -150,10 +173,9 @@ export default function AdminPanel() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab, canAccess, currentCategory])
 
-  // ======== ARTICLES CRUD ========
+  // ================= ARTICLES CRUD =================
   const resetArticleForm = () => {
     setEditingArticleId(null)
-    setSelectedArticle(null)
     setArticleForm({
       title: "",
       text: "",
@@ -170,7 +192,6 @@ export default function AdminPanel() {
   }
 
   const startEditArticle = (a) => {
-    setSelectedArticle(a)
     setEditingArticleId(a.id)
     setArticleForm({
       title: a.title || "",
@@ -210,6 +231,7 @@ export default function AdminPanel() {
         const res = await api.get(`/articles?category=${encodeURIComponent(currentCategory)}`)
         setArticles(Array.isArray(res.data) ? res.data : [])
       }
+
       resetArticleForm()
     } catch (e) {
       setMsg(e?.response?.data?.error || "Failed to save article.")
@@ -249,72 +271,24 @@ export default function AdminPanel() {
     }
   }
 
-  // ======== HERO / MAGAZINES ========
-  const resetIssueForm = () => {
-    setEditingIssueId(null)
-    setIssueForm({
+  // ================= HERO CRUD (simple) =================
+  const resetHeroForm = () => {
+    setEditingHeroId(null)
+    setHeroForm({
       issueNumber: "",
-      month: "",
-      year: new Date().getFullYear(),
       isLocked: true,
       heroVfxUrl: "",
-      pages: [],
     })
   }
 
-  const startEditIssue = (it) => {
-    setEditingIssueId(it.id)
-    setIssueForm({
+  const startEditHero = (it) => {
+    setEditingHeroId(it.id)
+    setHeroForm({
       issueNumber: it.issueNumber || "",
-      month: it.month || "",
-      year: it.year || new Date().getFullYear(),
       isLocked: !!it.isLocked,
       heroVfxUrl: it.heroVfxUrl || "",
-      pages: Array.isArray(it.pages) ? it.pages : [],
     })
     window.scrollTo({ top: 0, behavior: "smooth" })
-  }
-
-  const saveIssue = async () => {
-    try {
-      setBusy(true)
-      setMsg("")
-      if (!issueForm.issueNumber.trim()) return setMsg("Issue number is required.")
-      if (!issueForm.month.trim()) return setMsg("Month is required.")
-
-      const payload = { ...issueForm }
-
-      if (editingIssueId) {
-        await api.put(`/magazines/${editingIssueId}`, payload)
-        setMsg("✅ Issue updated.")
-      } else {
-        await api.post("/magazines", payload)
-        setMsg("✅ Issue created.")
-      }
-
-      const res = await api.get("/magazines")
-      setIssues(Array.isArray(res.data) ? res.data : [])
-      resetIssueForm()
-    } catch (e) {
-      setMsg(e?.response?.data?.error || "Failed to save issue.")
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  const deleteIssue = async (id) => {
-    try {
-      setBusy(true)
-      setMsg("")
-      await api.delete(`/magazines/${id}`)
-      setIssues((p) => p.filter((x) => x.id !== id))
-      setMsg("🗑️ Deleted.")
-      if (editingIssueId === id) resetIssueForm()
-    } catch (e) {
-      setMsg(e?.response?.data?.error || "Failed to delete.")
-    } finally {
-      setBusy(false)
-    }
   }
 
   const onPickHeroVfx = async (file) => {
@@ -323,7 +297,7 @@ export default function AdminPanel() {
       setBusy(true)
       setMsg("Uploading hero video...")
       const out = await uploadToCloudinary(file)
-      setIssueForm((p) => ({ ...p, heroVfxUrl: out?.url || "" }))
+      setHeroForm((p) => ({ ...p, heroVfxUrl: out?.url || "" }))
       setMsg("✅ Hero video uploaded.")
     } catch (e) {
       setMsg(e?.response?.data?.error || "Video upload failed.")
@@ -332,7 +306,168 @@ export default function AdminPanel() {
     }
   }
 
-  // ======== NEWSLETTER ========
+  const saveHero = async () => {
+    if (!heroForm.issueNumber.trim()) return setMsg("Issue number is required.")
+    try {
+      setBusy(true)
+      setMsg("")
+
+      const payload = { ...heroForm }
+
+      if (editingHeroId) {
+        await api.put(`/hero/${editingHeroId}`, payload)
+        setMsg("✅ Hero updated.")
+      } else {
+        await api.post("/hero", payload)
+        setMsg("✅ Hero created.")
+      }
+
+      const res = await api.get("/hero")
+      setHeroItems(Array.isArray(res.data) ? res.data : [])
+      resetHeroForm()
+    } catch (e) {
+      setMsg(e?.response?.data?.error || "Failed to save hero.")
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const deleteHero = async (id) => {
+    if (!id) return
+    try {
+      setBusy(true)
+      setMsg("")
+      await api.delete(`/hero/${id}`)
+      setHeroItems((p) => p.filter((x) => x.id !== id))
+      setMsg("🗑️ Deleted.")
+      if (editingHeroId === id) resetHeroForm()
+    } catch (e) {
+      setMsg(e?.response?.data?.error || "Failed to delete.")
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  // ================= MAGAZINE CRUD (full) =================
+  const resetMagazineForm = () => {
+    setEditingMagazineId(null)
+    setMagazineForm({
+      issueNumber: "",
+      month: "",
+      year: new Date().getFullYear(),
+      isLocked: true,
+      isPremium: false,
+      isPublic: true,
+      coverUrl: "",
+      pages: [],
+    })
+  }
+
+  const startEditMagazine = (it) => {
+    setEditingMagazineId(it.id)
+    setMagazineForm({
+      issueNumber: it.issueNumber || "",
+      month: it.month || "",
+      year: it.year || new Date().getFullYear(),
+      isLocked: !!it.isLocked,
+      isPremium: !!it.isPremium,
+      isPublic: it.isPublic !== false,
+      coverUrl: it.coverUrl || "",
+      pages: Array.isArray(it.pages) ? it.pages : [],
+    })
+    window.scrollTo({ top: 0, behavior: "smooth" })
+  }
+
+  const onPickMagazineCover = async (file) => {
+    if (!file) return
+    try {
+      setBusy(true)
+      setMsg("Uploading cover...")
+      const out = await uploadToCloudinary(file)
+      setMagazineForm((p) => ({ ...p, coverUrl: out?.url || "" }))
+      setMsg("✅ Cover uploaded.")
+    } catch (e) {
+      setMsg(e?.response?.data?.error || "Cover upload failed.")
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const onPickMagazinePages = async (files) => {
+    const arr = Array.from(files || [])
+    if (arr.length === 0) return
+    try {
+      setBusy(true)
+      setMsg(`Uploading ${arr.length} page(s)...`)
+
+      const uploaded = []
+      for (const f of arr) {
+        const out = await uploadToCloudinary(f)
+        if (out?.url) uploaded.push(out.url)
+      }
+
+      setMagazineForm((p) => ({ ...p, pages: [...(p.pages || []), ...uploaded] }))
+      setMsg(`✅ Uploaded ${uploaded.length} page(s).`)
+    } catch (e) {
+      setMsg(e?.response?.data?.error || "Pages upload failed.")
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const removeMagazinePage = (idx) => {
+    setMagazineForm((p) => {
+      const next = Array.isArray(p.pages) ? [...p.pages] : []
+      next.splice(idx, 1)
+      return { ...p, pages: next }
+    })
+  }
+
+  const saveMagazine = async () => {
+    if (!magazineForm.issueNumber.trim()) return setMsg("Issue number is required.")
+    if (!magazineForm.month.trim()) return setMsg("Month is required.")
+
+    try {
+      setBusy(true)
+      setMsg("")
+
+      const payload = { ...magazineForm }
+
+      if (editingMagazineId) {
+        await api.put(`/magazines/${editingMagazineId}`, payload)
+        setMsg("✅ Magazine updated.")
+      } else {
+        await api.post("/magazines", payload)
+        setMsg("✅ Magazine created.")
+      }
+
+      const res = await api.get("/magazines")
+      setMagazines(Array.isArray(res.data) ? res.data : [])
+      resetMagazineForm()
+    } catch (e) {
+      setMsg(e?.response?.data?.error || "Failed to save magazine.")
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const deleteMagazine = async (id) => {
+    if (!id) return
+    try {
+      setBusy(true)
+      setMsg("")
+      await api.delete(`/magazines/${id}`)
+      setMagazines((p) => p.filter((x) => x.id !== id))
+      setMsg("🗑️ Deleted.")
+      if (editingMagazineId === id) resetMagazineForm()
+    } catch (e) {
+      setMsg(e?.response?.data?.error || "Failed to delete.")
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  // ================= NEWSLETTER =================
   const sendNewsletter = async () => {
     if (!emailSubject.trim() || !emailBody.trim()) return setMsg("Subject and body are required.")
     try {
@@ -347,6 +482,7 @@ export default function AdminPanel() {
     }
   }
 
+  // ================= RENDER =================
   if (loading) return <div className="page"><p>Loading…</p></div>
 
   if (!canAccess) {
@@ -381,7 +517,8 @@ export default function AdminPanel() {
               setActiveTab(t.key)
               setMsg("")
               if (["home", "news", "gallery", "events"].includes(t.key)) resetArticleForm()
-              if (t.key !== "hero") setEditingIssueId(null)
+              if (t.key !== "hero") setEditingHeroId(null)
+              if (t.key !== "magazine") setEditingMagazineId(null)
             }}
           >
             {t.label}
@@ -389,45 +526,37 @@ export default function AdminPanel() {
         ))}
       </div>
 
-      {/* HERO TAB */}
+      {/* HERO TAB (simple) */}
       {activeTab === "hero" && (
         <div className="admin-grid">
           <div className="admin-card">
-            <h3 className="headline">Hero / Magazine Issue</h3>
+            <h3 className="headline">Hero (VFX only)</h3>
 
             <div className="form-grid">
               <label className="field">
                 <span>Issue Number</span>
-                <input value={issueForm.issueNumber} onChange={(e) => setIssueForm(p => ({ ...p, issueNumber: e.target.value }))} />
-              </label>
-
-              <label className="field">
-                <span>Month</span>
-                <input value={issueForm.month} onChange={(e) => setIssueForm(p => ({ ...p, month: e.target.value }))} />
-              </label>
-
-              <label className="field">
-                <span>Year</span>
-                <input type="number" value={issueForm.year} onChange={(e) => setIssueForm(p => ({ ...p, year: Number(e.target.value) }))} />
+                <input
+                  value={heroForm.issueNumber}
+                  onChange={(e) => setHeroForm((p) => ({ ...p, issueNumber: e.target.value }))}
+                />
               </label>
 
               <label className="field row">
                 <input
                   type="checkbox"
-                  checked={!!issueForm.isLocked}
-                  onChange={(e) => setIssueForm((p) => ({ ...p, isLocked: e.target.checked }))}
+                  checked={!!heroForm.isLocked}
+                  onChange={(e) => setHeroForm((p) => ({ ...p, isLocked: e.target.checked }))}
                 />
                 <span>Locked</span>
               </label>
             </div>
 
-            {/* ✅ ONLY VFX */}
             <div className="upload-row">
               <div className="upload-box" style={{ width: "100%" }}>
                 <div className="upload-title">Hero VFX Video</div>
 
-                {issueForm.heroVfxUrl ? (
-                  <video className="preview-video" src={issueForm.heroVfxUrl} controls />
+                {heroForm.heroVfxUrl ? (
+                  <video className="preview-video" src={heroForm.heroVfxUrl} controls />
                 ) : (
                   <div className="preview-ph">No video</div>
                 )}
@@ -442,14 +571,14 @@ export default function AdminPanel() {
             </div>
 
             <div className="btn-row">
-              <button className="btn primary" onClick={saveIssue} disabled={busy} type="button">
-                {editingIssueId ? "Update Issue" : "Create Issue"}
+              <button className="btn primary" onClick={saveHero} disabled={busy} type="button">
+                {editingHeroId ? "Update Hero" : "Create Hero"}
               </button>
-              <button className="btn ghost" onClick={resetIssueForm} disabled={busy} type="button">
+              <button className="btn ghost" onClick={resetHeroForm} disabled={busy} type="button">
                 Reset
               </button>
-              {editingIssueId && (
-                <button className="btn secondary" onClick={() => deleteIssue(editingIssueId)} disabled={busy} type="button">
+              {editingHeroId && (
+                <button className="btn secondary" onClick={() => deleteHero(editingHeroId)} disabled={busy} type="button">
                   Delete
                 </button>
               )}
@@ -457,23 +586,25 @@ export default function AdminPanel() {
           </div>
 
           <div className="admin-card">
-            <h3 className="headline">Existing Issues</h3>
-            {issues.length === 0 ? (
-              <p className="text-muted">No issues yet.</p>
+            <h3 className="headline">Existing Hero Entries</h3>
+            {heroItems.length === 0 ? (
+              <p className="text-muted">No hero entries.</p>
             ) : (
               <div className="list">
-                {issues.map((it) => (
+                {heroItems.map((it) => (
                   <div key={it.id} className="list-row">
                     <div className="list-main">
                       <div className="list-title">
-                        #{it.issueNumber} • {it.month} {it.year} {it.isLocked ? "🔒" : "✅"}
+                        #{it.issueNumber} {it.isLocked ? "🔒" : "✅"}
                       </div>
                       <div className="list-sub text-muted">
                         vfx: {it.heroVfxUrl ? "yes" : "no"}
                       </div>
                     </div>
                     <div className="list-actions">
-                      <button className="btn ghost" type="button" onClick={() => startEditIssue(it)}>Edit</button>
+                      <button className="btn ghost" type="button" onClick={() => startEditHero(it)}>
+                        Edit
+                      </button>
                     </div>
                   </div>
                 ))}
@@ -483,46 +614,194 @@ export default function AdminPanel() {
         </div>
       )}
 
-      {/* ARTICLES TABS (Home/News/Gallery/Events) */}
+      {/* MAGAZINE TAB (full) */}
+      {activeTab === "magazine" && (
+        <div className="admin-grid">
+          <div className="admin-card">
+            <h3 className="headline">Magazine Issue</h3>
+
+            <div className="form-grid">
+              <label className="field">
+                <span>Issue Number</span>
+                <input
+                  value={magazineForm.issueNumber}
+                  onChange={(e) => setMagazineForm((p) => ({ ...p, issueNumber: e.target.value }))}
+                />
+              </label>
+
+              <label className="field">
+                <span>Month</span>
+                <input
+                  value={magazineForm.month}
+                  onChange={(e) => setMagazineForm((p) => ({ ...p, month: e.target.value }))}
+                />
+              </label>
+
+              <label className="field">
+                <span>Year</span>
+                <input
+                  type="number"
+                  value={magazineForm.year}
+                  onChange={(e) => setMagazineForm((p) => ({ ...p, year: Number(e.target.value) }))}
+                />
+              </label>
+
+              <label className="field row">
+                <input
+                  type="checkbox"
+                  checked={!!magazineForm.isLocked}
+                  onChange={(e) => setMagazineForm((p) => ({ ...p, isLocked: e.target.checked }))}
+                />
+                <span>Locked</span>
+              </label>
+
+              <label className="field row">
+                <input
+                  type="checkbox"
+                  checked={!!magazineForm.isPremium}
+                  onChange={(e) => setMagazineForm((p) => ({ ...p, isPremium: e.target.checked }))}
+                />
+                <span>Premium</span>
+              </label>
+
+              <label className="field row">
+                <input
+                  type="checkbox"
+                  checked={!!magazineForm.isPublic}
+                  onChange={(e) => setMagazineForm((p) => ({ ...p, isPublic: e.target.checked }))}
+                />
+                <span>Public</span>
+              </label>
+            </div>
+
+            <div className="upload-row">
+              <div className="upload-box">
+                <div className="upload-title">Cover</div>
+                {magazineForm.coverUrl ? (
+                  <img src={magazineForm.coverUrl} alt="cover" className="preview-img" />
+                ) : (
+                  <div className="preview-ph">No cover</div>
+                )}
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => onPickMagazineCover(e.target.files?.[0])}
+                  disabled={busy}
+                />
+              </div>
+
+              <div className="upload-box">
+                <div className="upload-title">Pages (images)</div>
+                <div className="preview-ph" style={{ textAlign: "left" }}>
+                  {Array.isArray(magazineForm.pages) && magazineForm.pages.length > 0
+                    ? `${magazineForm.pages.length} page(s) uploaded`
+                    : "No pages"}
+                </div>
+
+                <input
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  onChange={(e) => onPickMagazinePages(e.target.files)}
+                  disabled={busy}
+                />
+
+                {Array.isArray(magazineForm.pages) && magazineForm.pages.length > 0 && (
+                  <div className="mini" style={{ marginTop: 10 }}>
+                    {magazineForm.pages.map((p, idx) => (
+                      <div key={p + idx} className="mini-row" style={{ display: "flex", gap: 10, alignItems: "center" }}>
+                        <span className="text-muted">Page {idx + 1}</span>
+                        <button className="btn secondary" type="button" onClick={() => removeMagazinePage(idx)} disabled={busy}>
+                          Remove
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="btn-row">
+              <button className="btn primary" onClick={saveMagazine} disabled={busy} type="button">
+                {editingMagazineId ? "Update Magazine" : "Create Magazine"}
+              </button>
+              <button className="btn ghost" onClick={resetMagazineForm} disabled={busy} type="button">
+                Reset
+              </button>
+              {editingMagazineId && (
+                <button className="btn secondary" onClick={() => deleteMagazine(editingMagazineId)} disabled={busy} type="button">
+                  Delete
+                </button>
+              )}
+            </div>
+          </div>
+
+          <div className="admin-card">
+            <h3 className="headline">Existing Magazines</h3>
+            {magazines.length === 0 ? (
+              <p className="text-muted">No magazines yet.</p>
+            ) : (
+              <div className="list">
+                {magazines.map((it) => (
+                  <div key={it.id} className="list-row">
+                    <div className="list-main">
+                      <div className="list-title">
+                        #{it.issueNumber} • {it.month} {it.year} {it.isLocked ? "🔒" : "✅"} {it.isPremium ? "💎" : ""}{" "}
+                        {it.isPublic ? "🌍" : "🙈"}
+                      </div>
+                      <div className="list-sub text-muted">
+                        cover: {it.coverUrl ? "yes" : "no"} • pages: {Array.isArray(it.pages) ? it.pages.length : 0}
+                      </div>
+                    </div>
+                    <div className="list-actions">
+                      <button className="btn ghost" type="button" onClick={() => startEditMagazine(it)}>
+                        Edit
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ARTICLES (Home/News/Gallery/Events) */}
       {currentCategory && (
         <div className="admin-grid">
           <div className="admin-card">
-            <h3 className="headline">Articles</h3>
+            <h3 className="headline">Articles ({currentCategory.toUpperCase()})</h3>
 
             <div className="form-grid">
               <label className="field" style={{ gridColumn: "1 / -1" }}>
                 <span>Title</span>
-                <input value={articleForm.title} onChange={(e) => setArticleForm(p => ({ ...p, title: e.target.value }))} />
+                <input value={articleForm.title} onChange={(e) => setArticleForm((p) => ({ ...p, title: e.target.value }))} />
               </label>
 
               <label className="field" style={{ gridColumn: "1 / -1" }}>
                 <span>Excerpt</span>
-                <textarea rows={3} value={articleForm.excerpt} onChange={(e) => setArticleForm(p => ({ ...p, excerpt: e.target.value }))} />
+                <textarea rows={3} value={articleForm.excerpt} onChange={(e) => setArticleForm((p) => ({ ...p, excerpt: e.target.value }))} />
               </label>
 
               <label className="field" style={{ gridColumn: "1 / -1" }}>
                 <span>Text</span>
-                <textarea rows={8} value={articleForm.text} onChange={(e) => setArticleForm(p => ({ ...p, text: e.target.value }))} />
+                <textarea rows={8} value={articleForm.text} onChange={(e) => setArticleForm((p) => ({ ...p, text: e.target.value }))} />
               </label>
 
               <label className="field">
                 <span>Date</span>
-                <input type="date" value={articleForm.date} onChange={(e) => setArticleForm(p => ({ ...p, date: e.target.value }))} />
+                <input type="date" value={articleForm.date} onChange={(e) => setArticleForm((p) => ({ ...p, date: e.target.value }))} />
               </label>
 
               <label className="field">
                 <span>Author</span>
-                <input value={articleForm.author} onChange={(e) => setArticleForm(p => ({ ...p, author: e.target.value }))} />
+                <input value={articleForm.author} onChange={(e) => setArticleForm((p) => ({ ...p, author: e.target.value }))} />
               </label>
 
               {currentCategory === "news" && (
                 <label className="field">
                   <span>News Category (optional)</span>
-                  <input
-                    value={articleForm.articleCategory}
-                    onChange={(e) => setArticleForm((p) => ({ ...p, articleCategory: e.target.value }))}
-                    placeholder="e.g. World / Tech / Culture"
-                  />
+                  <input value={articleForm.articleCategory} onChange={(e) => setArticleForm((p) => ({ ...p, articleCategory: e.target.value }))} />
                 </label>
               )}
 
@@ -530,40 +809,28 @@ export default function AdminPanel() {
                 <>
                   <label className="field">
                     <span>Time (optional)</span>
-                    <input
-                      value={articleForm.time}
-                      onChange={(e) => setArticleForm((p) => ({ ...p, time: e.target.value }))}
-                      placeholder="18:30"
-                    />
+                    <input value={articleForm.time} onChange={(e) => setArticleForm((p) => ({ ...p, time: e.target.value }))} placeholder="18:30" />
                   </label>
 
                   <label className="field row">
-                    <input
-                      type="checkbox"
-                      checked={!!articleForm.reminderEnabled}
-                      onChange={(e) => setArticleForm((p) => ({ ...p, reminderEnabled: e.target.checked }))}
-                    />
+                    <input type="checkbox" checked={!!articleForm.reminderEnabled} onChange={(e) => setArticleForm((p) => ({ ...p, reminderEnabled: e.target.checked }))} />
                     <span>Reminder Enabled</span>
                   </label>
                 </>
               )}
 
               <label className="field row">
-                <input
-                  type="checkbox"
-                  checked={!!articleForm.isPremium}
-                  onChange={(e) => setArticleForm((p) => ({ ...p, isPremium: e.target.checked }))}
-                />
+                <input type="checkbox" checked={!!articleForm.isPremium} onChange={(e) => setArticleForm((p) => ({ ...p, isPremium: e.target.checked }))} />
                 <span>Premium</span>
               </label>
             </div>
 
             <div className="upload-row" style={{ marginTop: 10 }}>
               <div className="upload-box" style={{ width: "100%" }}>
-                <div className="upload-title">Image / Media URL</div>
+                <div className="upload-title">Image / Media</div>
 
                 {articleForm.imageUrl ? (
-                  articleForm.imageUrl.match(/\.(mp4|webm|ogg)(\?.*)?$/i) ? (
+                  isVideoUrl(articleForm.imageUrl) ? (
                     <video className="preview-video" src={articleForm.imageUrl} controls />
                   ) : (
                     <img className="preview-img" src={articleForm.imageUrl} alt="article" />
@@ -686,24 +953,6 @@ export default function AdminPanel() {
                       {new Date((o.created || 0) * 1000).toLocaleString()} • {(o.amount_total || 0) / 100}{" "}
                       {String(o.currency || "").toUpperCase()} • {o.customer_phone || "no phone"}
                     </div>
-
-                    {Array.isArray(o.line_items) && o.line_items.length > 0 && (
-                      <div className="mini">
-                        {o.line_items.map((li, idx) => (
-                          <div key={idx} className="mini-row">
-                            • {li.description} x{li.quantity}
-                          </div>
-                        ))}
-                      </div>
-                    )}
-
-                    {o.shipping_address && (
-                      <div className="mini text-muted">
-                        {o.shipping_name || ""} • {o.shipping_address.line1 || ""},{" "}
-                        {o.shipping_address.city || ""} {o.shipping_address.postal_code || ""},{" "}
-                        {o.shipping_address.country || ""}
-                      </div>
-                    )}
                   </div>
                 </div>
               ))}

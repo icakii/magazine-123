@@ -17,6 +17,7 @@ const helmet = require("helmet")
 const path = require("path")
 const fs = require("fs")
 
+import helmet from "helmet"
 
 // ✅ ROUTERS
 const storeRouter = require("./routes/store")
@@ -29,6 +30,20 @@ const PORT = process.env.PORT || 8080
 const JWT_SECRET = process.env.JWT_SECRET || "super-secret-key-change-this"
 const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:5173"
 const APP_URL = process.env.APP_URL || "http://localhost:5173"
+
+app.use(
+  helmet({
+    contentSecurityPolicy: {
+      useDefaults: true,
+      directives: {
+        // ако имаш други домейни, добави ги тук
+        "img-src": ["'self'", "data:", "https://res.cloudinary.com"],
+        "media-src": ["'self'", "https://res.cloudinary.com"],
+        "connect-src": ["'self'", "https://res.cloudinary.com"],
+      },
+    },
+  })
+)
 
 // ---------------------------------------------------------------
 // 0) TRUST PROXY (Render)

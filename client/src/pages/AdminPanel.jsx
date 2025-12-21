@@ -25,13 +25,15 @@ function isAdminEmail(email) {
 async function uploadToCloudinary(file) {
   const fd = new FormData()
   fd.append("file", file)
+
   const res = await api.post("/upload", fd, {
     headers: { "Content-Type": "multipart/form-data" },
   })
+
   return {
-  url: res.data?.secure_url || res.data?.url,
-  public_id: res.data?.public_id,
-}
+    url: res.data?.secure_url || res.data?.url || "",
+    public_id: res.data?.public_id || "",
+  }
 }
 
 function ymd(ts) {
@@ -62,7 +64,6 @@ export default function AdminPanel() {
     month: "",
     year: new Date().getFullYear(),
     isLocked: true,
-    coverUrl: "",
     heroVfxUrl: "",
     pages: [],
   })
@@ -110,6 +111,7 @@ export default function AdminPanel() {
     const load = async () => {
       try {
         setMsg("")
+
         if (activeTab === "hero") {
           const res = await api.get("/magazines")
           setIssues(Array.isArray(res.data) ? res.data : [])
@@ -204,7 +206,6 @@ export default function AdminPanel() {
         setMsg("✅ Article created.")
       }
 
-      // reload
       if (currentCategory) {
         const res = await api.get(`/articles?category=${encodeURIComponent(currentCategory)}`)
         setArticles(Array.isArray(res.data) ? res.data : [])
@@ -233,13 +234,12 @@ export default function AdminPanel() {
     }
   }
 
-  const onPickArticleImage = async (file) => {
+  const onPickArticleMedia = async (file) => {
     if (!file) return
     try {
       setBusy(true)
       setMsg("Uploading...")
       const out = await uploadToCloudinary(file)
-      // IMPORTANT: set https url returned by cloudinary
       setArticleForm((p) => ({ ...p, imageUrl: out?.url || "" }))
       setMsg("✅ Uploaded.")
     } catch (e) {
@@ -257,7 +257,6 @@ export default function AdminPanel() {
       month: "",
       year: new Date().getFullYear(),
       isLocked: true,
-      coverUrl: "",
       heroVfxUrl: "",
       pages: [],
     })
@@ -270,7 +269,6 @@ export default function AdminPanel() {
       month: it.month || "",
       year: it.year || new Date().getFullYear(),
       isLocked: !!it.isLocked,
-      coverUrl: it.coverUrl || "",
       heroVfxUrl: it.heroVfxUrl || "",
       pages: Array.isArray(it.pages) ? it.pages : [],
     })
@@ -319,21 +317,6 @@ export default function AdminPanel() {
     }
   }
 
-  const onPickCover = async (file) => {
-    if (!file) return
-    try {
-      setBusy(true)
-      setMsg("Uploading cover...")
-      const out = await uploadToCloudinary(file)
-      setIssueForm((p) => ({ ...p, coverUrl: out?.url || "" }))
-      setMsg("✅ Cover uploaded.")
-    } catch (e) {
-      setMsg(e?.response?.data?.error || "Cover upload failed.")
-    } finally {
-      setBusy(false)
-    }
-  }
-
   const onPickHeroVfx = async (file) => {
     if (!file) return
     try {
@@ -351,16 +334,11 @@ export default function AdminPanel() {
 
   // ======== NEWSLETTER ========
   const sendNewsletter = async () => {
-    if (!emailSubject.trim() || !emailBody.trim()) {
-      return setMsg("Subject and body are required.")
-    }
+    if (!emailSubject.trim() || !emailBody.trim()) return setMsg("Subject and body are required.")
     try {
       setBusy(true)
       setMsg("")
-      const res = await api.post("/newsletter/send", {
-        subject: emailSubject,
-        body: emailBody,
-      })
+      const res = await api.post("/newsletter/send", { subject: emailSubject, body: emailBody })
       setMsg(`✅ Sent to ${res?.data?.count || 0} subscribers.`)
     } catch (e) {
       setMsg(e?.response?.data?.error || "Failed to send newsletter.")
@@ -368,25 +346,6 @@ export default function AdminPanel() {
       setBusy(false)
     }
   }
-
-  // ======== UI helpers ========
-  const CategoryChips = () => (
-    <div className="admin-chips">
-      {["home", "news", "gallery", "events"].map((k) => (
-        <button
-          key={k}
-          type="button"
-          className={`chip ${activeTab === k ? "chip--on" : ""}`}
-          onClick={() => {
-            setActiveTab(k)
-            resetArticleForm()
-          }}
-        >
-          {k.toUpperCase()}
-        </button>
-      ))}
-    </div>
-  )
 
   if (loading) return <div className="page"><p>Loading…</p></div>
 
@@ -404,7 +363,11 @@ export default function AdminPanel() {
       <div className="admin-top">
         <h2 className="headline">Admin Panel</h2>
         <p className="subhead">Logged in as: <b>{authedEmail}</b></p>
-        {msg && <p className={`msg ${msg.startsWith("✅") ? "success" : msg.startsWith("🗑️") ? "warning" : ""}`}>{msg}</p>}
+        {msg && (
+          <p className={`msg ${msg.startsWith("✅") ? "success" : msg.startsWith("🗑️") ? "warning" : ""}`}>
+            {msg}
+          </p>
+        )}
       </div>
 
       {/* Tabs */}
@@ -458,29 +421,17 @@ export default function AdminPanel() {
               </label>
             </div>
 
+            {/* ✅ ONLY VFX */}
             <div className="upload-row">
-              <div className="upload-box">
-                <div className="upload-title">Cover Image</div>
-                {issueForm.coverUrl ? (
-                  <img src={issueForm.coverUrl} alt="cover" className="preview-img" />
-                ) : (
-                  <div className="preview-ph">No cover</div>
-                )}
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => onPickCover(e.target.files?.[0])}
-                  disabled={busy}
-                />
-              </div>
-
-              <div className="upload-box">
+              <div className="upload-box" style={{ width: "100%" }}>
                 <div className="upload-title">Hero VFX Video</div>
+
                 {issueForm.heroVfxUrl ? (
                   <video className="preview-video" src={issueForm.heroVfxUrl} controls />
                 ) : (
                   <div className="preview-ph">No video</div>
                 )}
+
                 <input
                   type="file"
                   accept="video/*"
@@ -518,7 +469,7 @@ export default function AdminPanel() {
                         #{it.issueNumber} • {it.month} {it.year} {it.isLocked ? "🔒" : "✅"}
                       </div>
                       <div className="list-sub text-muted">
-                        cover: {it.coverUrl ? "yes" : "no"} • vfx: {it.heroVfxUrl ? "yes" : "no"}
+                        vfx: {it.heroVfxUrl ? "yes" : "no"}
                       </div>
                     </div>
                     <div className="list-actions">
@@ -537,7 +488,6 @@ export default function AdminPanel() {
         <div className="admin-grid">
           <div className="admin-card">
             <h3 className="headline">Articles</h3>
-            <CategoryChips />
 
             <div className="form-grid">
               <label className="field" style={{ gridColumn: "1 / -1" }}>
@@ -634,7 +584,7 @@ export default function AdminPanel() {
                     <input
                       type="file"
                       accept="image/*,video/*"
-                      onChange={(e) => onPickArticleImage(e.target.files?.[0])}
+                      onChange={(e) => onPickArticleMedia(e.target.files?.[0])}
                       disabled={busy}
                       style={{ display: "none" }}
                     />
@@ -732,7 +682,6 @@ export default function AdminPanel() {
                       {o.full_name ? `${o.full_name} • ` : ""}{o.customer_email || "(no email)"}
                     </div>
 
-                    {/* ✅ ONLY the fields we want (no random stuff) */}
                     <div className="list-sub text-muted">
                       {new Date((o.created || 0) * 1000).toLocaleString()} • {(o.amount_total || 0) / 100}{" "}
                       {String(o.currency || "").toUpperCase()} • {o.customer_phone || "no phone"}
@@ -776,7 +725,9 @@ export default function AdminPanel() {
                   <div key={s.email || i} className="list-row">
                     <div className="list-main">
                       <div className="list-title">{s.email}</div>
-                      <div className="list-sub text-muted">{s.created_at ? new Date(s.created_at).toLocaleString() : ""}</div>
+                      <div className="list-sub text-muted">
+                        {s.created_at ? new Date(s.created_at).toLocaleString() : ""}
+                      </div>
                     </div>
                   </div>
                 ))}

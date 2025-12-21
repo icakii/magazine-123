@@ -3049,3 +3049,47 @@ body.cart-open{
     width: calc(100vw - 20px) !important;
   }
 }
+/* ===============================
+   ADMIN PANEL — FINAL OVERRIDE
+   paste at END of globals.css
+================================ */
+
+.page .admin-tabs{
+  display:flex !important;
+  flex-wrap: wrap !important;
+  gap: 10px !important;
+  align-items: center !important;
+  padding: 10px 0 16px !important;
+  margin: 6px 0 18px !important;
+  border-bottom: 1px solid var(--nav-border) !important;
+}
+
+.page .admin-tabs .tab{
+  appearance:none !important;
+  border: 1px solid rgba(30,30,30,0.20) !important;
+  background: rgba(196,106,74,0.08) !important;
+  color: var(--text) !important;
+  padding: 10px 14px !important;
+  border-radius: 999px !important;
+  font-weight: 900 !important;
+  cursor: pointer !important;
+  transition: transform 160ms ease, background 160ms ease, border-color 160ms ease !important;
+}
+
+.page .admin-tabs .tab:hover{
+  transform: translateY(-1px) !important;
+  border-color: rgba(196,106,74,0.55) !important;
+  background: rgba(196,106,74,0.14) !important;
+}
+
+.page .admin-tabs .tab.tab--on{
+  background: var(--oxide-red) !important;
+  color: var(--ivory) !important;
+  border: 2px solid var(--ink) !important;
+  box-shadow: 0 16px 34px rgba(156,42,42,0.22) !important;
+}
+
+/* spacing under sticky navbar (if page feels glued) */
+.page{
+  margin-top: 10px !important;
+}

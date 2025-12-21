@@ -1,19 +1,25 @@
-import axios from "axios"
+// server/src/lib/upload.js
+const multer = require("multer")
+const { CloudinaryStorage } = require("multer-storage-cloudinary")
+const cloudinary = require("./cloudinary")
 
-const baseURL =
-  import.meta.env.VITE_API_URL?.trim() ||
-  "https://magazine-123.onrender.com/api"
-
-export const api = axios.create({
-  baseURL,
-  withCredentials: true, // cookie auth
+const storage = new CloudinaryStorage({
+  cloudinary,
+  params: async (req, file) => {
+    return {
+      folder: "miren",
+      resource_type: "auto", // ✅ IMPORTANT for mp4/video
+      allowed_formats: ["jpg", "jpeg", "png", "webp", "mp4"],
+      transformation: [{ quality: "auto" }],
+    }
+  },
 })
 
-api.interceptors.request.use((config) => {
-  try {
-    // ✅ един ключ навсякъде
-    const token = localStorage.getItem("miren_token")
-    if (token) config.headers.Authorization = `Bearer ${token}`
-  } catch {}
-  return config
+const upload = multer({
+  storage,
+  limits: {
+    fileSize: 20 * 1024 * 1024, // 20MB
+  },
 })
+
+module.exports = upload

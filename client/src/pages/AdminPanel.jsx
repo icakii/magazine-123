@@ -28,7 +28,10 @@ async function uploadToCloudinary(file) {
   const res = await api.post("/upload", fd, {
     headers: { "Content-Type": "multipart/form-data" },
   })
-  return res.data // { url, public_id }
+  return {
+  url: res.data?.secure_url || res.data?.url,
+  public_id: res.data?.public_id,
+}
 }
 
 function ymd(ts) {

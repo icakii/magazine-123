@@ -2732,353 +2732,320 @@ html[data-theme="dark"] .qty {
   color: var(--text) !important;
 }
 /* =========================================================
-   MIREN — ADMIN PANEL FIX (paste at END of globals.css)
+   ADMIN PANEL — HARD OVERRIDES FOR YOUR EXACT CLASSES
+   Paste at END of globals.css
    ========================================================= */
 
-/* Admin page container (works even if classnames differ) */
-.page.admin,
-.admin-page,
-.admin-panel,
-.admin-shell {
-  width: 100% !important;
-  max-width: 1040px !important;
-  margin: 0 auto !important;
-}
+/* Make AdminPanel look like real UI */
+.page .admin-top { margin-bottom: 14px !important; }
 
-/* Headings */
-.admin-page h1,
-.admin-panel h1,
-.page.admin h1,
-.admin-page .headline,
-.admin-panel .headline {
-  font-family: var(--font-display) !important;
-  font-weight: 900 !important;
-  letter-spacing: 0.01em !important;
-}
-
-.admin-page h2,
-.admin-panel h2,
-.page.admin h2 {
-  font-family: var(--font-display) !important;
-  font-weight: 900 !important;
-  margin: 18px 0 10px !important;
-}
-
-/* ---------------------------------------------------------
-   Tabs row (your screenshot shows default ugly buttons)
---------------------------------------------------------- */
-.admin-tabs,
-.admin-nav,
-.admin-panel-tabs,
-.admin-panel .tabs,
-.page.admin .tabs {
-  display: flex !important;
+.page .admin-tabs{
+  display:flex !important;
   flex-wrap: wrap !important;
   gap: 10px !important;
   align-items: center !important;
-  margin: 14px 0 18px !important;
-  padding: 0 !important;
+  padding: 10px 0 16px !important;
+  margin: 6px 0 18px !important;
+  border-bottom: 1px solid var(--nav-border) !important;
 }
 
-/* generic tab buttons/links */
-.admin-tabs button,
-.admin-tabs a,
-.admin-nav button,
-.admin-nav a,
-.admin-panel-tabs button,
-.admin-panel-tabs a,
-.page.admin .tabs button,
-.page.admin .tabs a {
-  appearance: none !important;
-  border: 1px dashed var(--border, rgba(0,0,0,0.18)) !important;
-  background: rgba(255, 255, 255, 0.32) !important;
+/* Tabs base */
+.page .admin-tabs .tab{
+  appearance:none !important;
+  -webkit-appearance:none !important;
+  border: 1px dashed rgba(30,30,30,0.35) !important;
+  background: transparent !important;
   color: var(--text) !important;
-
   padding: 10px 14px !important;
   border-radius: 999px !important;
   font-family: var(--font-body) !important;
   font-weight: 900 !important;
+  line-height: 1 !important;
   cursor: pointer !important;
-
-  transition: transform 160ms var(--ease), background 160ms var(--ease), border-color 160ms var(--ease) !important;
+  transition: transform 160ms ease, background 160ms ease, border-color 160ms ease !important;
 }
 
-.admin-tabs button:hover,
-.admin-tabs a:hover,
-.admin-nav button:hover,
-.admin-nav a:hover,
-.admin-panel-tabs button:hover,
-.admin-panel-tabs a:hover,
-.page.admin .tabs button:hover,
-.page.admin .tabs a:hover {
+.page .admin-tabs .tab:hover{
   transform: translateY(-1px) !important;
-  background: rgba(196, 106, 74, 0.14) !important;
-  border-color: rgba(196, 106, 74, 0.35) !important;
+  background: rgba(196,106,74,0.12) !important;
+  border-color: rgba(196,106,74,0.55) !important;
 }
 
-/* active tab (supports different ways you mark active) */
-.admin-tabs .active,
-.admin-nav .active,
-.admin-panel-tabs .active,
-.page.admin .tabs .active,
-.admin-tabs button[aria-selected="true"],
-.admin-tabs a[aria-current="page"],
-.admin-tabs button[data-active="true"],
-.admin-tabs a[data-active="true"] {
-  background: linear-gradient(135deg, var(--oxide-red), var(--clay)) !important;
-  border: 1px solid rgba(30,30,30,0.18) !important;
-  color: #fff !important;
-  box-shadow: var(--shadow-sm) !important;
+/* ✅ ACTIVE TAB = RED */
+.page .admin-tabs .tab.tab--on{
+  background: var(--oxide-red) !important;
+  color: var(--ivory) !important;
+  border: 2px solid var(--ink) !important;
+  box-shadow: 0 16px 34px rgba(156,42,42,0.22) !important;
 }
 
-/* ---------------------------------------------------------
-   Forms: make inputs pretty & aligned
---------------------------------------------------------- */
-.admin-panel form,
-.admin-page form,
-.page.admin form {
-  width: 100% !important;
-}
-
-.admin-panel label,
-.admin-page label,
-.page.admin label {
-  display: block !important;
-  font-weight: 900 !important;
-  margin: 10px 0 6px !important;
-  color: var(--text) !important;
-}
-
-.admin-panel input[type="text"],
-.admin-panel input[type="number"],
-.admin-panel input[type="date"],
-.admin-panel input[type="url"],
-.admin-panel input[type="email"],
-.admin-panel input[type="password"],
-.admin-panel textarea,
-.admin-panel select,
-.admin-page input[type="text"],
-.admin-page input[type="number"],
-.admin-page input[type="date"],
-.admin-page input[type="url"],
-.admin-page input[type="email"],
-.admin-page input[type="password"],
-.admin-page textarea,
-.admin-page select,
-.page.admin input[type="text"],
-.page.admin input[type="number"],
-.page.admin input[type="date"],
-.page.admin input[type="url"],
-.page.admin input[type="email"],
-.page.admin input[type="password"],
-.page.admin textarea,
-.page.admin select {
-  width: 100% !important;
-  max-width: 620px !important;
-
-  padding: 12px 14px !important;
-  border-radius: 16px !important;
-
-  border: 1px solid var(--input-border, rgba(0,0,0,0.18)) !important;
-  background: var(--input-bg, #fffaf2) !important;
-  color: var(--text) !important;
-
-  font-family: var(--font-body) !important;
-  font-weight: 700 !important;
-
-  box-shadow: inset 0 2px 10px rgba(0,0,0,0.06) !important;
-}
-
-.admin-panel input[type="checkbox"],
-.admin-page input[type="checkbox"],
-.page.admin input[type="checkbox"] {
-  transform: scale(1.15) !important;
-  margin-left: 8px !important;
-}
-
-/* file inputs look better */
-.admin-panel input[type="file"],
-.admin-page input[type="file"],
-.page.admin input[type="file"] {
-  max-width: 620px !important;
-  padding: 10px !important;
-  border-radius: 14px !important;
-  border: 1px dashed rgba(0,0,0,0.22) !important;
-  background: rgba(255,255,255,0.28) !important;
-}
-
-/* Two/three columns on wide screens for Issue fields */
-.admin-grid,
-.admin-form-grid,
-.page.admin .form-grid {
+/* Two-column admin layout */
+.page .admin-grid{
   display: grid !important;
-  grid-template-columns: repeat(12, 1fr) !important;
-  gap: 12px !important;
+  grid-template-columns: 1fr 1fr !important;
+  gap: 18px !important;
   align-items: start !important;
-  max-width: 1040px !important;
 }
 
-.admin-col-6 { grid-column: span 6 !important; }
-.admin-col-4 { grid-column: span 4 !important; }
-.admin-col-3 { grid-column: span 3 !important; }
-.admin-col-12 { grid-column: span 12 !important; }
-
-@media (max-width: 900px) {
-  .admin-grid,
-  .admin-form-grid,
-  .page.admin .form-grid {
-    grid-template-columns: repeat(6, 1fr) !important;
-  }
-  .admin-col-6,
-  .admin-col-4,
-  .admin-col-3 { grid-column: span 6 !important; }
+@media (max-width: 980px){
+  .page .admin-grid{ grid-template-columns: 1fr !important; }
 }
 
-/* ---------------------------------------------------------
-   Buttons inside admin
---------------------------------------------------------- */
-.admin-panel .btn,
-.admin-page .btn,
-.page.admin .btn {
-  font-weight: 900 !important;
-}
-
-.admin-panel button,
-.admin-page button,
-.page.admin button {
-  border-radius: 999px !important;
-}
-
-.admin-panel .btn.primary,
-.admin-page .btn.primary,
-.page.admin .btn.primary {
-  background: linear-gradient(135deg, var(--oxide-red), var(--clay)) !important;
-  color: #fff !important;
-}
-
-.admin-panel .btn.ghost,
-.admin-page .btn.ghost,
-.page.admin .btn.ghost {
-  border: 1px dashed rgba(0,0,0,0.18) !important;
-  background: transparent !important;
-}
-
-/* ---------------------------------------------------------
-   Existing lists/cards rows (issues, articles, etc.)
---------------------------------------------------------- */
-.admin-list,
-.admin-items,
-.admin-panel .items,
-.page.admin .items {
-  display: flex !important;
-  flex-direction: column !important;
-  gap: 12px !important;
-  margin-top: 14px !important;
-}
-
-.admin-row,
-.admin-item,
-.page.admin .row {
-  border: 1px solid var(--nav-border, rgba(0,0,0,0.12)) !important;
+/* Admin cards */
+.page .admin-card{
+  background: var(--grad-card) !important;
+  border: 1px solid var(--nav-border) !important;
   border-radius: 18px !important;
-  background: rgba(196, 106, 74, 0.06) !important;
-  padding: 14px 14px !important;
   box-shadow: var(--shadow-sm) !important;
+  padding: 16px !important;
+}
 
-  display: flex !important;
-  align-items: center !important;
-  justify-content: space-between !important;
+/* Headings should NOT split letters */
+.page .admin-card .headline{
+  margin-bottom: 12px !important;
+  word-break: normal !important;
+  overflow-wrap: normal !important;
+  white-space: normal !important;
+  line-height: 1.08 !important;
+  letter-spacing: 0.01em !important;
+}
+
+/* Form grid */
+.page .form-grid{
+  display: grid !important;
+  grid-template-columns: 1fr 1fr 1fr !important;
   gap: 12px !important;
+  align-items: end !important;
+  margin-top: 10px !important;
 }
 
-.admin-row strong,
-.admin-item strong {
+@media (max-width: 980px){
+  .page .form-grid{ grid-template-columns: 1fr !important; }
+}
+
+/* Field styling */
+.page .field{
+  display: grid !important;
+  gap: 6px !important;
+}
+
+.page .field > span{
   font-weight: 900 !important;
+  opacity: 0.9 !important;
 }
 
-/* action icons/buttons on right */
-.admin-actions,
-.admin-row .actions,
-.admin-item .actions {
+/* Field row (checkbox line) */
+.page .field.row{
+  display: flex !important;
+  gap: 10px !important;
+  align-items: center !important;
+  padding-top: 26px !important; /* aligns with inputs */
+}
+
+.page .field.row input[type="checkbox"]{
+  transform: scale(1.15) !important;
+}
+
+/* Inputs inside admin */
+.page .admin-card input,
+.page .admin-card textarea,
+.page .admin-card select{
+  width: 100% !important;
+  max-width: 100% !important;
+  border-radius: 14px !important;
+  border: 1px solid var(--input-border) !important;
+  background: var(--input-bg) !important;
+  color: var(--text) !important;
+  padding: 12px 14px !important;
+  box-shadow: inset 0 2px 10px rgba(30,30,30,0.06) !important;
+}
+
+.page .admin-card textarea{
+  min-height: 140px !important;
+  resize: vertical !important;
+}
+
+/* Upload layout */
+.page .upload-row{
+  display: grid !important;
+  grid-template-columns: 1fr 1fr !important;
+  gap: 14px !important;
+  margin-top: 12px !important;
+  align-items: start !important;
+}
+
+@media (max-width: 980px){
+  .page .upload-row{ grid-template-columns: 1fr !important; }
+}
+
+.page .upload-box{
+  border: 1px solid var(--nav-border) !important;
+  border-radius: 16px !important;
+  padding: 12px !important;
+  background: rgba(196,106,74,0.06) !important;
+}
+
+.page .upload-title{
+  font-weight: 900 !important;
+  margin-bottom: 8px !important;
+}
+
+.page .preview-ph{
+  display: grid !important;
+  place-items: center !important;
+  height: 170px !important;
+  border-radius: 14px !important;
+  border: 1px dashed rgba(30,30,30,0.22) !important;
+  color: var(--text-muted) !important;
+  margin-bottom: 10px !important;
+}
+
+.page .preview-img{
+  width: 100% !important;
+  height: 190px !important;
+  object-fit: cover !important;
+  border-radius: 14px !important;
+  border: 1px solid var(--nav-border) !important;
+  margin-bottom: 10px !important;
+  display: block !important;
+}
+
+.page .preview-video{
+  width: 100% !important;
+  height: 190px !important;
+  border-radius: 14px !important;
+  border: 1px solid var(--nav-border) !important;
+  margin-bottom: 10px !important;
+  display: block !important;
+  background: #000 !important;
+}
+
+/* Upload inline (URL + Upload button) */
+.page .upload-inline{
   display: flex !important;
   gap: 10px !important;
   align-items: center !important;
 }
 
-.admin-actions button,
-.admin-row .actions button,
-.admin-item .actions button {
-  width: 44px !important;
-  height: 44px !important;
-  border-radius: 14px !important;
-  border: 1px solid rgba(0,0,0,0.18) !important;
-  background: rgba(255,255,255,0.35) !important;
-  cursor: pointer !important;
+@media (max-width: 520px){
+  .page .upload-inline{ flex-direction: column !important; align-items: stretch !important; }
 }
 
-/* ---------------------------------------------------------
-   Tables in Orders tab
---------------------------------------------------------- */
-.admin-panel table,
-.admin-page table,
-.page.admin table {
-  width: 100% !important;
-  border-collapse: collapse !important;
+/* Buttons row */
+.page .btn-row{
+  display: flex !important;
+  flex-wrap: wrap !important;
+  gap: 10px !important;
+  margin-top: 14px !important;
+  align-items: center !important;
+}
+
+/* Lists */
+.page .list{
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 10px !important;
+  margin-top: 10px !important;
+}
+
+.page .list-row{
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  gap: 12px !important;
+  padding: 12px 14px !important;
   border-radius: 16px !important;
+  border: 1px solid var(--nav-border) !important;
+  background: rgba(196,106,74,0.06) !important;
+}
+
+.page .list-main{ min-width: 0 !important; }
+.page .list-title{ font-weight: 900 !important; }
+.page .list-sub{ margin-top: 4px !important; }
+
+.page .list-actions{
+  display: flex !important;
+  gap: 10px !important;
+  flex-wrap: wrap !important;
+}
+
+.page .mini{
+  margin-top: 10px !important;
+  padding-top: 10px !important;
+  border-top: 1px solid rgba(30,30,30,0.12) !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 6px !important;
+}
+
+.page .mini-row{
+  font-weight: 700 !important;
+  opacity: 0.92 !important;
+}
+
+/* =========================================================
+   STORE/CART — sticky under navbar + correct z-index
+   ========================================================= */
+
+/* Sticky Cart button under sticky navbar with spacing */
+.store-head .cart-fab{
+  position: sticky !important;
+  top: calc(var(--nav-offset, 72px) + 12px) !important;
+  z-index: 200 !important;
+}
+
+/* Cart backdrop + drawer layering */
+.cart-backdrop{
+  position: fixed !important;
+  inset: 0 !important;
+  background: rgba(0,0,0,0.55) !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  transition: opacity 200ms ease !important;
+  z-index: 9998 !important;
+}
+
+body.cart-open .cart-backdrop{
+  opacity: 1 !important;
+  pointer-events: auto !important;
+}
+
+.cart-drawer{
+  position: fixed !important;
+  right: 16px !important;
+  top: calc(var(--nav-offset, 72px) + 12px) !important; /* ✅ spacing under navbar */
+  max-height: calc(100vh - (var(--nav-offset, 72px) + 24px)) !important;
+  width: min(420px, calc(100vw - 32px)) !important;
+  overflow: auto !important;
+
+  z-index: 9999 !important;
+  transform: translateX(120%) !important;
+  transition: transform 220ms ease !important;
+}
+
+body.cart-open .cart-drawer{
+  transform: translateX(0) !important;
+}
+
+/* Make sure clicks work inside the drawer */
+.cart-drawer,
+.cart-drawer *{
+  pointer-events: auto !important;
+}
+
+/* Optional but fixes “screen grey + can't click”: lock body scroll only */
+body.cart-open{
   overflow: hidden !important;
-  border: 1px solid var(--nav-border, rgba(0,0,0,0.12)) !important;
-  background: rgba(255,255,255,0.22) !important;
 }
 
-.admin-panel th,
-.admin-panel td,
-.admin-page th,
-.admin-page td,
-.page.admin th,
-.page.admin td {
-  padding: 10px 12px !important;
-  border-bottom: 1px solid rgba(0,0,0,0.10) !important;
-  text-align: left !important;
-  vertical-align: top !important;
-}
+/* Safety: nav/drawer ordering */
+.nav{ z-index: 5000 !important; }
+.drawer{ z-index: 3000 !important; }
+.drawer-backdrop{ z-index: 2900 !important; }
 
-.admin-panel th,
-.admin-page th,
-.page.admin th {
-  font-family: var(--font-display) !important;
-  font-weight: 900 !important;
-  background: rgba(196,106,74,0.12) !important;
-}
-
-/* ---------------------------------------------------------
-   Dark mode admin readability
---------------------------------------------------------- */
-html[data-theme="dark"] .admin-tabs button,
-html[data-theme="dark"] .admin-tabs a,
-html[data-theme="dark"] .admin-nav button,
-html[data-theme="dark"] .admin-nav a,
-html[data-theme="dark"] .admin-panel-tabs button,
-html[data-theme="dark"] .admin-panel-tabs a {
-  background: rgba(0,0,0,0.22) !important;
-  border-color: rgba(255,255,255,0.18) !important;
-  color: var(--text) !important;
-}
-
-html[data-theme="dark"] .admin-row,
-html[data-theme="dark"] .admin-item {
-  background: rgba(255,255,255,0.06) !important;
-  border-color: rgba(255,255,255,0.12) !important;
-}
-
-html[data-theme="dark"] .admin-panel input[type="text"],
-html[data-theme="dark"] .admin-panel input[type="number"],
-html[data-theme="dark"] .admin-panel input[type="date"],
-html[data-theme="dark"] .admin-panel input[type="url"],
-html[data-theme="dark"] .admin-panel input[type="email"],
-html[data-theme="dark"] .admin-panel input[type="password"],
-html[data-theme="dark"] .admin-panel textarea,
-html[data-theme="dark"] .admin-panel select {
-  background: rgba(0,0,0,0.28) !important;
-  border-color: rgba(255,255,255,0.18) !important;
-  color: var(--text) !important;
+@media (max-width: 520px){
+  .cart-drawer{
+    right: 10px !important;
+    width: calc(100vw - 20px) !important;
+  }
 }

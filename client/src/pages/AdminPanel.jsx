@@ -64,8 +64,6 @@ export default function AdminPanel() {
   // ===== HERO (simple) =====
   const [heroItems, setHeroItems] = useState([])
   const [heroForm, setHeroForm] = useState({
-    issueNumber: "",
-    isLocked: true,
     heroVfxUrl: "",
   })
   const [editingHeroId, setEditingHeroId] = useState(null)
@@ -128,12 +126,12 @@ export default function AdminPanel() {
         setMsg("")
 
         if (activeTab === "hero") {
-          // Ако backend-а ти още ползва /magazines за hero – смени на твоя endpoint.
-          // Препоръка: направи отделен endpoint /hero (по-долу ти казвам).
-          const res = await api.get("/hero")
-          setHeroItems(Array.isArray(res.data) ? res.data : [])
-          return
-        }
+  const res = await api.get("/hero")
+  const data = res.data || null
+  setHero({ heroVfxUrl: data?.heroVfxUrl || "" })
+  return
+}
+
 
         if (activeTab === "magazine") {
           const res = await api.get("/magazines")
@@ -292,45 +290,34 @@ export default function AdminPanel() {
   }
 
   const onPickHeroVfx = async (file) => {
-    if (!file) return
-    try {
-      setBusy(true)
-      setMsg("Uploading hero video...")
-      const out = await uploadToCloudinary(file)
-      setHeroForm((p) => ({ ...p, heroVfxUrl: out?.url || "" }))
-      setMsg("✅ Hero video uploaded.")
-    } catch (e) {
-      setMsg(e?.response?.data?.error || "Video upload failed.")
-    } finally {
-      setBusy(false)
-    }
+  if (!file) return
+  try {
+    setBusy(true)
+    setMsg("Uploading hero video...")
+    const out = await uploadToCloudinary(file)
+    setHero((p) => ({ ...p, heroVfxUrl: out?.url || "" }))
+    setMsg("✅ Uploaded.")
+  } catch (e) {
+    setMsg(e?.response?.data?.error || e?.response?.data?.details || "Video upload failed.")
+  } finally {
+    setBusy(false)
   }
+}
 
   const saveHero = async () => {
-    if (!heroForm.issueNumber.trim()) return setMsg("Issue number is required.")
-    try {
-      setBusy(true)
-      setMsg("")
-
-      const payload = { ...heroForm }
-
-      if (editingHeroId) {
-        await api.put(`/hero/${editingHeroId}`, payload)
-        setMsg("✅ Hero updated.")
-      } else {
-        await api.post("/hero", payload)
-        setMsg("✅ Hero created.")
-      }
-
-      const res = await api.get("/hero")
-      setHeroItems(Array.isArray(res.data) ? res.data : [])
-      resetHeroForm()
-    } catch (e) {
-      setMsg(e?.response?.data?.error || "Failed to save hero.")
-    } finally {
-      setBusy(false)
-    }
+  try {
+    if (!hero.heroVfxUrl) return setMsg("Hero VFX url is required.")
+    setBusy(true)
+    setMsg("")
+    await api.put("/hero", { heroVfxUrl: hero.heroVfxUrl })
+    setMsg("✅ Hero updated.")
+  } catch (e) {
+    setMsg(e?.response?.data?.error || e?.response?.data?.details || "Failed to save hero.")
+  } finally {
+    setBusy(false)
   }
+}
+
 
   const deleteHero = async (id) => {
     if (!id) return
@@ -528,91 +515,39 @@ export default function AdminPanel() {
 
       {/* HERO TAB (simple) */}
       {activeTab === "hero" && (
-        <div className="admin-grid">
-          <div className="admin-card">
-            <h3 className="headline">Hero (VFX only)</h3>
+  <div className="admin-grid">
+    <div className="admin-card">
+      <h3 className="headline">Hero (single)</h3>
+      <p className="text-muted">Only one hero exists. Upload new VFX to replace it.</p>
 
-            <div className="form-grid">
-              <label className="field">
-                <span>Issue Number</span>
-                <input
-                  value={heroForm.issueNumber}
-                  onChange={(e) => setHeroForm((p) => ({ ...p, issueNumber: e.target.value }))}
-                />
-              </label>
+      <div className="upload-row">
+        <div className="upload-box" style={{ width: "100%" }}>
+          <div className="upload-title">Hero VFX Video</div>
 
-              <label className="field row">
-                <input
-                  type="checkbox"
-                  checked={!!heroForm.isLocked}
-                  onChange={(e) => setHeroForm((p) => ({ ...p, isLocked: e.target.checked }))}
-                />
-                <span>Locked</span>
-              </label>
-            </div>
+          {hero.heroVfxUrl ? (
+            <video className="preview-video" src={hero.heroVfxUrl} controls />
+          ) : (
+            <div className="preview-ph">No video</div>
+          )}
 
-            <div className="upload-row">
-              <div className="upload-box" style={{ width: "100%" }}>
-                <div className="upload-title">Hero VFX Video</div>
-
-                {heroForm.heroVfxUrl ? (
-                  <video className="preview-video" src={heroForm.heroVfxUrl} controls />
-                ) : (
-                  <div className="preview-ph">No video</div>
-                )}
-
-                <input
-                  type="file"
-                  accept="video/*"
-                  onChange={(e) => onPickHeroVfx(e.target.files?.[0])}
-                  disabled={busy}
-                />
-              </div>
-            </div>
-
-            <div className="btn-row">
-              <button className="btn primary" onClick={saveHero} disabled={busy} type="button">
-                {editingHeroId ? "Update Hero" : "Create Hero"}
-              </button>
-              <button className="btn ghost" onClick={resetHeroForm} disabled={busy} type="button">
-                Reset
-              </button>
-              {editingHeroId && (
-                <button className="btn secondary" onClick={() => deleteHero(editingHeroId)} disabled={busy} type="button">
-                  Delete
-                </button>
-              )}
-            </div>
-          </div>
-
-          <div className="admin-card">
-            <h3 className="headline">Existing Hero Entries</h3>
-            {heroItems.length === 0 ? (
-              <p className="text-muted">No hero entries.</p>
-            ) : (
-              <div className="list">
-                {heroItems.map((it) => (
-                  <div key={it.id} className="list-row">
-                    <div className="list-main">
-                      <div className="list-title">
-                        #{it.issueNumber} {it.isLocked ? "🔒" : "✅"}
-                      </div>
-                      <div className="list-sub text-muted">
-                        vfx: {it.heroVfxUrl ? "yes" : "no"}
-                      </div>
-                    </div>
-                    <div className="list-actions">
-                      <button className="btn ghost" type="button" onClick={() => startEditHero(it)}>
-                        Edit
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+          <input
+            type="file"
+            accept="video/*"
+            onChange={(e) => onPickHeroVfx(e.target.files?.[0])}
+            disabled={busy}
+          />
         </div>
-      )}
+      </div>
+
+      <div className="btn-row">
+        <button className="btn primary" onClick={saveHero} disabled={busy} type="button">
+          Save / Replace Hero
+        </button>
+      </div>
+    </div>
+  </div>
+)}
+
 
       {/* MAGAZINE TAB (full) */}
       {activeTab === "magazine" && (

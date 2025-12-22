@@ -77,6 +77,9 @@ const corsOptions = {
 app.use("/api", cors(corsOptions))
 app.options("/api/*", cors(corsOptions))
 
+const heroRoutes = require("./routes/hero")
+app.use("/api", heroRoutes)
+
 
 // ---------------------------------------------------------------
 // 2) SECURITY + COOKIES

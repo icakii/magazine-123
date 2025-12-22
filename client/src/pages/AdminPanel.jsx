@@ -9,7 +9,6 @@ const ADMIN_EMAILS = ["icaki06@gmail.com", "icaki2k@gmail.com", "mirenmagazine@g
 
 const TABS = [
   { key: "hero", label: "Hero" },
-  { key: "magazine", label: "Magazine" },
   { key: "home", label: "Home" },
   { key: "news", label: "News" },
   { key: "gallery", label: "Gallery" },
@@ -33,12 +32,8 @@ async function uploadToCloudinary(file) {
 
   return {
     url: res.data?.secure_url || res.data?.url || "",
-    public_id: res.data?.public_id || "",
+    public_id: res.data?.public_id || res.data?.publicId || res.data?.public_id || "",
   }
-}
-
-function isVideoUrl(url) {
-  return !!url && /\.(mp4|webm|ogg)(\?.*)?$/i.test(url)
 }
 
 function ymd(ts) {
@@ -58,42 +53,13 @@ export default function AdminPanel() {
   const [msg, setMsg] = useState("")
   const [busy, setBusy] = useState(false)
 
+  // ✅ HERO (single row)
+  const [hero, setHero] = useState({ heroVfxUrl: "" })
+
   // Articles per category
   const [articles, setArticles] = useState([])
+  const [editingArticleId, setEditingArticleId] = useState(null)
 
-  // ===== HERO (simple) =====
-  const [heroItems, setHeroItems] = useState([])
-  const [heroForm, setHeroForm] = useState({
-    heroVfxUrl: "",
-  })
-  const [editingHeroId, setEditingHeroId] = useState(null)
-
-  // ===== MAGAZINE (full) =====
-  const [magazines, setMagazines] = useState([])
-  const [magazineForm, setMagazineForm] = useState({
-    issueNumber: "",
-    month: "",
-    year: new Date().getFullYear(),
-    isLocked: true,
-    isPremium: false,
-    isPublic: true,
-    coverUrl: "",
-    pages: [], // array of urls
-  })
-  const [editingMagazineId, setEditingMagazineId] = useState(null)
-
-  // Store items
-  const [storeItems, setStoreItems] = useState([])
-
-  // Orders
-  const [orders, setOrders] = useState([])
-
-  // Newsletter
-  const [subscribers, setSubscribers] = useState([])
-  const [emailSubject, setEmailSubject] = useState("")
-  const [emailBody, setEmailBody] = useState("")
-
-  // Article form
   const [articleForm, setArticleForm] = useState({
     title: "",
     text: "",
@@ -107,7 +73,17 @@ export default function AdminPanel() {
     time: "",
     reminderEnabled: false,
   })
-  const [editingArticleId, setEditingArticleId] = useState(null)
+
+  // Store items
+  const [storeItems, setStoreItems] = useState([])
+
+  // Orders
+  const [orders, setOrders] = useState([])
+
+  // Newsletter
+  const [subscribers, setSubscribers] = useState([])
+  const [emailSubject, setEmailSubject] = useState("")
+  const [emailBody, setEmailBody] = useState("")
 
   const authedEmail = user?.email || ""
   const canAccess = !loading && isAdminEmail(authedEmail)
@@ -117,7 +93,7 @@ export default function AdminPanel() {
     return null
   }, [activeTab])
 
-  // ================= LOADERS =================
+  // Loaders
   useEffect(() => {
     if (!canAccess) return
 
@@ -126,16 +102,9 @@ export default function AdminPanel() {
         setMsg("")
 
         if (activeTab === "hero") {
-  const res = await api.get("/hero")
-  const data = res.data || null
-  setHero({ heroVfxUrl: data?.heroVfxUrl || "" })
-  return
-}
-
-
-        if (activeTab === "magazine") {
-          const res = await api.get("/magazines")
-          setMagazines(Array.isArray(res.data) ? res.data : [])
+          const res = await api.get("/hero")
+          const data = res.data || null
+          setHero({ heroVfxUrl: data?.heroVfxUrl || "" })
           return
         }
 
@@ -163,15 +132,44 @@ export default function AdminPanel() {
           return
         }
       } catch (e) {
-        setMsg(e?.response?.data?.error || "Failed to load admin data.")
+        setMsg(e?.response?.data?.error || e?.response?.data?.details || "Failed to load admin data.")
       }
     }
 
     load()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab, canAccess, currentCategory])
 
-  // ================= ARTICLES CRUD =================
+  // ===== HERO =====
+  const onPickHeroVfx = async (file) => {
+    if (!file) return
+    try {
+      setBusy(true)
+      setMsg("Uploading hero video...")
+      const out = await uploadToCloudinary(file)
+      setHero((p) => ({ ...p, heroVfxUrl: out?.url || "" }))
+      setMsg("✅ Uploaded.")
+    } catch (e) {
+      setMsg(e?.response?.data?.error || e?.response?.data?.details || "Video upload failed.")
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const saveHero = async () => {
+    try {
+      if (!hero.heroVfxUrl) return setMsg("Hero VFX url is required.")
+      setBusy(true)
+      setMsg("")
+      await api.put("/hero", { heroVfxUrl: hero.heroVfxUrl })
+      setMsg("✅ Hero updated.")
+    } catch (e) {
+      setMsg(e?.response?.data?.error || e?.response?.data?.details || "Failed to save hero.")
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  // ===== ARTICLES CRUD =====
   const resetArticleForm = () => {
     setEditingArticleId(null)
     setArticleForm({
@@ -229,10 +227,9 @@ export default function AdminPanel() {
         const res = await api.get(`/articles?category=${encodeURIComponent(currentCategory)}`)
         setArticles(Array.isArray(res.data) ? res.data : [])
       }
-
       resetArticleForm()
     } catch (e) {
-      setMsg(e?.response?.data?.error || "Failed to save article.")
+      setMsg(e?.response?.data?.error || e?.response?.data?.details || "Failed to save article.")
     } finally {
       setBusy(false)
     }
@@ -248,7 +245,7 @@ export default function AdminPanel() {
       setArticles((prev) => prev.filter((x) => x.id !== id))
       if (editingArticleId === id) resetArticleForm()
     } catch (e) {
-      setMsg(e?.response?.data?.error || "Failed to delete.")
+      setMsg(e?.response?.data?.error || e?.response?.data?.details || "Failed to delete.")
     } finally {
       setBusy(false)
     }
@@ -263,198 +260,13 @@ export default function AdminPanel() {
       setArticleForm((p) => ({ ...p, imageUrl: out?.url || "" }))
       setMsg("✅ Uploaded.")
     } catch (e) {
-      setMsg(e?.response?.data?.error || "Upload failed.")
+      setMsg(e?.response?.data?.error || e?.response?.data?.details || "Upload failed.")
     } finally {
       setBusy(false)
     }
   }
 
-  // ================= HERO CRUD (simple) =================
-  const resetHeroForm = () => {
-    setEditingHeroId(null)
-    setHeroForm({
-      issueNumber: "",
-      isLocked: true,
-      heroVfxUrl: "",
-    })
-  }
-
-  const startEditHero = (it) => {
-    setEditingHeroId(it.id)
-    setHeroForm({
-      issueNumber: it.issueNumber || "",
-      isLocked: !!it.isLocked,
-      heroVfxUrl: it.heroVfxUrl || "",
-    })
-    window.scrollTo({ top: 0, behavior: "smooth" })
-  }
-
-  const onPickHeroVfx = async (file) => {
-  if (!file) return
-  try {
-    setBusy(true)
-    setMsg("Uploading hero video...")
-    const out = await uploadToCloudinary(file)
-    setHero((p) => ({ ...p, heroVfxUrl: out?.url || "" }))
-    setMsg("✅ Uploaded.")
-  } catch (e) {
-    setMsg(e?.response?.data?.error || e?.response?.data?.details || "Video upload failed.")
-  } finally {
-    setBusy(false)
-  }
-}
-
-  const saveHero = async () => {
-  try {
-    if (!hero.heroVfxUrl) return setMsg("Hero VFX url is required.")
-    setBusy(true)
-    setMsg("")
-    await api.put("/hero", { heroVfxUrl: hero.heroVfxUrl })
-    setMsg("✅ Hero updated.")
-  } catch (e) {
-    setMsg(e?.response?.data?.error || e?.response?.data?.details || "Failed to save hero.")
-  } finally {
-    setBusy(false)
-  }
-}
-
-
-  const deleteHero = async (id) => {
-    if (!id) return
-    try {
-      setBusy(true)
-      setMsg("")
-      await api.delete(`/hero/${id}`)
-      setHeroItems((p) => p.filter((x) => x.id !== id))
-      setMsg("🗑️ Deleted.")
-      if (editingHeroId === id) resetHeroForm()
-    } catch (e) {
-      setMsg(e?.response?.data?.error || "Failed to delete.")
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  // ================= MAGAZINE CRUD (full) =================
-  const resetMagazineForm = () => {
-    setEditingMagazineId(null)
-    setMagazineForm({
-      issueNumber: "",
-      month: "",
-      year: new Date().getFullYear(),
-      isLocked: true,
-      isPremium: false,
-      isPublic: true,
-      coverUrl: "",
-      pages: [],
-    })
-  }
-
-  const startEditMagazine = (it) => {
-    setEditingMagazineId(it.id)
-    setMagazineForm({
-      issueNumber: it.issueNumber || "",
-      month: it.month || "",
-      year: it.year || new Date().getFullYear(),
-      isLocked: !!it.isLocked,
-      isPremium: !!it.isPremium,
-      isPublic: it.isPublic !== false,
-      coverUrl: it.coverUrl || "",
-      pages: Array.isArray(it.pages) ? it.pages : [],
-    })
-    window.scrollTo({ top: 0, behavior: "smooth" })
-  }
-
-  const onPickMagazineCover = async (file) => {
-    if (!file) return
-    try {
-      setBusy(true)
-      setMsg("Uploading cover...")
-      const out = await uploadToCloudinary(file)
-      setMagazineForm((p) => ({ ...p, coverUrl: out?.url || "" }))
-      setMsg("✅ Cover uploaded.")
-    } catch (e) {
-      setMsg(e?.response?.data?.error || "Cover upload failed.")
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  const onPickMagazinePages = async (files) => {
-    const arr = Array.from(files || [])
-    if (arr.length === 0) return
-    try {
-      setBusy(true)
-      setMsg(`Uploading ${arr.length} page(s)...`)
-
-      const uploaded = []
-      for (const f of arr) {
-        const out = await uploadToCloudinary(f)
-        if (out?.url) uploaded.push(out.url)
-      }
-
-      setMagazineForm((p) => ({ ...p, pages: [...(p.pages || []), ...uploaded] }))
-      setMsg(`✅ Uploaded ${uploaded.length} page(s).`)
-    } catch (e) {
-      setMsg(e?.response?.data?.error || "Pages upload failed.")
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  const removeMagazinePage = (idx) => {
-    setMagazineForm((p) => {
-      const next = Array.isArray(p.pages) ? [...p.pages] : []
-      next.splice(idx, 1)
-      return { ...p, pages: next }
-    })
-  }
-
-  const saveMagazine = async () => {
-    if (!magazineForm.issueNumber.trim()) return setMsg("Issue number is required.")
-    if (!magazineForm.month.trim()) return setMsg("Month is required.")
-
-    try {
-      setBusy(true)
-      setMsg("")
-
-      const payload = { ...magazineForm }
-
-      if (editingMagazineId) {
-        await api.put(`/magazines/${editingMagazineId}`, payload)
-        setMsg("✅ Magazine updated.")
-      } else {
-        await api.post("/magazines", payload)
-        setMsg("✅ Magazine created.")
-      }
-
-      const res = await api.get("/magazines")
-      setMagazines(Array.isArray(res.data) ? res.data : [])
-      resetMagazineForm()
-    } catch (e) {
-      setMsg(e?.response?.data?.error || "Failed to save magazine.")
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  const deleteMagazine = async (id) => {
-    if (!id) return
-    try {
-      setBusy(true)
-      setMsg("")
-      await api.delete(`/magazines/${id}`)
-      setMagazines((p) => p.filter((x) => x.id !== id))
-      setMsg("🗑️ Deleted.")
-      if (editingMagazineId === id) resetMagazineForm()
-    } catch (e) {
-      setMsg(e?.response?.data?.error || "Failed to delete.")
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  // ================= NEWSLETTER =================
+  // ===== NEWSLETTER =====
   const sendNewsletter = async () => {
     if (!emailSubject.trim() || !emailBody.trim()) return setMsg("Subject and body are required.")
     try {
@@ -463,13 +275,12 @@ export default function AdminPanel() {
       const res = await api.post("/newsletter/send", { subject: emailSubject, body: emailBody })
       setMsg(`✅ Sent to ${res?.data?.count || 0} subscribers.`)
     } catch (e) {
-      setMsg(e?.response?.data?.error || "Failed to send newsletter.")
+      setMsg(e?.response?.data?.error || e?.response?.data?.details || "Failed to send newsletter.")
     } finally {
       setBusy(false)
     }
   }
 
-  // ================= RENDER =================
   if (loading) return <div className="page"><p>Loading…</p></div>
 
   if (!canAccess) {
@@ -504,8 +315,6 @@ export default function AdminPanel() {
               setActiveTab(t.key)
               setMsg("")
               if (["home", "news", "gallery", "events"].includes(t.key)) resetArticleForm()
-              if (t.key !== "hero") setEditingHeroId(null)
-              if (t.key !== "magazine") setEditingMagazineId(null)
             }}
           >
             {t.label}
@@ -513,230 +322,81 @@ export default function AdminPanel() {
         ))}
       </div>
 
-      {/* HERO TAB (simple) */}
+      {/* HERO TAB (single) */}
       {activeTab === "hero" && (
-  <div className="admin-grid">
-    <div className="admin-card">
-      <h3 className="headline">Hero (single)</h3>
-      <p className="text-muted">Only one hero exists. Upload new VFX to replace it.</p>
-
-      <div className="upload-row">
-        <div className="upload-box" style={{ width: "100%" }}>
-          <div className="upload-title">Hero VFX Video</div>
-
-          {hero.heroVfxUrl ? (
-            <video className="preview-video" src={hero.heroVfxUrl} controls />
-          ) : (
-            <div className="preview-ph">No video</div>
-          )}
-
-          <input
-            type="file"
-            accept="video/*"
-            onChange={(e) => onPickHeroVfx(e.target.files?.[0])}
-            disabled={busy}
-          />
-        </div>
-      </div>
-
-      <div className="btn-row">
-        <button className="btn primary" onClick={saveHero} disabled={busy} type="button">
-          Save / Replace Hero
-        </button>
-      </div>
-    </div>
-  </div>
-)}
-
-
-      {/* MAGAZINE TAB (full) */}
-      {activeTab === "magazine" && (
         <div className="admin-grid">
           <div className="admin-card">
-            <h3 className="headline">Magazine Issue</h3>
-
-            <div className="form-grid">
-              <label className="field">
-                <span>Issue Number</span>
-                <input
-                  value={magazineForm.issueNumber}
-                  onChange={(e) => setMagazineForm((p) => ({ ...p, issueNumber: e.target.value }))}
-                />
-              </label>
-
-              <label className="field">
-                <span>Month</span>
-                <input
-                  value={magazineForm.month}
-                  onChange={(e) => setMagazineForm((p) => ({ ...p, month: e.target.value }))}
-                />
-              </label>
-
-              <label className="field">
-                <span>Year</span>
-                <input
-                  type="number"
-                  value={magazineForm.year}
-                  onChange={(e) => setMagazineForm((p) => ({ ...p, year: Number(e.target.value) }))}
-                />
-              </label>
-
-              <label className="field row">
-                <input
-                  type="checkbox"
-                  checked={!!magazineForm.isLocked}
-                  onChange={(e) => setMagazineForm((p) => ({ ...p, isLocked: e.target.checked }))}
-                />
-                <span>Locked</span>
-              </label>
-
-              <label className="field row">
-                <input
-                  type="checkbox"
-                  checked={!!magazineForm.isPremium}
-                  onChange={(e) => setMagazineForm((p) => ({ ...p, isPremium: e.target.checked }))}
-                />
-                <span>Premium</span>
-              </label>
-
-              <label className="field row">
-                <input
-                  type="checkbox"
-                  checked={!!magazineForm.isPublic}
-                  onChange={(e) => setMagazineForm((p) => ({ ...p, isPublic: e.target.checked }))}
-                />
-                <span>Public</span>
-              </label>
-            </div>
+            <h3 className="headline">Hero (single)</h3>
+            <p className="text-muted">Upload a new VFX video to replace the current hero.</p>
 
             <div className="upload-row">
-              <div className="upload-box">
-                <div className="upload-title">Cover</div>
-                {magazineForm.coverUrl ? (
-                  <img src={magazineForm.coverUrl} alt="cover" className="preview-img" />
+              <div className="upload-box" style={{ width: "100%" }}>
+                <div className="upload-title">Hero VFX Video</div>
+
+                {hero.heroVfxUrl ? (
+                  <video className="preview-video" src={hero.heroVfxUrl} controls />
                 ) : (
-                  <div className="preview-ph">No cover</div>
+                  <div className="preview-ph">No video</div>
                 )}
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => onPickMagazineCover(e.target.files?.[0])}
-                  disabled={busy}
-                />
-              </div>
-
-              <div className="upload-box">
-                <div className="upload-title">Pages (images)</div>
-                <div className="preview-ph" style={{ textAlign: "left" }}>
-                  {Array.isArray(magazineForm.pages) && magazineForm.pages.length > 0
-                    ? `${magazineForm.pages.length} page(s) uploaded`
-                    : "No pages"}
-                </div>
 
                 <input
                   type="file"
-                  accept="image/*"
-                  multiple
-                  onChange={(e) => onPickMagazinePages(e.target.files)}
+                  accept="video/*"
+                  onChange={(e) => onPickHeroVfx(e.target.files?.[0])}
                   disabled={busy}
                 />
-
-                {Array.isArray(magazineForm.pages) && magazineForm.pages.length > 0 && (
-                  <div className="mini" style={{ marginTop: 10 }}>
-                    {magazineForm.pages.map((p, idx) => (
-                      <div key={p + idx} className="mini-row" style={{ display: "flex", gap: 10, alignItems: "center" }}>
-                        <span className="text-muted">Page {idx + 1}</span>
-                        <button className="btn secondary" type="button" onClick={() => removeMagazinePage(idx)} disabled={busy}>
-                          Remove
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
               </div>
             </div>
 
             <div className="btn-row">
-              <button className="btn primary" onClick={saveMagazine} disabled={busy} type="button">
-                {editingMagazineId ? "Update Magazine" : "Create Magazine"}
+              <button className="btn primary" onClick={saveHero} disabled={busy} type="button">
+                Save / Replace Hero
               </button>
-              <button className="btn ghost" onClick={resetMagazineForm} disabled={busy} type="button">
-                Reset
-              </button>
-              {editingMagazineId && (
-                <button className="btn secondary" onClick={() => deleteMagazine(editingMagazineId)} disabled={busy} type="button">
-                  Delete
-                </button>
-              )}
             </div>
-          </div>
-
-          <div className="admin-card">
-            <h3 className="headline">Existing Magazines</h3>
-            {magazines.length === 0 ? (
-              <p className="text-muted">No magazines yet.</p>
-            ) : (
-              <div className="list">
-                {magazines.map((it) => (
-                  <div key={it.id} className="list-row">
-                    <div className="list-main">
-                      <div className="list-title">
-                        #{it.issueNumber} • {it.month} {it.year} {it.isLocked ? "🔒" : "✅"} {it.isPremium ? "💎" : ""}{" "}
-                        {it.isPublic ? "🌍" : "🙈"}
-                      </div>
-                      <div className="list-sub text-muted">
-                        cover: {it.coverUrl ? "yes" : "no"} • pages: {Array.isArray(it.pages) ? it.pages.length : 0}
-                      </div>
-                    </div>
-                    <div className="list-actions">
-                      <button className="btn ghost" type="button" onClick={() => startEditMagazine(it)}>
-                        Edit
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
           </div>
         </div>
       )}
 
-      {/* ARTICLES (Home/News/Gallery/Events) */}
+      {/* ARTICLES TABS */}
       {currentCategory && (
         <div className="admin-grid">
           <div className="admin-card">
-            <h3 className="headline">Articles ({currentCategory.toUpperCase()})</h3>
+            <h3 className="headline">Articles</h3>
 
             <div className="form-grid">
               <label className="field" style={{ gridColumn: "1 / -1" }}>
                 <span>Title</span>
-                <input value={articleForm.title} onChange={(e) => setArticleForm((p) => ({ ...p, title: e.target.value }))} />
+                <input value={articleForm.title} onChange={(e) => setArticleForm(p => ({ ...p, title: e.target.value }))} />
               </label>
 
               <label className="field" style={{ gridColumn: "1 / -1" }}>
                 <span>Excerpt</span>
-                <textarea rows={3} value={articleForm.excerpt} onChange={(e) => setArticleForm((p) => ({ ...p, excerpt: e.target.value }))} />
+                <textarea rows={3} value={articleForm.excerpt} onChange={(e) => setArticleForm(p => ({ ...p, excerpt: e.target.value }))} />
               </label>
 
               <label className="field" style={{ gridColumn: "1 / -1" }}>
                 <span>Text</span>
-                <textarea rows={8} value={articleForm.text} onChange={(e) => setArticleForm((p) => ({ ...p, text: e.target.value }))} />
+                <textarea rows={8} value={articleForm.text} onChange={(e) => setArticleForm(p => ({ ...p, text: e.target.value }))} />
               </label>
 
               <label className="field">
                 <span>Date</span>
-                <input type="date" value={articleForm.date} onChange={(e) => setArticleForm((p) => ({ ...p, date: e.target.value }))} />
+                <input type="date" value={articleForm.date} onChange={(e) => setArticleForm(p => ({ ...p, date: e.target.value }))} />
               </label>
 
               <label className="field">
                 <span>Author</span>
-                <input value={articleForm.author} onChange={(e) => setArticleForm((p) => ({ ...p, author: e.target.value }))} />
+                <input value={articleForm.author} onChange={(e) => setArticleForm(p => ({ ...p, author: e.target.value }))} />
               </label>
 
               {currentCategory === "news" && (
                 <label className="field">
                   <span>News Category (optional)</span>
-                  <input value={articleForm.articleCategory} onChange={(e) => setArticleForm((p) => ({ ...p, articleCategory: e.target.value }))} />
+                  <input
+                    value={articleForm.articleCategory}
+                    onChange={(e) => setArticleForm((p) => ({ ...p, articleCategory: e.target.value }))}
+                    placeholder="e.g. World / Tech / Culture"
+                  />
                 </label>
               )}
 
@@ -744,28 +404,40 @@ export default function AdminPanel() {
                 <>
                   <label className="field">
                     <span>Time (optional)</span>
-                    <input value={articleForm.time} onChange={(e) => setArticleForm((p) => ({ ...p, time: e.target.value }))} placeholder="18:30" />
+                    <input
+                      value={articleForm.time}
+                      onChange={(e) => setArticleForm((p) => ({ ...p, time: e.target.value }))}
+                      placeholder="18:30"
+                    />
                   </label>
 
                   <label className="field row">
-                    <input type="checkbox" checked={!!articleForm.reminderEnabled} onChange={(e) => setArticleForm((p) => ({ ...p, reminderEnabled: e.target.checked }))} />
+                    <input
+                      type="checkbox"
+                      checked={!!articleForm.reminderEnabled}
+                      onChange={(e) => setArticleForm((p) => ({ ...p, reminderEnabled: e.target.checked }))}
+                    />
                     <span>Reminder Enabled</span>
                   </label>
                 </>
               )}
 
               <label className="field row">
-                <input type="checkbox" checked={!!articleForm.isPremium} onChange={(e) => setArticleForm((p) => ({ ...p, isPremium: e.target.checked }))} />
+                <input
+                  type="checkbox"
+                  checked={!!articleForm.isPremium}
+                  onChange={(e) => setArticleForm((p) => ({ ...p, isPremium: e.target.checked }))}
+                />
                 <span>Premium</span>
               </label>
             </div>
 
             <div className="upload-row" style={{ marginTop: 10 }}>
               <div className="upload-box" style={{ width: "100%" }}>
-                <div className="upload-title">Image / Media</div>
+                <div className="upload-title">Image / Media URL</div>
 
                 {articleForm.imageUrl ? (
-                  isVideoUrl(articleForm.imageUrl) ? (
+                  articleForm.imageUrl.match(/\.(mp4|webm|ogg)(\?.*)?$/i) ? (
                     <video className="preview-video" src={articleForm.imageUrl} controls />
                   ) : (
                     <img className="preview-img" src={articleForm.imageUrl} alt="article" />
@@ -847,7 +519,6 @@ export default function AdminPanel() {
       {activeTab === "store" && (
         <div className="admin-card">
           <h3 className="headline">Store Items (read-only here)</h3>
-          <p className="text-muted">CRUD можеш да го държиш в отделния ти UI или да кажеш и ще добавя.</p>
 
           {storeItems.length === 0 ? (
             <p className="text-muted">No items.</p>
@@ -888,6 +559,16 @@ export default function AdminPanel() {
                       {new Date((o.created || 0) * 1000).toLocaleString()} • {(o.amount_total || 0) / 100}{" "}
                       {String(o.currency || "").toUpperCase()} • {o.customer_phone || "no phone"}
                     </div>
+
+                    {Array.isArray(o.line_items) && o.line_items.length > 0 && (
+                      <div className="mini">
+                        {o.line_items.map((li, idx) => (
+                          <div key={idx} className="mini-row">
+                            • {li.description} x{li.quantity}
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
               ))}

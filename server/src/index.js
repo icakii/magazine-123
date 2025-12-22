@@ -29,20 +29,6 @@ const JWT_SECRET = process.env.JWT_SECRET || "super-secret-key-change-this"
 const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:5173"
 const APP_URL = process.env.APP_URL || "http://localhost:5173"
 
-app.use(
-  helmet({
-    contentSecurityPolicy: {
-      useDefaults: true,
-      directives: {
-        // ако имаш други домейни, добави ги тук
-        "img-src": ["'self'", "data:", "https://res.cloudinary.com"],
-        "media-src": ["'self'", "https://res.cloudinary.com"],
-        "connect-src": ["'self'", "https://res.cloudinary.com"],
-      },
-    },
-  })
-)
-
 // ---------------------------------------------------------------
 // 0) TRUST PROXY (Render)
 // ---------------------------------------------------------------
@@ -86,6 +72,16 @@ app.use("/api", heroRoutes)
 // ---------------------------------------------------------------
 app.use(
   helmet({
+    // Allow showing external images/videos (Cloudinary)
+    contentSecurityPolicy: {
+      useDefaults: true,
+      directives: {
+        // keep defaults + widen only what we need
+        "img-src": ["'self'", "data:", "blob:", "https:"],
+        "media-src": ["'self'", "data:", "blob:", "https:"],
+        // if you embed fonts from google etc add here, иначе остави defaults
+      },
+    },
     crossOriginResourcePolicy: { policy: "cross-origin" },
   })
 )

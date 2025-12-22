@@ -9,48 +9,38 @@ function isAdmin(email) {
   return !!email && ADMIN_EMAILS.includes(email)
 }
 
-// GET /api/hero  -> връща 1 hero (или null)
+// Public (frontend) can read hero settings
 router.get("/hero", async (req, res) => {
   try {
     const { rows } = await db.query(
-      `SELECT id, hero_vfx_url AS "heroVfxUrl", updated_at AS "updatedAt"
-       FROM hero
-       ORDER BY id DESC
-       LIMIT 1`
+      `SELECT hero_vfx_url AS "heroVfxUrl"
+       FROM hero_settings
+       WHERE id=1`
     )
-    res.json(rows[0] || null)
+    res.json(rows[0] || { heroVfxUrl: "" })
   } catch (e) {
     console.error("HERO GET ERROR:", e)
-    res.status(500).json({ error: "Failed to load hero" })
+    res.json({ heroVfxUrl: "" })
   }
 })
 
-// PUT /api/hero -> replace hero (admin)
-router.put("/hero", auth, async (req, res) => {
+// Admin update hero
+router.put("/admin/hero", auth, async (req, res) => {
   try {
     const email = req.user?.email
     if (!email) return res.status(401).json({ error: "Unauthorized" })
     if (!isAdmin(email)) return res.status(403).json({ error: "Admin access required" })
 
-    const { heroVfxUrl } = req.body || {}
-    if (!heroVfxUrl) return res.status(400).json({ error: "heroVfxUrl required" })
-
-    // upsert single row
-    const { rows } = await db.query(`SELECT id FROM hero ORDER BY id DESC LIMIT 1`)
-    if (rows[0]?.id) {
-      await db.query(
-        `UPDATE hero SET hero_vfx_url=$1, updated_at=NOW() WHERE id=$2`,
-        [heroVfxUrl, rows[0].id]
-      )
-      return res.json({ ok: true })
-    }
+    const heroVfxUrl = String(req.body?.heroVfxUrl || "")
 
     await db.query(
-      `INSERT INTO hero (hero_vfx_url, updated_at) VALUES ($1, NOW())`,
+      `INSERT INTO hero_settings (id, hero_vfx_url)
+       VALUES (1, $1)
+       ON CONFLICT (id) DO UPDATE SET hero_vfx_url = EXCLUDED.hero_vfx_url`,
       [heroVfxUrl]
     )
 
-    return res.json({ ok: true })
+    res.json({ ok: true, heroVfxUrl })
   } catch (e) {
     console.error("HERO PUT ERROR:", e)
     res.status(500).json({ error: "Failed to save hero" })

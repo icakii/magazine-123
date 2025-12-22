@@ -3093,3 +3093,184 @@ body.cart-open{
 .page{
   margin-top: 10px !important;
 }
+/* ===== ADMIN + LAYOUT FIX (paste at end) ===== */
+
+/* Space under sticky navbar (adjust if needed) */
+.page {
+  padding-top: 90px !important;
+}
+
+/* Make admin page not look "beige broken" from inherited styles */
+.admin-page {
+  max-width: 1200px !important;
+  margin: 0 auto !important;
+  padding-left: 16px !important;
+  padding-right: 16px !important;
+}
+
+.admin-top .headline {
+  margin: 0 0 8px 0 !important;
+}
+
+.admin-tabs {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  gap: 10px !important;
+  margin: 12px 0 18px 0 !important;
+}
+
+.tab {
+  border: 1px solid #111 !important;
+  border-radius: 999px !important;
+  padding: 10px 14px !important;
+  background: transparent !important;
+  cursor: pointer !important;
+  line-height: 1 !important;
+}
+
+.tab--on {
+  background: #c1272d !important;
+  border-color: #c1272d !important;
+  color: #fff !important;
+}
+
+.admin-grid {
+  display: grid !important;
+  grid-template-columns: 1fr 1fr !important;
+  gap: 18px !important;
+  align-items: start !important;
+}
+
+.admin-grid--single {
+  grid-template-columns: 1fr !important;
+}
+
+@media (max-width: 900px) {
+  .admin-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+.admin-card {
+  border: 1px solid rgba(0,0,0,0.25) !important;
+  border-radius: 22px !important;
+  padding: 18px !important;
+  background: rgba(255,255,255,0.35) !important;
+  backdrop-filter: blur(6px) !important;
+}
+
+.form-grid {
+  display: grid !important;
+  grid-template-columns: 1fr 1fr !important;
+  gap: 12px !important;
+  margin-top: 10px !important;
+}
+
+@media (max-width: 700px) {
+  .form-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+.field > span {
+  display: block !important;
+  margin-bottom: 6px !important;
+  font-weight: 700 !important;
+}
+
+.field input,
+.field textarea,
+textarea {
+  width: 100% !important;
+  box-sizing: border-box !important;
+  border: 1px solid rgba(0,0,0,0.35) !important;
+  border-radius: 12px !important;
+  padding: 10px 12px !important;
+  background: rgba(255,255,255,0.7) !important;
+}
+
+.field.row {
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  margin-top: 8px !important;
+}
+
+.upload-row {
+  display: flex !important;
+  gap: 14px !important;
+  margin-top: 14px !important;
+  flex-wrap: wrap !important;
+}
+
+.upload-box {
+  flex: 1 1 320px !important;
+  border: 1px dashed rgba(0,0,0,0.35) !important;
+  border-radius: 18px !important;
+  padding: 12px !important;
+}
+
+.upload-title {
+  font-weight: 800 !important;
+  margin-bottom: 10px !important;
+}
+
+.preview-img,
+.preview-video {
+  width: 100% !important;
+  max-height: 320px !important;
+  object-fit: cover !important;
+  border-radius: 14px !important;
+  border: 1px solid rgba(0,0,0,0.15) !important;
+}
+
+.preview-ph {
+  border-radius: 14px !important;
+  border: 1px solid rgba(0,0,0,0.15) !important;
+  padding: 14px !important;
+  opacity: 0.75 !important;
+}
+
+.btn-row {
+  display: flex !important;
+  gap: 10px !important;
+  flex-wrap: wrap !important;
+  margin-top: 14px !important;
+}
+
+/* Pages list nicer */
+.pages-list {
+  margin-top: 10px !important;
+  display: grid !important;
+  gap: 8px !important;
+}
+
+.pages-row {
+  display: flex !important;
+  justify-content: space-between !important;
+  gap: 10px !important;
+  align-items: center !important;
+  border: 1px solid rgba(0,0,0,0.15) !important;
+  border-radius: 12px !important;
+  padding: 10px !important;
+  background: rgba(255,255,255,0.55) !important;
+}
+
+.pages-url {
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+  max-width: 75% !important;
+}
+
+/* ===== Store cart button sticky (as you asked) ===== */
+.cart-fab {
+  position: sticky !important;
+  top: 90px !important; /* below navbar */
+  z-index: 50 !important;
+}
+
+/* If your navbar has different height, tweak these two values together */
+.store-head {
+  gap: 16px !important;
+}

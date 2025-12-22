@@ -7,24 +7,23 @@ const auth = require("../middleware/auth.middleware")
 router.post("/upload", auth, (req, res) => {
   upload.single("file")(req, res, (err) => {
     if (err) {
-      console.error("UPLOAD ERROR:", err)
-      return res.status(500).json({
+      // multer/cloudinary errors
+      return res.status(400).json({
         error: "Upload failed",
-        details: err?.message || String(err),
+        details: err.message || String(err),
       })
     }
 
-    if (!req.file) {
-      return res.status(400).json({ error: "No file uploaded" })
-    }
+    if (!req.file) return res.status(400).json({ error: "No file uploaded" })
 
-    return res.json({
-      url: req.file.path || "",
-      secure_url: req.file.secure_url || req.file.path || "",
+    // multer-storage-cloudinary usually puts secure URL in req.file.path
+    const url = req.file.path || req.file.secure_url || ""
+
+    res.json({
+      url,
+      secure_url: url,
       public_id: req.file.filename || req.file.public_id || "",
       mime: req.file.mimetype || null,
-      resource_type: req.file.resource_type || null,
-      bytes: req.file.bytes || null,
     })
   })
 })

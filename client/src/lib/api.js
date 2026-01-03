@@ -7,25 +7,13 @@ const rawBase = import.meta.env.VITE_API_URL || "/api"
 const baseURL = String(rawBase).replace(/\/$/, "")
 
 export const api = axios.create({
-  baseURL,
+  baseURL: import.meta.env.VITE_API_URL || "/api",
   withCredentials: true,
 })
 
-// Optional: attach bearer token if you store it in localStorage
 api.interceptors.request.use((config) => {
-  try {
-    const token =
-      localStorage.getItem("token") ||
-      localStorage.getItem("auth_token") ||
-      localStorage.getItem("miren_token") ||
-      ""
-
-    if (token && !config.headers?.Authorization) {
-      config.headers = config.headers || {}
-      config.headers.Authorization = `Bearer ${token}`
-    }
-  } catch {}
+  const token = localStorage.getItem("token")
+  if (token) config.headers.Authorization = `Bearer ${token}`
   return config
 })
-
 export default api

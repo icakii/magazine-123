@@ -1,22 +1,16 @@
-// server/src/middleware/auth.middleware.js
-const jwt = require("jsonwebtoken")
+import jwt from "jsonwebtoken"
 
-const JWT_SECRET = process.env.JWT_SECRET || "super-secret-key-change-this"
-
-module.exports = function authMiddleware(req, res, next) {
-  let token = req.cookies?.auth
-
-  // allow Bearer token (mobile / Safari)
-  if (!token && req.headers.authorization) {
-    const parts = req.headers.authorization.split(" ")
-    if (parts.length === 2 && parts[0] === "Bearer") token = parts[1]
-  }
-
-  if (!token) return res.status(401).json({ error: "Unauthorized" })
-
+export default function auth(req, res, next) {
   try {
-    // ✅ THIS is what you are missing:
-    req.user = jwt.verify(token, JWT_SECRET)
+    const header = req.headers.authorization || ""
+    const bearer = header.startsWith("Bearer ") ? header.slice(7) : ""
+    const cookieToken = req.cookies?.token || ""
+    const token = bearer || cookieToken
+
+    if (!token) return res.status(401).json({ error: "Unauthorized" })
+
+    const payload = jwt.verify(token, process.env.JWT_SECRET)
+    req.user = payload
     return next()
   } catch (e) {
     return res.status(401).json({ error: "Unauthorized" })

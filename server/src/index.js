@@ -66,7 +66,14 @@ app.options("/api/*", cors(corsOptions))
 const heroRoutes = require("./routes/hero")
 app.use("/api", heroRoutes)
 
+app.use(cookieParser())
 
+app.use(
+  cors({
+    origin: ["https://magazine-123.onrender.com"],
+    credentials: true,
+  })
+)
 // ---------------------------------------------------------------
 // 2) SECURITY + COOKIES
 // ---------------------------------------------------------------
@@ -276,13 +283,14 @@ function setAuthCookie(res, token) {
     process.env.RENDER ||
     process.env.RENDER_EXTERNAL_URL
 
-  res.cookie("auth", token, {
-    httpOnly: true,
-    secure: !!isProduction,
-    sameSite: isProduction ? "none" : "lax",
-    maxAge: 7 * 24 * 60 * 60 * 1000,
-    path: "/",
-  })
+  res.cookie("token", token, {
+  httpOnly: true,
+  secure: true,
+  sameSite: "none",
+  maxAge: 7 * 24 * 60 * 60 * 1000,
+})
+
+return res.json({ ok: true, token })
 }
 
 // ---------------------------------------------------------------

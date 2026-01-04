@@ -1,9 +1,11 @@
-import jwt from "jsonwebtoken"
+// server/src/middleware/auth.middleware.js (CommonJS)
+const jwt = require("jsonwebtoken")
 
-export default function auth(req, res, next) {
+module.exports = function auth(req, res, next) {
   try {
     const header = req.headers.authorization || ""
     const bearer = header.startsWith("Bearer ") ? header.slice(7) : ""
+
     const cookieToken = req.cookies?.token || ""
     const token = bearer || cookieToken
 

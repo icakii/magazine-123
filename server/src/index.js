@@ -41,7 +41,6 @@ const ALLOWED_ORIGINS = [
   process.env.FRONTEND_URL,
   process.env.APP_URL,
   "https://magazine-123.onrender.com", // ✅ ТОВА Е НОВИЯТ ТИ ДОМЕЙН
-  "https://miren-app.onrender.com",    // ако още го ползваш
   "http://localhost:5173",
   "http://localhost:8080",
 ].filter(Boolean)
@@ -50,8 +49,6 @@ const corsOptions = {
   origin: (origin, cb) => {
     if (!origin) return cb(null, true)
     if (ALLOWED_ORIGINS.includes(origin)) return cb(null, true)
-
-    // ❗ НЕ хвърляме Error (това прави 500)
     return cb(null, false)
   },
   credentials: true,
@@ -67,13 +64,6 @@ const heroRoutes = require("./routes/hero")
 app.use("/api", heroRoutes)
 
 app.use(cookieParser())
-
-app.use(
-  cors({
-    origin: ["https://magazine-123.onrender.com"],
-    credentials: true,
-  })
-)
 // ---------------------------------------------------------------
 // 2) SECURITY + COOKIES
 // ---------------------------------------------------------------
@@ -92,8 +82,6 @@ app.use(
     crossOriginResourcePolicy: { policy: "cross-origin" },
   })
 )
-
-app.use(cookieParser())
 
 // ---------------------------------------------------------------
 // 3) STRIPE WEBHOOK  (трябва да е ПРЕДИ express.json())
@@ -241,7 +229,8 @@ app.get("/__ping", (req, res) => {
 // 5) AUTH HELPERS
 // ---------------------------------------------------------------
 function authMiddleware(req, res, next) {
-  let token = req.cookies?.auth
+  let token = req.cookies?.token
+
 
   // allow Bearer token (mobile / Safari)
   if (!token && req.headers.authorization) {
@@ -284,14 +273,13 @@ function setAuthCookie(res, token) {
     process.env.RENDER_EXTERNAL_URL
 
   res.cookie("token", token, {
-  httpOnly: true,
-  secure: true,
-  sameSite: "none",
-  maxAge: 7 * 24 * 60 * 60 * 1000,
-})
-
-return res.json({ ok: true, token })
+    httpOnly: true,
+    secure: isProduction,
+    sameSite: isProduction ? "none" : "lax",
+    maxAge: 7 * 24 * 60 * 60 * 1000,
+  })
 }
+
 
 // ---------------------------------------------------------------
 // 6) RATE LIMITING
@@ -903,7 +891,7 @@ app.post("/api/auth/login", async (req, res) => {
 
 app.post("/api/auth/logout", (req, res) => {
   const isProduction = process.env.NODE_ENV === "production"
-  res.clearCookie("auth", {
+  res.clearCookie("token", {
     httpOnly: true,
     sameSite: isProduction ? "none" : "lax",
     secure: isProduction,
@@ -1151,13 +1139,14 @@ app.use(
   })
 )
 
+app.use("/api", require("./routes/upload"))
+
 // ✅ SPA fallback: ANY non-API route must return index.html
 app.get("*", (req, res) => {
   if (req.path.startsWith("/api")) return res.status(404).json({ error: "Not found" })
   return res.sendFile(indexHtml)
 })
 
-app.use("/api", require("./routes/upload"))
 
 // ---------------------------------------------------------------
 // START SERVER

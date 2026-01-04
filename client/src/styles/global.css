@@ -3420,3 +3420,20 @@ textarea {
   text-align: center !important;
   font-weight: 900 !important;
 }
+/* FIX: price + button да са на едно ниво на всички карти */
+.store-card {
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+.store-body {
+  display: flex !important;
+  flex-direction: column !important;
+  flex: 1 !important;
+}
+
+/* залепя price+button реда в долната част на картата */
+.store-bottom {
+  margin-top: auto !important;
+  padding-top: 14px !important;
+}

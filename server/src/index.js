@@ -84,6 +84,26 @@ app.use(
 )
 
 // ---------------------------------------------------------------
+// 7) EMAIL TRANSPORTER
+// ---------------------------------------------------------------
+const transporter = nodemailer.createTransport({
+  host: "smtp.gmail.com",
+  port: 465,
+  secure: true,
+  pool: true,
+  maxConnections: 2,
+  maxMessages: 50,
+  auth: {
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS,
+  },
+})
+
+transporter.verify((err) => {
+  if (err) console.error("❌ EMAIL TRANSPORT VERIFY FAILED:", err)
+  else console.log("✅ EMAIL TRANSPORT READY")
+})
+// ---------------------------------------------------------------
 // 3) STRIPE WEBHOOK  (трябва да е ПРЕДИ express.json())
 // ---------------------------------------------------------------
 // ---------------------------------------------------------------
@@ -300,26 +320,6 @@ app.use("/api/auth/login", loginLimiter)
 app.use("/api/auth/reset-password-request", loginLimiter)
 app.use("/api/contact", contactLimiter)
 
-// ---------------------------------------------------------------
-// 7) EMAIL TRANSPORTER
-// ---------------------------------------------------------------
-const transporter = nodemailer.createTransport({
-  host: "smtp.gmail.com",
-  port: 465,
-  secure: true,
-  pool: true,
-  maxConnections: 2,
-  maxMessages: 50,
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
-  },
-})
-
-transporter.verify((err) => {
-  if (err) console.error("❌ EMAIL TRANSPORT VERIFY FAILED:", err)
-  else console.log("✅ EMAIL TRANSPORT READY")
-})
 
 // ---------------------------------------------------------------
 // ✅ 8) ROUTERS (AFTER CORS!)

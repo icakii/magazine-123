@@ -837,6 +837,8 @@ app.post("/api/auth/register", async (req, res) => {
     const confirmationUrl = `${APP_URL}/confirm?token=${token}`
     setImmediate(async () => {
       try {
+        console.log("📧 CONFIRM EMAIL TO =", email)
+
         const info = await transporter.sendMail({
           from: `"MIREN" <${process.env.EMAIL_USER}>`,
           to: email,

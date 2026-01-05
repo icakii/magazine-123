@@ -11,7 +11,7 @@ const ADMIN_EMAILS = ["icaki06@gmail.com", "icaki2k@gmail.com", "mirenmagazine@g
 
 // store release gate (UTC date)
 const STORE_RELEASE = "2026-02-27"
-const storeOpen = new Date().toISOString().slice(0, 10) >= STORE_RELEASE
+
 
 function toggleTheme() {
   const html = document.documentElement
@@ -100,8 +100,6 @@ export default function NavBar() {
     }
   }
 
-  const allowStore = storeOpen || isAdmin
-
   return (
     <>
       <nav className="nav" ref={navRef}>
@@ -178,20 +176,15 @@ export default function NavBar() {
           <Link className="drawer-item" to="/events" onClick={handleProtectedClick}>
             {t("events")}
           </Link>
+
           <Link className="drawer-item" to="/gallery" onClick={handleProtectedClick}>
             {t("gallery")}
           </Link>
 
-          {allowStore ? (
             <Link className="drawer-item" to="/store" onClick={closeDrawer}>
-              Store
+              {t("store")}
             </Link>
-          ) : (
-            <div className="drawer-item drawer-item--locked" aria-disabled="true">
-              Store <span className="drawer-lock">🔒</span>
-              <span className="drawer-note">(Available on 27.02.26)</span>
-            </div>
-          )}
+          
 
           <Link className="drawer-item" to="/subscriptions" onClick={closeDrawer}>
             {t("subscriptions")}

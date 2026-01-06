@@ -1,12 +1,24 @@
 import { useEffect, useState } from "react"
 import { t } from "../lib/i18n"
 
-function mailto(subject) {
+function buildMailto(subject) {
   const to = "mirenmagazine@gmail.com"
   const s = encodeURIComponent(subject)
   const body = encodeURIComponent(
-    `Hello MIREN,\n\nI’m interested in: ${subject}\n\nName:\nCompany/Brand (optional):\nWebsite/Social (optional):\nBudget (optional):\nTimeline:\nDetails:\n\nThanks,`
+    `Hello MIREN,
+
+I’m interested in: ${subject}
+
+Name:
+Company / Brand (optional):
+Website / Social (optional):
+Budget (optional):
+Timeline:
+Details:
+
+Thanks,`
   )
+
   return `mailto:${to}?subject=${s}&body=${body}`
 }
 
@@ -23,7 +35,7 @@ export default function Opportunities() {
     {
       titleKey: "opp_card1_title",
       textKey: "opp_card1_text",
-      bulletsKey: "opp_card1_bullets", // -> array
+      bulletsKey: "opp_card1_bullets",
       subjectKey: "opp_card1_subject",
     },
     {
@@ -57,6 +69,8 @@ export default function Opportunities() {
           const subject = t(c.subjectKey)
           const bullets = t(c.bulletsKey)
 
+          const href = buildMailto(subject)
+
           return (
             <div key={c.titleKey} className="opp-card">
               <div className="opp-card-top">
@@ -75,7 +89,13 @@ export default function Opportunities() {
               )}
 
               <div className="opp-card-actions">
-                <a className="btn primary opp-btn" href={mailto(subject)}>
+                {/* ✅ guaranteed mailto open */}
+                <a
+                  className="btn primary opp-btn"
+                  href={href}
+                  target="_self"
+                  rel="noopener noreferrer"
+                >
                   {t("opp_contact_btn")}
                 </a>
               </div>

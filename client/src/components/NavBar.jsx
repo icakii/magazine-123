@@ -190,6 +190,11 @@ export default function NavBar() {
             {t("subscriptions")}
           </Link>
 
+          <NavLink className="drawer-item" to="/opportunities" onClick={closeDrawer}>
+  {t("opportunities")}
+</NavLink>
+
+
           <Link className="drawer-item" to="/games" onClick={handleProtectedClick}>
             {t("games")}
           </Link>

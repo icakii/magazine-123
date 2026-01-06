@@ -24,6 +24,8 @@ import Events from "./pages/Events"
 import WordGameArchive from "./pages/WGArchive"
 import ResetPassword from "./pages/ResetPassword"
 import Store from "./pages/Store"
+import Opportunities from "./pages/Opportunities"
+
 // Компоненти
 import NavBar from "./components/NavBar"
 import Footer from "./components/Footer"
@@ -94,6 +96,7 @@ ReactDOM.createRoot(document.getElementById("root")).render(
         <Route path="/contact" element={<Contact />} />
         <Route path="/help" element={<Help />} />
         <Route path="/store" element={<Store />} />
+        <Route path="/opportunities" element={<Opportunities />} />
         {/* Auth страници */}
         <Route path="/register" element={<Register />} />
         <Route path="/login" element={<Login />} />

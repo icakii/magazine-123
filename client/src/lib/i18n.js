@@ -7,6 +7,49 @@ export const dict = {
   bg: {
     brand: "MIREN",
 
+opportunities: "Партньорства",
+
+opp_title: "Партньорства",
+opp_banner_kicker: "Важно",
+opp_banner_text:
+  "Цените се договарят индивидуално и изискват одобрение. Не могат да се закупят директно.",
+
+opp_chip: "Approved only",
+opp_contact_btn: "Contact us",
+opp_footer_note:
+  "Ще се свържем с теб по имейл възможно най-скоро.",
+
+opp_card1_title: "Become a collaborator",
+opp_card1_text:
+  "Работи с MIREN по съдържание, кампании и creative идеи. Търсим хора със стил и консистентност.",
+opp_card1_bullets: [
+  "Brand collaboration / кампании",
+  "Co-created content & shooting",
+  "Long-term partnership options",
+],
+opp_card1_subject: "Become a collaborator — MIREN",
+
+opp_card2_title: "Become a sponsor",
+opp_card2_text:
+  "Спонсорирай проект/рубрика/брой. Перфектно за брандове, които искат премиум позициониране и доверие.",
+opp_card2_bullets: [
+  "Premium visibility & placement",
+  "Tailored sponsor packages",
+  "Monthly or per-campaign options",
+],
+opp_card2_subject: "Become a sponsor — MIREN",
+
+opp_card3_title: "Get your own article",
+opp_card3_text:
+  "Искаш твоя история/бранд/проект да бъде представен като статия. Всичко минава през редакторско одобрение.",
+opp_card3_bullets: [
+  "Editorial review & approval",
+  "Professional writing & layout",
+  "Optional visuals / gallery support",
+],
+opp_card3_subject: "Get your own article — MIREN",
+
+
     // HOME
     home_title: "Добре дошъл в MIREN",
     home_sub: "Тук ще откриеш сигурност, стил и функционалност.",
@@ -81,6 +124,48 @@ twofa_verify_btn: "Потвърди",
 
   en: {
     brand: "MIREN",
+
+    opportunities: "Partnerships",
+
+opp_title: "Partnerships",
+opp_banner_kicker: "Important",
+opp_banner_text:
+  "Prices are negotiated individually and require approval. These can’t be purchased directly.",
+
+opp_chip: "Approved only",
+opp_contact_btn: "Contact us",
+opp_footer_note: "We’ll reply by email as soon as possible.",
+
+opp_card1_title: "Become a collaborator",
+opp_card1_text:
+  "Work with MIREN on content, campaigns, and creative ideas. We’re looking for people with style and consistency.",
+opp_card1_bullets: [
+  "Brand collaborations / campaigns",
+  "Co-created content & shooting",
+  "Long-term partnership options",
+],
+opp_card1_subject: "Become a collaborator — MIREN",
+
+opp_card2_title: "Become a sponsor",
+opp_card2_text:
+  "Sponsor a project/section/issue. Perfect for brands that want premium placement and trust.",
+opp_card2_bullets: [
+  "Premium visibility & placement",
+  "Tailored sponsor packages",
+  "Monthly or per-campaign options",
+],
+opp_card2_subject: "Become a sponsor — MIREN",
+
+opp_card3_title: "Get your own article",
+opp_card3_text:
+  "Want your story/brand/project featured as an article? Everything goes through editorial approval.",
+opp_card3_bullets: [
+  "Editorial review & approval",
+  "Professional writing & layout",
+  "Optional visuals / gallery support",
+],
+opp_card3_subject: "Get your own article — MIREN",
+
 
     home_title: "Welcome to MIREN",
     home_sub: "Here you’ll find security, style and functionality.",

@@ -695,6 +695,123 @@ app.delete("/api/articles/:id", adminMiddleware, async (req, res) => {
   }
 })
 
+// POST /api/user/streak/check-and-notify
+// Sends "streak ended" email ONCE per UTC day if streak is broken (diff >= 2)
+router.post("/user/streak/check-and-notify", authMiddleware, async (req, res) => {
+  try {
+    const email = req.user?.email
+    if (!email) return res.status(401).json({ error: "Unauthorized" })
+
+    const today = utcTodayISO()
+    const gameName = String(req.body?.gameName || "Word Game")
+
+    const { rows } = await db.query(
+      `SELECT
+         wordle_streak,
+         wordle_last_win_date,
+         wordle_streak_last_notified
+       FROM users
+       WHERE email=$1`,
+      [email]
+    )
+
+    const u = rows[0]
+    if (!u) return res.status(404).json({ error: "User not found" })
+
+    const lastWin = u.wordle_last_win_date
+      ? String(u.wordle_last_win_date).slice(0, 10)
+      : null
+
+    const streakNow = Number(u.wordle_streak || 0)
+    const lastNotified = u.wordle_streak_last_notified
+      ? String(u.wordle_streak_last_notified).slice(0, 10)
+      : null
+
+    // Nothing to notify if user has never won
+    if (!lastWin || streakNow <= 0) {
+      return res.json({ ok: true, notified: false, reason: "no streak yet" })
+    }
+
+    const diff = daysDiff(lastWin, today)
+    const isBroken = diff >= 2
+    const alreadyNotifiedToday = lastNotified === today
+
+    if (!isBroken || alreadyNotifiedToday) {
+      return res.json({
+        ok: true,
+        notified: false,
+        isBroken,
+        alreadyNotifiedToday,
+        streak: streakNow,
+        lastWinDate: lastWin,
+        today,
+      })
+    }
+
+    // Mark notified (so we don't spam)
+    await db.query(
+      `UPDATE users
+       SET wordle_streak_last_notified=$2::date
+       WHERE email=$1`,
+      [email, today]
+    )
+
+    // Send email async (do not block response)
+    setImmediate(async () => {
+      try {
+        await transporter.sendMail({
+          from: `"MIREN Games" <${process.env.EMAIL_USER}>`,
+          to: email,
+          subject: `MIREN — Your ${gameName} streak ended`,
+          html: `
+            <div style="font-family: Arial, Helvetica, sans-serif; line-height:1.6; color:#111;">
+              <h2 style="margin:0 0 10px;">Streak ended</h2>
+
+              <p style="margin:0 0 14px;">
+                Your streak for <b>${gameName}</b> has ended because you missed a day.
+              </p>
+
+              <div style="margin:18px 0; padding:14px 16px; border:1px solid #eee; border-radius:12px; background:#fafafa;">
+                <div style="font-size:12px; color:#666; margin-bottom:6px;">Final streak</div>
+                <div style="font-size:26px; font-weight:800;">${streakNow} days</div>
+
+                <div style="height:10px;"></div>
+
+                <div style="font-size:12px; color:#666; margin-bottom:6px;">Last win date (UTC)</div>
+                <div style="font-size:14px; font-weight:700;">${lastWin}</div>
+              </div>
+
+              <p style="margin:0 0 12px;">
+                Start a new streak anytime — we’ll be here for the next round.
+              </p>
+
+              <hr style="border:none; border-top:1px solid #eee; margin:18px 0;" />
+
+              <p style="margin:0; font-size:12px; color:#666;">
+                If you didn’t expect this email, you can ignore it.
+              </p>
+            </div>
+          `,
+        })
+      } catch (err) {
+        console.error("❌ STREAK ENDED EMAIL ERROR:", err)
+      }
+    })
+
+    return res.json({
+      ok: true,
+      notified: true,
+      streak: streakNow,
+      lastWinDate: lastWin,
+      today,
+    })
+  } catch (e) {
+    console.error("CHECK STREAK ERROR:", e)
+    return res.status(500).json({ error: "Failed to check streak" })
+  }
+})
+
+
 // ---------------------------------------------------------------
 // 🔔 EVENT REMINDERS
 // ---------------------------------------------------------------
@@ -840,11 +957,38 @@ app.post("/api/auth/register", async (req, res) => {
         console.log("📧 CONFIRM EMAIL TO =", email)
 
         const info = await transporter.sendMail({
-          from: `"MIREN" <${process.env.EMAIL_USER}>`,
-          to: email,
-          subject: "Confirm Account",
-          html: `<p>Confirm your account:</p><a href="${confirmationUrl}">Click to Confirm Email</a>`,
-        })
+  from: `"MIREN" <${process.env.EMAIL_USER}>`,
+  to: email,
+  subject: "Welcome to MIREN — Confirm your email",
+  html: `
+    <div style="font-family: Arial, Helvetica, sans-serif; line-height:1.6; color:#111;">
+      <h2 style="margin:0 0 10px;">Welcome to MIREN</h2>
+      <p style="margin:0 0 14px;">
+        Thanks for joining MIREN. Please confirm your email to activate your account.
+      </p>
+
+      <p style="margin:18px 0;">
+        <a href="${confirmationUrl}"
+          style="display:inline-block; background:#8b1e1e; color:#fff; padding:12px 18px; border-radius:10px; text-decoration:none; font-weight:700;">
+          Confirm email
+        </a>
+      </p>
+
+      <p style="margin:0 0 10px; font-size:13px; color:#444;">
+        If the button doesn’t work, copy and paste this link:
+        <br/>
+        <span style="word-break:break-all;">${confirmationUrl}</span>
+      </p>
+
+      <hr style="border:none; border-top:1px solid #eee; margin:18px 0;" />
+
+      <p style="margin:0; font-size:12px; color:#666;">
+        If you didn’t create this account, you can safely ignore this email.
+      </p>
+    </div>
+  `,
+})
+
         console.log("✅ CONFIRM EMAIL SENT:", info.messageId, info.response)
       } catch (err) {
         console.error("❌ CONFIRM EMAIL SEND ERROR:", err)
@@ -965,11 +1109,38 @@ app.post("/api/auth/reset-password-request", async (req, res) => {
     setImmediate(async () => {
       try {
         const info = await transporter.sendMail({
-          from: `"MIREN" <${process.env.EMAIL_USER}>`,
-          to: email,
-          subject: "Reset Password",
-          html: `<p>Click to reset your password:</p><a href="${url}">Reset Here</a>`,
-        })
+  from: `"MIREN" <${process.env.EMAIL_USER}>`,
+  to: email,
+  subject: "MIREN — Reset your password",
+  html: `
+    <div style="font-family: Arial, Helvetica, sans-serif; line-height:1.6; color:#111;">
+      <h2 style="margin:0 0 10px;">Reset your password</h2>
+      <p style="margin:0 0 14px;">
+        We received a request to reset your MIREN password.
+      </p>
+
+      <p style="margin:18px 0;">
+        <a href="${url}"
+          style="display:inline-block; background:#111; color:#fff; padding:12px 18px; border-radius:10px; text-decoration:none; font-weight:700;">
+          Reset password
+        </a>
+      </p>
+
+      <p style="margin:0 0 10px; font-size:13px; color:#444;">
+        If the button doesn’t work, copy and paste this link:
+        <br/>
+        <span style="word-break:break-all;">${url}</span>
+      </p>
+
+      <hr style="border:none; border-top:1px solid #eee; margin:18px 0;" />
+
+      <p style="margin:0; font-size:12px; color:#666;">
+        If you didn’t request this, ignore this email — your password won’t change.
+      </p>
+    </div>
+  `,
+})
+
         console.log("✅ RESET EMAIL SENT:", info.messageId, info.response)
       } catch (err) {
         console.error("❌ RESET EMAIL SEND ERROR:", err)
@@ -995,10 +1166,28 @@ app.post("/api/auth/send-2fa", async (req, res) => {
     )
 
     await transporter.sendMail({
-      to: email,
-      subject: "2FA Code",
-      html: `Code: ${code}`,
-    })
+  from: `"MIREN Security" <${process.env.EMAIL_USER}>`,
+  to: email,
+  subject: "MIREN — Your 2FA code",
+  html: `
+    <div style="font-family: Arial, Helvetica, sans-serif; line-height:1.6; color:#111;">
+      <h2 style="margin:0 0 10px;">Two-factor authentication</h2>
+      <p style="margin:0 0 14px;">
+        Use the code below to complete your sign-in. This code expires in <b>10 minutes</b>.
+      </p>
+
+      <div style="margin:18px 0; padding:14px 16px; border:1px solid #eee; border-radius:12px; background:#fafafa;">
+        <div style="font-size:12px; color:#666; margin-bottom:6px;">Your code</div>
+        <div style="font-size:28px; font-weight:800; letter-spacing:3px;">${code}</div>
+      </div>
+
+      <p style="margin:0; font-size:12px; color:#666;">
+        If you didn’t request this code, you should change your password immediately.
+      </p>
+    </div>
+  `,
+})
+
 
     res.json({ ok: true })
   } catch (e) {
@@ -1010,9 +1199,7 @@ app.post("/api/auth/verify-2fa", async (req, res) => {
   const { email, code } = req.body
 
   try {
-    const { rows } = await db.query("SELECT * FROM users WHERE email = $1", [
-      email,
-    ])
+    const { rows } = await db.query("SELECT * FROM users WHERE email = $1", [email])
     const user = rows[0]
     if (!user) return res.status(404).json({ error: "User not found" })
 
@@ -1028,11 +1215,42 @@ app.post("/api/auth/verify-2fa", async (req, res) => {
     const token = signToken({ email: user.email })
     setAuthCookie(res, token)
 
-    res.json({ ok: true, token })
+    // ✅ send "2FA enabled" email (async, doesn't block response)
+    setImmediate(async () => {
+      try {
+        await transporter.sendMail({
+          from: `"MIREN Security" <${process.env.EMAIL_USER}>`,
+          to: email,
+          subject: "MIREN — 2FA is now enabled",
+          html: `
+            <div style="font-family: Arial, Helvetica, sans-serif; line-height:1.6; color:#111;">
+              <h2 style="margin:0 0 10px;">2FA enabled</h2>
+              <p style="margin:0 0 14px;">
+                Two-factor authentication is now enabled on your MIREN account.
+              </p>
+
+              <div style="margin:18px 0; padding:14px 16px; border:1px solid #eee; border-radius:12px; background:#fafafa;">
+                <div style="font-size:12px; color:#666; margin-bottom:6px;">Account</div>
+                <div style="font-size:14px; font-weight:700;">${email}</div>
+              </div>
+
+              <p style="margin:0; font-size:12px; color:#666;">
+                If this wasn’t you, reset your password immediately.
+              </p>
+            </div>
+          `,
+        })
+      } catch (err) {
+        console.error("❌ 2FA ENABLED EMAIL ERROR:", err)
+      }
+    })
+
+    return res.json({ ok: true, token })
   } catch (e) {
-    res.status(500).json({ error: "Error" })
+    return res.status(500).json({ error: "Error" })
   }
 })
+
 
 // ---------------------------------------------------------------
 // 💳 SUBSCRIPTIONS & STRIPE CHECKOUT

@@ -49,6 +49,13 @@ opp_card3_bullets: [
 ],
 opp_card3_subject: "Get your own article — MIREN",
 
+// --- OPPORTUNITIES EMAIL HELP ---
+
+opp_email_help_title: "Как работи контактът?",
+opp_email_help_text:
+  "Бутонът отваря Gmail чернова в браузъра. Ако не си влязъл в Gmail, ще бъдеш помолен да влезеш. При нужда можеш да използваш резервния линк за имейл приложение.",
+
+opp_email_help_alt: "Отвори в имейл приложение",
 
     // HOME
     home_title: "Добре дошъл в MIREN",
@@ -165,6 +172,13 @@ opp_card3_bullets: [
   "Optional visuals / gallery support",
 ],
 opp_card3_subject: "Get your own article — MIREN",
+
+// EN
+opp_email_help_title: "How does contact work?",
+opp_email_help_text:
+  "The button opens a Gmail draft in your browser. If you’re not logged into Gmail, you’ll be asked to sign in. You can also use the fallback link to open your email app.",
+
+opp_email_help_alt: "Open in email app",
 
 
     home_title: "Welcome to MIREN",

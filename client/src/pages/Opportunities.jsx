@@ -1,25 +1,27 @@
 import { useEffect, useState } from "react"
 import { t } from "../lib/i18n"
 
-function buildMailto(subject) {
-  const to = "mirenmagazine@gmail.com"
+const TO_EMAIL = "mirenmagazine@gmail.com"
+
+// Gmail compose (primary)
+function buildGmailLink(subject, body) {
+  const params = new URLSearchParams({
+    view: "cm",
+    fs: "1",
+    to: TO_EMAIL,
+    su: subject,
+  })
+
+  if (body) params.set("body", body)
+
+  return `https://mail.google.com/mail/?${params.toString()}`
+}
+
+// Mail app fallback (mailto)
+function buildMailto(subject, body) {
   const s = encodeURIComponent(subject)
-  const body = encodeURIComponent(
-    `Hello MIREN,
-
-I’m interested in: ${subject}
-
-Name:
-Company / Brand (optional):
-Website / Social (optional):
-Budget (optional):
-Timeline:
-Details:
-
-Thanks,`
-  )
-
-  return `mailto:${to}?subject=${s}&body=${body}`
+  const b = encodeURIComponent(body || "")
+  return `mailto:${TO_EMAIL}?subject=${s}&body=${b}`
 }
 
 export default function Opportunities() {
@@ -67,9 +69,23 @@ export default function Opportunities() {
         {cards.map((c) => {
           const title = t(c.titleKey)
           const subject = t(c.subjectKey)
-          const bullets = t(c.bulletsKey)
 
-          const href = buildMailto(subject)
+          const body = `Hello MIREN,
+
+I’m interested in: ${subject}
+
+Name:
+Company / Brand (optional):
+Website / Social (optional):
+Budget (optional):
+Timeline:
+Details:
+
+Thanks,`
+
+          const gmailHref = buildGmailLink(subject, body)
+          const mailtoHref = buildMailto(subject, body)
+          const bullets = t(c.bulletsKey)
 
           return (
             <div key={c.titleKey} className="opp-card">
@@ -89,14 +105,22 @@ export default function Opportunities() {
               )}
 
               <div className="opp-card-actions">
-                {/* ✅ guaranteed mailto open */}
+                {/* PRIMARY: Gmail */}
                 <a
                   className="btn primary opp-btn"
-                  href={href}
-                  target="_self"
+                  href={gmailHref}
+                  target="_blank"
                   rel="noopener noreferrer"
                 >
                   {t("opp_contact_btn")}
+                </a>
+
+                {/* FALLBACK: Mail app */}
+                <a
+                  className="opp-mail-fallback"
+                  href={mailtoHref}
+                >
+                  {t("opp_email_help_alt")}
                 </a>
               </div>
             </div>
@@ -104,7 +128,13 @@ export default function Opportunities() {
         })}
       </div>
 
+      {/* INFO BLOCK */}
       <div className="opp-foot">
+        <div className="opp-help">
+          <strong>{t("opp_email_help_title")}</strong>
+          <p className="text-muted">{t("opp_email_help_text")}</p>
+        </div>
+
         <div className="text-muted">{t("opp_footer_note")}</div>
       </div>
     </div>

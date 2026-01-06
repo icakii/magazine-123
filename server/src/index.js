@@ -19,11 +19,19 @@ const fs = require("fs")
 
 // ✅ ROUTERS
 const storeRouter = require("./routes/store")
-const userStreakRouter = require("./routes/userStreak")
+
+
 const leaderboardsRouter = require("./routes/leaderboards")
 
 const app = express()
+const makeUserStreakRouter = require("./routes/userStreak")
 
+app.use(
+  "/api",
+  makeUserStreakRouter({
+    sendGameStreakEndedEmail
+  })
+)
 const PORT = process.env.PORT || 8080
 const JWT_SECRET = process.env.JWT_SECRET || "super-secret-key-change-this"
 const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:5173"
@@ -103,6 +111,41 @@ transporter.verify((err) => {
   if (err) console.error("❌ EMAIL TRANSPORT VERIFY FAILED:", err)
   else console.log("✅ EMAIL TRANSPORT READY")
 })
+
+async function sendGameStreakEndedEmail({ to, gameKey, streak }) {
+  const safeGame = String(gameKey || "game").toUpperCase()
+
+  return transporter.sendMail({
+    from: `"MIREN" <${process.env.EMAIL_USER}>`,
+    to,
+    subject: `Streak ended — ${safeGame}`,
+    html: `
+      <div style="font-family: Arial, Helvetica, sans-serif; line-height:1.6; color:#111;">
+        <h2 style="margin:0 0 10px;">Your streak ended</h2>
+
+        <p style="margin:0 0 12px;">
+          Your <b>${safeGame}</b> streak has ended.
+        </p>
+
+        <div style="margin:16px 0; padding:14px 16px; border:1px solid #eee; border-radius:12px; background:#fafafa;">
+          <div style="font-size:12px; color:#666; margin-bottom:6px;">Streak</div>
+          <div style="font-size:26px; font-weight:900;">${Number(streak || 0)}</div>
+        </div>
+
+        <p style="margin:0 0 10px;">
+          Come back tomorrow and start a new streak 💪
+        </p>
+
+        <hr style="border:none; border-top:1px solid #eee; margin:18px 0;" />
+
+        <p style="margin:0; font-size:12px; color:#666;">
+          If this wasn’t you, you can ignore this email.
+        </p>
+      </div>
+    `,
+  })
+}
+
 // ---------------------------------------------------------------
 // 3) STRIPE WEBHOOK  (трябва да е ПРЕДИ express.json())
 // ---------------------------------------------------------------
@@ -326,7 +369,6 @@ app.use("/api/contact", contactLimiter)
 // ---------------------------------------------------------------
 app.use("/api", storeRouter)
 app.use("/api", leaderboardsRouter)
-app.use("/api", userStreakRouter)
 
 // ================================================================
 // API ROUTES
@@ -695,121 +737,6 @@ app.delete("/api/articles/:id", adminMiddleware, async (req, res) => {
   }
 })
 
-// POST /api/user/streak/check-and-notify
-// Sends "streak ended" email ONCE per UTC day if streak is broken (diff >= 2)
-router.post("/user/streak/check-and-notify", authMiddleware, async (req, res) => {
-  try {
-    const email = req.user?.email
-    if (!email) return res.status(401).json({ error: "Unauthorized" })
-
-    const today = utcTodayISO()
-    const gameName = String(req.body?.gameName || "Word Game")
-
-    const { rows } = await db.query(
-      `SELECT
-         wordle_streak,
-         wordle_last_win_date,
-         wordle_streak_last_notified
-       FROM users
-       WHERE email=$1`,
-      [email]
-    )
-
-    const u = rows[0]
-    if (!u) return res.status(404).json({ error: "User not found" })
-
-    const lastWin = u.wordle_last_win_date
-      ? String(u.wordle_last_win_date).slice(0, 10)
-      : null
-
-    const streakNow = Number(u.wordle_streak || 0)
-    const lastNotified = u.wordle_streak_last_notified
-      ? String(u.wordle_streak_last_notified).slice(0, 10)
-      : null
-
-    // Nothing to notify if user has never won
-    if (!lastWin || streakNow <= 0) {
-      return res.json({ ok: true, notified: false, reason: "no streak yet" })
-    }
-
-    const diff = daysDiff(lastWin, today)
-    const isBroken = diff >= 2
-    const alreadyNotifiedToday = lastNotified === today
-
-    if (!isBroken || alreadyNotifiedToday) {
-      return res.json({
-        ok: true,
-        notified: false,
-        isBroken,
-        alreadyNotifiedToday,
-        streak: streakNow,
-        lastWinDate: lastWin,
-        today,
-      })
-    }
-
-    // Mark notified (so we don't spam)
-    await db.query(
-      `UPDATE users
-       SET wordle_streak_last_notified=$2::date
-       WHERE email=$1`,
-      [email, today]
-    )
-
-    // Send email async (do not block response)
-    setImmediate(async () => {
-      try {
-        await transporter.sendMail({
-          from: `"MIREN Games" <${process.env.EMAIL_USER}>`,
-          to: email,
-          subject: `MIREN — Your ${gameName} streak ended`,
-          html: `
-            <div style="font-family: Arial, Helvetica, sans-serif; line-height:1.6; color:#111;">
-              <h2 style="margin:0 0 10px;">Streak ended</h2>
-
-              <p style="margin:0 0 14px;">
-                Your streak for <b>${gameName}</b> has ended because you missed a day.
-              </p>
-
-              <div style="margin:18px 0; padding:14px 16px; border:1px solid #eee; border-radius:12px; background:#fafafa;">
-                <div style="font-size:12px; color:#666; margin-bottom:6px;">Final streak</div>
-                <div style="font-size:26px; font-weight:800;">${streakNow} days</div>
-
-                <div style="height:10px;"></div>
-
-                <div style="font-size:12px; color:#666; margin-bottom:6px;">Last win date (UTC)</div>
-                <div style="font-size:14px; font-weight:700;">${lastWin}</div>
-              </div>
-
-              <p style="margin:0 0 12px;">
-                Start a new streak anytime — we’ll be here for the next round.
-              </p>
-
-              <hr style="border:none; border-top:1px solid #eee; margin:18px 0;" />
-
-              <p style="margin:0; font-size:12px; color:#666;">
-                If you didn’t expect this email, you can ignore it.
-              </p>
-            </div>
-          `,
-        })
-      } catch (err) {
-        console.error("❌ STREAK ENDED EMAIL ERROR:", err)
-      }
-    })
-
-    return res.json({
-      ok: true,
-      notified: true,
-      streak: streakNow,
-      lastWinDate: lastWin,
-      today,
-    })
-  } catch (e) {
-    console.error("CHECK STREAK ERROR:", e)
-    return res.status(500).json({ error: "Failed to check streak" })
-  }
-})
 
 
 // ---------------------------------------------------------------

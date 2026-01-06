@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react"
-import { t } from "../lib/lang"
+import { t } from "../lib/i18n"
 
 function mailto(subject) {
   const to = "mirenmagazine@gmail.com"

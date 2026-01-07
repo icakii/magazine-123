@@ -89,6 +89,11 @@ opp_email_help_alt: "Отвори в имейл приложение",
     help: "Помощ",
     profile: "Профил",
 
+        displayName: "Име:",
+    email: "Имейл:",
+    subscription: "Абонамент:",
+    security: "Безопасност",
+
     // AUTH/UI
     create_account: "Създай Акаунт",
     register: "Регистрация",
@@ -209,6 +214,11 @@ opp_email_help_alt: "Open in email app",
     subscriptions: "Subscriptions",
     help: "Help",
     profile: "Profile",
+
+    displayName: "Username:",
+    email: "Email:",
+    subscription: "Subscription:",
+    security: "Security",
 
     create_account: "Create Account",
     register: "Register",

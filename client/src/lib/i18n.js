@@ -112,9 +112,9 @@ profile_2fa_active: "✅ 2FA е активирано",
     help: "Помощ",
     profile: "Профил",
 
-        displayName: "Име:",
-    email: "Имейл:",
-    subscription: "Абонамент:",
+        displayName: "Име",
+    email: "Имейл",
+    subscription: "Абонамент",
     security: "Безопасност",
 
     // AUTH/UI

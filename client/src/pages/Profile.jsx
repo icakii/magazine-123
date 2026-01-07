@@ -1,164 +1,149 @@
-// src/pages/Profile.jsx
+// client/src/pages/Profile.jsx
 import { useEffect, useMemo, useState } from "react"
 import { Link } from "react-router-dom"
 import { useAuth } from "../hooks/useAuth"
 import { api } from "../lib/api"
 import { t } from "../lib/i18n"
 
+const COOLDOWN_DAYS = 14
+
 function daysBetween(a, b) {
   const ms = Math.abs(a.getTime() - b.getTime())
-  return Math.ceil(ms / (1000 * 60 * 60 * 24))
+  return Math.floor(ms / (1000 * 60 * 60 * 24))
 }
 
-// Tries multiple endpoints/methods so you don't get stuck on a 404 mismatch
-async function tryUpdateUsername(newUsername) {
-  const attempts = [
-    { method: "post", url: "/user/update-username" },
-    { method: "post", url: "/users/update-username" },
-    { method: "post", url: "/profile/update-username" },
-    { method: "post", url: "/auth/update-username" },
-
-    { method: "put", url: "/user/update-username" },
-    { method: "put", url: "/users/update-username" },
-    { method: "put", url: "/profile/update-username" },
-    { method: "put", url: "/auth/update-username" },
-  ]
-
-  let lastErr = null
-
-  for (const a of attempts) {
-    try {
-      const res =
-        a.method === "post"
-          ? await api.post(a.url, { newUsername })
-          : await api.put(a.url, { newUsername })
-      return res
-    } catch (err) {
-      lastErr = err
-      const status = err?.response?.status
-      // If endpoint doesn't exist -> try next
-      if (status === 404) continue
-      // Other errors are real (409, 400, 401...) -> stop
-      throw err
-    }
-  }
-
-  // all attempts were 404
-  const e = new Error("Update username endpoint not found (404).")
-  e.cause = lastErr
-  throw e
+function toTitleCasePlan(plan) {
+  const p = String(plan || "free").toLowerCase()
+  if (p === "monthly") return "Monthly"
+  if (p === "yearly") return "Yearly"
+  return "Free"
 }
 
 export default function Profile() {
   const { user, loading } = useAuth()
+
   const [subs, setSubs] = useState([])
+  const [serverMe, setServerMe] = useState(null)
+
   const [newName, setNewName] = useState("")
   const [isEditingName, setIsEditingName] = useState(false)
+  const [saving, setSaving] = useState(false)
+
   const [msg, setMsg] = useState({ type: "", text: "" })
   const [is2FA, setIs2FA] = useState(false)
-  const [saving, setSaving] = useState(false)
 
   useEffect(() => {
     if (!loading && user) {
+      // subs
       api
         .get("/subscriptions")
         .then((res) => setSubs(res.data || []))
         .catch(() => setSubs([]))
+
+      // user/me (за да имаме последни данни от server)
+      api
+        .get("/user/me")
+        .then((res) => setServerMe(res.data || null))
+        .catch(() => setServerMe(null))
 
       setNewName(user.displayName || "")
       setIs2FA(!!user.twoFaEnabled)
     }
   }, [loading, user])
 
-  const currentPlan = subs[0]?.plan || "Free"
-  const planLower = String(currentPlan).toLowerCase()
-  const isPremium = ["monthly", "yearly"].includes(planLower)
+  const currentPlan = useMemo(() => {
+    const p = subs?.[0]?.plan
+    return toTitleCasePlan(p)
+  }, [subs])
 
-  const planClass =
-    planLower === "monthly"
-      ? "plan-badge--monthly"
-      : planLower === "yearly"
-      ? "plan-badge--yearly"
-      : ""
+  const isPremium = useMemo(() => {
+    return ["monthly", "yearly"].includes(String(subs?.[0]?.plan || "").toLowerCase())
+  }, [subs])
 
-  const usernameGate = useMemo(() => {
-    // Not premium -> always locked, label must be Premium Only
-    if (!isPremium) {
-      return {
-        allowed: false,
-        label: "Premium only 🔒",
-        reason: "not_premium",
-        daysLeft: null,
-      }
+  // lastUsernameChange може да идва от useAuth или от /user/me (ако го връщаш)
+  const lastUsernameChange = useMemo(() => {
+    // предпочитаме serverMe ако го има
+    const fromServer = serverMe?.lastUsernameChange
+    const fromAuth = user?.lastUsernameChange
+    const raw = fromServer || fromAuth
+    if (!raw) return null
+    const d = new Date(raw)
+    return isNaN(d.getTime()) ? null : d
+  }, [serverMe, user])
+
+  const cooldown = useMemo(() => {
+    if (!lastUsernameChange) {
+      return { can: true, daysLeft: 0 }
     }
+    const diff = daysBetween(new Date(), lastUsernameChange)
+    const daysLeft = Math.max(0, COOLDOWN_DAYS - diff)
+    return { can: daysLeft === 0, daysLeft }
+  }, [lastUsernameChange])
 
-    // Premium: can change once per 14 days
-    const last = user?.lastUsernameChange ? new Date(user.lastUsernameChange) : null
-    if (!last || Number.isNaN(last.getTime())) {
-      return { allowed: true, label: "Edit", reason: "ok", daysLeft: null }
-    }
-
-    const days = daysBetween(new Date(), last)
-    if (days >= 14) {
-      return { allowed: true, label: "Edit", reason: "ok", daysLeft: 0 }
-    }
-
-    const left = 14 - days
-    return {
-      allowed: false,
-      label: `Wait (${left}d)`,
-      reason: "cooldown",
-      daysLeft: left,
-    }
-  }, [isPremium, user?.lastUsernameChange])
+  const editButtonLabel = useMemo(() => {
+    if (!isPremium) return "Premium only 🔒"
+    if (!cooldown.can) return `Wait ${cooldown.daysLeft} day${cooldown.daysLeft === 1 ? "" : "s"}`
+    return "Edit"
+  }, [isPremium, cooldown])
 
   async function handleLogout() {
     try {
       await api.post("/auth/logout")
     } catch {}
+
+    // чистим и двата key-а (защото ти ги ползваш различно на места)
     localStorage.removeItem("auth_token")
+    localStorage.removeItem("token")
+
     location.href = "/"
   }
 
   async function handleUpdateUsername() {
+    const name = String(newName || "").trim()
     setMsg({ type: "", text: "" })
 
-    if (!usernameGate.allowed) {
-      if (usernameGate.reason === "not_premium") {
-        setMsg({ type: "error", text: "This is a Premium feature (1 change per 14 days)." })
-      } else {
-        setMsg({
-          type: "error",
-          text: `You can change your username again in ${usernameGate.daysLeft} day(s).`,
-        })
-      }
+    if (!isPremium) {
+      setMsg({ type: "error", text: "This is a Premium feature." })
       return
     }
 
-    const trimmed = String(newName || "").trim()
-    if (trimmed.length < 3) {
+    if (!cooldown.can) {
+      setMsg({ type: "error", text: `You can change your username once every ${COOLDOWN_DAYS} days.` })
+      return
+    }
+
+    if (name.length < 3) {
       setMsg({ type: "error", text: "Name too short (min 3 chars)." })
       return
     }
 
+    setSaving(true)
     try {
-      setSaving(true)
-      await tryUpdateUsername(trimmed)
+      // ✅ ВАЖНО: този endpoint ГО НЯМА при теб в backend -> ще върне 404 докато не го добавиш
+      await api.post("/user/update-username", { newUsername: name })
+
       setMsg({ type: "success", text: "Username updated!" })
       setIsEditingName(false)
-      setTimeout(() => location.reload(), 900)
+
+      // refresh profile data
+      try {
+        const me = await api.get("/user/me")
+        setServerMe(me.data || null)
+      } catch {}
+
+      setTimeout(() => location.reload(), 700)
     } catch (err) {
       const status = err?.response?.status
-      const backendError = err?.response?.data?.error
-
       if (status === 404) {
         setMsg({
           type: "error",
-          text:
-            "Update route not found (404). Check your backend route name for update username.",
+          text: "Username endpoint not found (404). Add backend route: POST /api/user/update-username",
         })
       } else {
-        setMsg({ type: "error", text: backendError || err?.message || "Error updating username." })
+        setMsg({
+          type: "error",
+          text: err?.response?.data?.error || "Error updating username.",
+        })
       }
     } finally {
       setSaving(false)
@@ -170,7 +155,7 @@ export default function Profile() {
     try {
       await api.post("/auth/reset-password-request", { email: user.email })
       setMsg({ type: "success", text: "Reset link sent to your email!" })
-    } catch (err) {
+    } catch {
       setMsg({ type: "error", text: "Error sending link." })
     }
   }
@@ -179,65 +164,62 @@ export default function Profile() {
   if (!user) return <div className="page"><p>{t("not_logged_in")}</p></div>
 
   return (
-    <div className="page profile-page">
+    <div className="page">
       <h2 className="headline">{t("profile")}</h2>
 
-      <div className="card stack profile-card">
-        <div className="profile-row">
-          <strong>{t("email")}:</strong>
-          <span className="profile-mono">{user.email}</span>
+      <div className="card stack">
+        <div className="inline">
+          <strong>{t("email")}:</strong> <span>{user.email}</span>
         </div>
 
-        <div className="profile-row">
+        <div className="inline">
           <strong>Subscription:</strong>
-
-          <span className={`plan-badge ${planClass} ${isPremium ? "plan-badge--premium" : ""}`}>
-            <span className="plan-name" style={{ textTransform: "capitalize" }}>
-              {currentPlan}
-            </span>
-            {planLower === "monthly" && <span aria-hidden>⭐</span>}
-            {planLower === "yearly" && <span aria-hidden>👑</span>}
+          <span style={{ fontWeight: 900, textTransform: "none" }}>
+            {currentPlan} {isPremium && "⭐"}
           </span>
         </div>
 
-        <div className="profile-divider" />
+        <hr style={{ margin: "14px 0", border: 0, borderTop: "1px solid rgba(0,0,0,0.08)" }} />
 
-        <div className="profile-block">
-          <div className="profile-block-top">
+        <div>
+          <div className="space-between" style={{ gap: 12 }}>
             <strong>{t("displayName")}:</strong>
 
             {!isEditingName && (
               <button
-                onClick={() => {
-                  setMsg({ type: "", text: "" })
-                  setIsEditingName(true)
+                className="btn ghost"
+                onClick={() => setIsEditingName(true)}
+                disabled={!isPremium || !cooldown.can}
+                style={{
+                  padding: "8px 12px",
+                  fontSize: "0.86rem",
+                  opacity: !isPremium || !cooldown.can ? 0.6 : 1,
+                  cursor: !isPremium || !cooldown.can ? "not-allowed" : "pointer",
                 }}
-                disabled={!usernameGate.allowed}
-                className="btn ghost profile-mini-btn"
-                style={{ opacity: usernameGate.allowed ? 1 : 0.55 }}
                 title={
-                  usernameGate.reason === "not_premium"
-                    ? "Premium feature (1 change per 14 days)"
-                    : usernameGate.reason === "cooldown"
-                    ? `Wait ${usernameGate.daysLeft} day(s)`
-                    : "Edit username"
+                  !isPremium
+                    ? "Premium only"
+                    : !cooldown.can
+                      ? `Available in ${cooldown.daysLeft} day(s)`
+                      : "Edit your username"
                 }
               >
-                {usernameGate.label}
+                {editButtonLabel}
               </button>
             )}
           </div>
 
           {!isEditingName ? (
-            <span className="profile-name">{user.displayName}</span>
+            <div style={{ marginTop: 8, fontWeight: 900 }}>{user.displayName}</div>
           ) : (
-            <div className="profile-edit">
+            <div style={{ display: "flex", gap: 10, marginTop: 10, flexWrap: "wrap" }}>
               <input
                 className="input"
                 value={newName}
                 onChange={(e) => setNewName(e.target.value)}
+                style={{ flex: "1 1 260px" }}
+                placeholder="New username"
               />
-
               <button
                 onClick={handleUpdateUsername}
                 className="btn primary"
@@ -245,47 +227,57 @@ export default function Profile() {
               >
                 {saving ? "Saving..." : "Save"}
               </button>
-
               <button
                 onClick={() => {
-                  setMsg({ type: "", text: "" })
                   setIsEditingName(false)
                   setNewName(user.displayName || "")
+                  setMsg({ type: "", text: "" })
                 }}
                 className="btn ghost"
-                disabled={saving}
               >
                 Cancel
               </button>
             </div>
           )}
+
+          {isPremium && (
+            <div className="text-muted" style={{ marginTop: 10, fontSize: "0.95rem" }}>
+              You can change your username once every {COOLDOWN_DAYS} days.
+            </div>
+          )}
         </div>
 
-        <div className="profile-divider" />
+        <hr style={{ margin: "14px 0", border: 0, borderTop: "1px solid rgba(0,0,0,0.08)" }} />
 
-        <div className="profile-block">
+        <div>
           <strong>Security</strong>
 
-          <div className="profile-actions">
-            <button onClick={handlePasswordReset} className="btn outline profile-wide">
-              Send email to reset password
+          <div style={{ marginTop: 10, display: "grid", gap: 10 }}>
+            <button onClick={handlePasswordReset} className="btn outline" style={{ width: "100%" }}>
+              Send Email to Reset Password
             </button>
 
             {!is2FA ? (
-              <Link to="/2fa/setup" className="btn outline profile-wide profile-2fa">
+              <Link to="/2fa/setup" className="btn outline" style={{ width: "100%", textAlign: "center" }}>
                 🛡️ Configure Two-Factor Auth (2FA)
               </Link>
             ) : (
-              <div className="profile-2fa-ok">✅ Two-Factor Authentication is Active</div>
+              <div className="msg success" style={{ textAlign: "center" }}>
+                ✅ Two-Factor Authentication is Active
+              </div>
             )}
           </div>
         </div>
 
-        {msg.text && <p className={`msg ${msg.type === "error" ? "danger" : "success"}`}>{msg.text}</p>}
+        {msg.text && (
+          <p className={`msg ${msg.type === "error" ? "danger" : "success"}`} style={{ textAlign: "center" }}>
+            {msg.text}
+          </p>
+        )}
       </div>
 
       <div className="mt-3">
-        <button className="btn secondary profile-logout" onClick={handleLogout}>
+        <button className="btn secondary" onClick={handleLogout}>
           {t("logout")}
         </button>
       </div>

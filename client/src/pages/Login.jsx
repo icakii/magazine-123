@@ -18,16 +18,19 @@ export default function Login() {
     e.preventDefault()
     setMsg({ type: "", text: "" })
     setLoading(true)
+
     try {
       const res = await api.post("/auth/login", form)
 
-      if (res.data && res.data.requires2fa) {
+      // 2FA flow
+      if (res.data?.requires2fa) {
         sessionStorage.setItem("twofa_email", form.email)
         location.href = "/2fa/verify"
         return
       }
 
-      if (res.data.token) {
+      // Save token (Safari/mobile)
+      if (res.data?.token) {
         localStorage.setItem("auth_token", res.data.token)
       }
 
@@ -43,10 +46,11 @@ export default function Login() {
     e.preventDefault()
     setMsg({ type: "", text: "" })
     setLoading(true)
+
     try {
       await api.post("/auth/reset-password-request", { email: form.email })
       setMsg({ type: "success", text: "Reset link sent to your email!" })
-    } catch (err) {
+    } catch {
       setMsg({ type: "error", text: "Error sending link." })
     } finally {
       setLoading(false)

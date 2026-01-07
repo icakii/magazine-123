@@ -16,6 +16,7 @@ const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY)
 const helmet = require("helmet")
 const path = require("path")
 const fs = require("fs")
+const userRouter = require("./routes/user.routes")
 
 // ✅ ROUTERS
 const storeRouter = require("./routes/store")
@@ -369,6 +370,7 @@ app.use("/api/contact", contactLimiter)
 // ---------------------------------------------------------------
 app.use("/api", storeRouter)
 app.use("/api", leaderboardsRouter)
+app.use("/api", userRouter)
 
 // ================================================================
 // API ROUTES
@@ -995,24 +997,6 @@ app.post("/api/auth/confirm", async (req, res) => {
     res.json({ ok: true, token: authToken })
   } catch (err) {
     res.status(500).json({ error: "Error" })
-  }
-})
-
-app.get("/api/user/me", authMiddleware, async (req, res) => {
-  try {
-    const { rows } = await db.query(
-      "SELECT email, display_name, last_username_change, two_fa_enabled FROM users WHERE email = $1",
-      [req.user.email]
-    )
-    if (!rows[0]) return res.status(404).json({ error: "User not found" })
-
-    res.json({
-      email: rows[0].email,
-      displayName: rows[0].display_name,
-      twoFaEnabled: rows[0].two_fa_enabled,
-    })
-  } catch (err) {
-    res.status(500).json({ error: err.message })
   }
 })
 

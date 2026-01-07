@@ -3,24 +3,11 @@
 import { useEffect, useMemo, useState } from "react"
 import { api } from "../lib/api"
 
-function planPillStyle(plan) {
+function planClass(plan) {
   const p = String(plan || "free").toLowerCase()
-  if (p === "monthly") {
-    return {
-      background: "rgba(56, 128, 255, 0.14)",
-      border: "1px solid rgba(56, 128, 255, 0.28)",
-    }
-  }
-  if (p === "yearly") {
-    return {
-      background: "rgba(255, 199, 64, 0.16)",
-      border: "1px solid rgba(255, 199, 64, 0.32)",
-    }
-  }
-  return {
-    background: "var(--bg-muted)",
-    border: "1px solid var(--nav-border)",
-  }
+  if (p === "monthly") return "lb-pill lb-pill--monthly"
+  if (p === "yearly") return "lb-pill lb-pill--yearly"
+  return "lb-pill lb-pill--free"
 }
 
 function nameSuffix(plan) {
@@ -73,7 +60,7 @@ export default function Leaderboards() {
 
   if (loading) {
     return (
-      <div className="page">
+      <div className="page leaderboard-page">
         {header}
         <p className="subhead">Loading…</p>
       </div>
@@ -81,7 +68,7 @@ export default function Leaderboards() {
   }
 
   return (
-    <div className="page">
+    <div className="page leaderboard-page">
       {header}
 
       {err && <p className="msg warning">{err}</p>}
@@ -93,39 +80,21 @@ export default function Leaderboards() {
       </div>
 
       {rows.map((u, i) => {
-        const plan = String(u.plan || "free").toLowerCase()
-        const pill = planPillStyle(plan)
-        const suffix = nameSuffix(plan)
+        const pillCls = planClass(u.plan)
+        const suffix = nameSuffix(u.plan)
 
         return (
-          <div
-            key={`${u.displayName || "user"}_${i}`}
-            className="leaderboard-row"
-            style={{ borderRadius: 14, overflow: "hidden" }}
-          >
+          <div key={`${u.displayName || "user"}_${i}`} className="leaderboard-row lb-row">
             <div className="lb-col lb-rank">{i + 1}</div>
 
             <div className="lb-col lb-player">
-              <span
-                style={{
-                  fontWeight: 900,
-                  padding: "6px 10px",
-                  borderRadius: 999,
-                  ...pill,
-                  maxWidth: "100%",
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                  whiteSpace: "nowrap",
-                  display: "inline-block",
-                }}
-                title={u.displayName || "Unknown"}
-              >
+              <span className={pillCls} title={u.displayName || "Unknown"}>
                 {u.displayName || "Unknown"}
                 {suffix}
               </span>
 
               {u.lastWinDate && (
-                <div className="text-muted" style={{ fontSize: "0.9rem", marginTop: 6 }}>
+                <div className="text-muted lb-sub">
                   last win: {String(u.lastWinDate).slice(0, 10)}
                 </div>
               )}

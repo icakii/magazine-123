@@ -3588,3 +3588,237 @@ html[data-theme="dark"] .opp-chip {
   margin-top: 16px;
   text-align: center;
 }
+/* =========================================================
+   AUTH / PROFILE / LEADERBOARD — MOBILE + POLISH PATCH
+   Paste at VERY END of globals.css
+   ========================================================= */
+
+/* ---- 1) Page sizing on mobile ---- */
+@media (max-width: 700px) {
+  .app-main { padding: 16px 12px 22px !important; }
+  .page { padding: 16px 12px !important; border-radius: 14px !important; }
+  .btn { width: 100%; }
+  .btn-group { width: 100%; }
+}
+
+/* ---- 2) Headings: consistent casing ---- */
+.headline {
+  text-transform: none !important;
+}
+
+/* ---- 3) Auth layout ---- */
+.auth-page { max-width: 720px; }
+.auth-card { gap: 14px; }
+.auth-title { margin-bottom: 10px; }
+
+.form-row { display: grid; gap: 8px; }
+.label { font-weight: 900; opacity: 0.92; }
+
+.auth-links{
+  display:flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-top: 10px;
+  margin-bottom: 14px;
+}
+.auth-links--single{ justify-content: flex-start; }
+
+@media (max-width: 520px){
+  .auth-links{ flex-direction: column; align-items: flex-start; gap: 10px; }
+}
+
+.auth-link{
+  font-weight: 900;
+  font-size: 0.95rem;
+  border-bottom: 1px dashed rgba(30,30,30,0.25);
+  padding-bottom: 2px;
+}
+html[data-theme="dark"] .auth-link{
+  border-bottom-color: rgba(255,244,230,0.28);
+}
+.auth-link--primary{ color: var(--primary) !important; }
+.auth-link--muted{
+  color: var(--text-muted);
+  background: none;
+  border: 0;
+  cursor: pointer;
+  font-family: inherit;
+  text-align: left;
+}
+
+.auth-actions { margin-top: 10px; }
+.auth-actions--stack { flex-direction: column; gap: 10px; }
+.auth-btn { min-height: 52px; }
+.auth-help { color: var(--text-muted); font-weight: 700; margin-bottom: 10px; }
+.auth-msg { text-align: center; margin-top: 12px; }
+.auth-inline-msg{ margin-top: 8px; }
+
+/* ---- 4) Profile polish + subtle animations ---- */
+.profile-card{
+  position: relative;
+  overflow: hidden;
+}
+.profile-card::before{
+  content:"";
+  position:absolute;
+  inset:-40%;
+  background:
+    radial-gradient(circle at 25% 25%, rgba(196,106,74,0.16), transparent 55%),
+    radial-gradient(circle at 80% 70%, rgba(156,42,42,0.12), transparent 60%),
+    radial-gradient(circle at 50% 90%, rgba(107,123,78,0.12), transparent 60%);
+  opacity: .9;
+  pointer-events:none;
+  animation: profileFog 14s ease-in-out infinite;
+}
+@keyframes profileFog{
+  0%,100%{ transform: translate(0,0); }
+  50%{ transform: translate(16px,-10px); }
+}
+.profile-card > *{ position: relative; z-index: 1; }
+
+.profile-row{
+  display:flex;
+  align-items:center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.profile-mono{
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size: 0.95rem;
+  opacity: 0.92;
+}
+.profile-divider{
+  height: 1px;
+  background: rgba(30,30,30,0.14);
+}
+html[data-theme="dark"] .profile-divider{
+  background: rgba(255,244,230,0.14);
+}
+.profile-block{ display: grid; gap: 10px; }
+.profile-block-top{
+  display:flex;
+  align-items:center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.profile-name{ font-weight: 900; font-size: 1.05rem; }
+.profile-edit{ display:flex; gap: 10px; align-items:center; }
+@media (max-width: 520px){
+  .profile-edit{ flex-direction: column; align-items: stretch; }
+}
+
+.profile-mini-btn{
+  padding: 8px 12px !important;
+  border-radius: 999px !important;
+}
+
+.profile-actions{
+  margin-top: 10px;
+  display:flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.profile-wide{ width: 100%; min-height: 52px; }
+.profile-2fa{ text-align:center; }
+.profile-2fa-ok{
+  padding: 12px 14px;
+  border-radius: 16px;
+  font-weight: 900;
+  border: 1px solid rgba(107,123,78,0.30);
+  background: rgba(107,123,78,0.14);
+  color: var(--olive);
+}
+
+/* Premium wave badge (Profile) */
+.plan-badge--premium{
+  position: relative;
+  overflow: hidden;
+}
+.plan-badge--premium::after{
+  content:"";
+  position:absolute;
+  inset:-40%;
+  background:
+    radial-gradient(circle at 20% 30%, rgba(255,255,255,0.28), transparent 55%),
+    radial-gradient(circle at 70% 60%, rgba(196,106,74,0.18), transparent 60%);
+  transform: translateX(-35%);
+  animation: waveSweep 3.2s ease-in-out infinite;
+  pointer-events:none;
+}
+@keyframes waveSweep{
+  0%{ transform: translateX(-35%); opacity:.25; }
+  50%{ transform: translateX(0%); opacity:.55; }
+  100%{ transform: translateX(35%); opacity:.25; }
+}
+
+/* ---- 5) Leaderboard: nicer rows + wave animation pills ---- */
+.leaderboard-page .leaderboard-row.lb-row{
+  border: 1px solid var(--nav-border);
+  border-radius: 16px;
+  background: rgba(255,244,230,0.55);
+  box-shadow: var(--shadow-sm);
+  margin-top: 10px;
+  transition: transform 180ms var(--ease), box-shadow 180ms var(--ease);
+}
+html[data-theme="dark"] .leaderboard-page .leaderboard-row.lb-row{
+  background: rgba(16,16,16,0.65);
+}
+.leaderboard-page .leaderboard-row.lb-row:hover{
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.lb-sub{ font-size: 0.9rem; margin-top: 6px; }
+
+.lb-pill{
+  display:inline-block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+
+  font-weight: 900;
+  padding: 7px 11px;
+  border-radius: 999px;
+  border: 1px solid var(--nav-border);
+  position: relative;
+}
+
+.lb-pill--free{
+  background: rgba(30,30,30,0.06);
+}
+html[data-theme="dark"] .lb-pill--free{
+  background: rgba(255,244,230,0.08);
+}
+
+.lb-pill--monthly{
+  border-color: rgba(196,106,74,0.45);
+  background: rgba(196,106,74,0.12);
+}
+.lb-pill--yearly{
+  border-color: rgba(107,123,78,0.55);
+  background: rgba(107,123,78,0.14);
+}
+
+/* Wave glow on premium pills */
+.lb-pill--monthly::after,
+.lb-pill--yearly::after{
+  content:"";
+  position:absolute;
+  inset:-45%;
+  background:
+    radial-gradient(circle at 30% 30%, rgba(255,255,255,0.22), transparent 55%),
+    radial-gradient(circle at 70% 60%, rgba(156,42,42,0.14), transparent 60%);
+  transform: translateX(-35%);
+  animation: waveSweep 3.0s ease-in-out infinite;
+  pointer-events:none;
+}
+
+/* Mobile leaderboard columns */
+@media (max-width: 520px){
+  .leaderboard-head .lb-col.lb-streak,
+  .leaderboard-row .lb-col.lb-streak{ width: 82px; }
+  .leaderboard-head, .leaderboard-row{ gap: 8px; }
+}

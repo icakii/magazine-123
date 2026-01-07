@@ -1,8 +1,53 @@
-import { useEffect, useState } from "react"
+// src/pages/Profile.jsx
+import { useEffect, useMemo, useState } from "react"
 import { Link } from "react-router-dom"
 import { useAuth } from "../hooks/useAuth"
 import { api } from "../lib/api"
 import { t } from "../lib/i18n"
+
+function daysBetween(a, b) {
+  const ms = Math.abs(a.getTime() - b.getTime())
+  return Math.ceil(ms / (1000 * 60 * 60 * 24))
+}
+
+// Tries multiple endpoints/methods so you don't get stuck on a 404 mismatch
+async function tryUpdateUsername(newUsername) {
+  const attempts = [
+    { method: "post", url: "/user/update-username" },
+    { method: "post", url: "/users/update-username" },
+    { method: "post", url: "/profile/update-username" },
+    { method: "post", url: "/auth/update-username" },
+
+    { method: "put", url: "/user/update-username" },
+    { method: "put", url: "/users/update-username" },
+    { method: "put", url: "/profile/update-username" },
+    { method: "put", url: "/auth/update-username" },
+  ]
+
+  let lastErr = null
+
+  for (const a of attempts) {
+    try {
+      const res =
+        a.method === "post"
+          ? await api.post(a.url, { newUsername })
+          : await api.put(a.url, { newUsername })
+      return res
+    } catch (err) {
+      lastErr = err
+      const status = err?.response?.status
+      // If endpoint doesn't exist -> try next
+      if (status === 404) continue
+      // Other errors are real (409, 400, 401...) -> stop
+      throw err
+    }
+  }
+
+  // all attempts were 404
+  const e = new Error("Update username endpoint not found (404).")
+  e.cause = lastErr
+  throw e
+}
 
 export default function Profile() {
   const { user, loading } = useAuth()
@@ -11,10 +56,15 @@ export default function Profile() {
   const [isEditingName, setIsEditingName] = useState(false)
   const [msg, setMsg] = useState({ type: "", text: "" })
   const [is2FA, setIs2FA] = useState(false)
+  const [saving, setSaving] = useState(false)
 
   useEffect(() => {
     if (!loading && user) {
-      api.get("/subscriptions").then((res) => setSubs(res.data || [])).catch(() => setSubs([]))
+      api
+        .get("/subscriptions")
+        .then((res) => setSubs(res.data || []))
+        .catch(() => setSubs([]))
+
       setNewName(user.displayName || "")
       setIs2FA(!!user.twoFaEnabled)
     }
@@ -24,14 +74,43 @@ export default function Profile() {
   const planLower = String(currentPlan).toLowerCase()
   const isPremium = ["monthly", "yearly"].includes(planLower)
 
-  const canChangeNameVisual = () => {
-    if (!isPremium) return false
-    if (!user.lastUsernameChange) return true
-    const diffDays = Math.ceil(
-      Math.abs(new Date() - new Date(user.lastUsernameChange)) / (1000 * 60 * 60 * 24)
-    )
-    return diffDays >= 14
-  }
+  const planClass =
+    planLower === "monthly"
+      ? "plan-badge--monthly"
+      : planLower === "yearly"
+      ? "plan-badge--yearly"
+      : ""
+
+  const usernameGate = useMemo(() => {
+    // Not premium -> always locked, label must be Premium Only
+    if (!isPremium) {
+      return {
+        allowed: false,
+        label: "Premium only 🔒",
+        reason: "not_premium",
+        daysLeft: null,
+      }
+    }
+
+    // Premium: can change once per 14 days
+    const last = user?.lastUsernameChange ? new Date(user.lastUsernameChange) : null
+    if (!last || Number.isNaN(last.getTime())) {
+      return { allowed: true, label: "Edit", reason: "ok", daysLeft: null }
+    }
+
+    const days = daysBetween(new Date(), last)
+    if (days >= 14) {
+      return { allowed: true, label: "Edit", reason: "ok", daysLeft: 0 }
+    }
+
+    const left = 14 - days
+    return {
+      allowed: false,
+      label: `Wait (${left}d)`,
+      reason: "cooldown",
+      daysLeft: left,
+    }
+  }, [isPremium, user?.lastUsernameChange])
 
   async function handleLogout() {
     try {
@@ -42,21 +121,52 @@ export default function Profile() {
   }
 
   async function handleUpdateUsername() {
-    if (newName.length < 3) {
-      setMsg({ type: "error", text: "Name too short" })
+    setMsg({ type: "", text: "" })
+
+    if (!usernameGate.allowed) {
+      if (usernameGate.reason === "not_premium") {
+        setMsg({ type: "error", text: "This is a Premium feature (1 change per 14 days)." })
+      } else {
+        setMsg({
+          type: "error",
+          text: `You can change your username again in ${usernameGate.daysLeft} day(s).`,
+        })
+      }
       return
     }
+
+    const trimmed = String(newName || "").trim()
+    if (trimmed.length < 3) {
+      setMsg({ type: "error", text: "Name too short (min 3 chars)." })
+      return
+    }
+
     try {
-      await api.post("/user/update-username", { newUsername: newName })
+      setSaving(true)
+      await tryUpdateUsername(trimmed)
       setMsg({ type: "success", text: "Username updated!" })
       setIsEditingName(false)
       setTimeout(() => location.reload(), 900)
     } catch (err) {
-      setMsg({ type: "error", text: err?.response?.data?.error || "Error updating" })
+      const status = err?.response?.status
+      const backendError = err?.response?.data?.error
+
+      if (status === 404) {
+        setMsg({
+          type: "error",
+          text:
+            "Update route not found (404). Check your backend route name for update username.",
+        })
+      } else {
+        setMsg({ type: "error", text: backendError || err?.message || "Error updating username." })
+      }
+    } finally {
+      setSaving(false)
     }
   }
 
   async function handlePasswordReset() {
+    setMsg({ type: "", text: "" })
     try {
       await api.post("/auth/reset-password-request", { email: user.email })
       setMsg({ type: "success", text: "Reset link sent to your email!" })
@@ -67,9 +177,6 @@ export default function Profile() {
 
   if (loading) return <div className="page"><p className="text-muted">{t("loading")}</p></div>
   if (!user) return <div className="page"><p>{t("not_logged_in")}</p></div>
-
-  const planClass =
-    planLower === "monthly" ? "plan-badge--monthly" : planLower === "yearly" ? "plan-badge--yearly" : ""
 
   return (
     <div className="page profile-page">
@@ -101,12 +208,22 @@ export default function Profile() {
 
             {!isEditingName && (
               <button
-                onClick={() => setIsEditingName(true)}
-                disabled={!canChangeNameVisual()}
+                onClick={() => {
+                  setMsg({ type: "", text: "" })
+                  setIsEditingName(true)
+                }}
+                disabled={!usernameGate.allowed}
                 className="btn ghost profile-mini-btn"
-                title={!canChangeNameVisual() ? "Premium only / wait timer" : "Edit username"}
+                style={{ opacity: usernameGate.allowed ? 1 : 0.55 }}
+                title={
+                  usernameGate.reason === "not_premium"
+                    ? "Premium feature (1 change per 14 days)"
+                    : usernameGate.reason === "cooldown"
+                    ? `Wait ${usernameGate.daysLeft} day(s)`
+                    : "Edit username"
+                }
               >
-                {canChangeNameVisual() ? "Edit" : isPremium ? "Premium only 🔒" : "Wait"}
+                {usernameGate.label}
               </button>
             )}
           </div>
@@ -115,9 +232,30 @@ export default function Profile() {
             <span className="profile-name">{user.displayName}</span>
           ) : (
             <div className="profile-edit">
-              <input className="input" value={newName} onChange={(e) => setNewName(e.target.value)} />
-              <button onClick={handleUpdateUsername} className="btn primary">
-                Save
+              <input
+                className="input"
+                value={newName}
+                onChange={(e) => setNewName(e.target.value)}
+              />
+
+              <button
+                onClick={handleUpdateUsername}
+                className="btn primary"
+                disabled={saving}
+              >
+                {saving ? "Saving..." : "Save"}
+              </button>
+
+              <button
+                onClick={() => {
+                  setMsg({ type: "", text: "" })
+                  setIsEditingName(false)
+                  setNewName(user.displayName || "")
+                }}
+                className="btn ghost"
+                disabled={saving}
+              >
+                Cancel
               </button>
             </div>
           )}

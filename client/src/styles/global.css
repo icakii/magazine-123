@@ -3822,3 +3822,58 @@ html[data-theme="dark"] .lb-pill--free{
   .leaderboard-row .lb-col.lb-streak{ width: 82px; }
   .leaderboard-head, .leaderboard-row{ gap: 8px; }
 }
+/* =========================================================
+   PROFILE SUBSCRIPTION BADGE — match Leaderboard pills
+   Paste at VERY END of globals.css
+   ========================================================= */
+
+/* ако нямаш waveSweep (но при теб го има), оставям го за всеки случай */
+@keyframes waveSweep {
+  0%   { transform: translateX(-35%); opacity: .25; }
+  50%  { transform: translateX(0%);   opacity: .55; }
+  100% { transform: translateX(35%);  opacity: .25; }
+}
+
+/* Base badge = точно като leaderboard pill */
+.plan-badge{
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+
+  padding: 7px 11px !important;
+  border-radius: 999px !important;
+
+  font-weight: 900 !important;
+  border: 1px solid var(--nav-border) !important;
+
+  position: relative !important;
+  overflow: hidden !important;
+
+  /* free look */
+  background: rgba(30,30,30,0.06) !important;
+}
+
+/* Dark mode free look */
+html[data-theme="dark"] .plan-badge{
+  background: rgba(255,244,230,0.08) !important;
+}
+
+/* Premium = същите палитри като leaderboard + wave shine */
+.plan-badge--premium{
+  border-color: rgba(196,106,74,0.45) !important;
+  background: rgba(196,106,74,0.12) !important;
+}
+
+.plan-badge--premium::after{
+  content:"" !important;
+  position:absolute !important;
+  inset:-45% !important;
+
+  background:
+    radial-gradient(circle at 30% 30%, rgba(255,255,255,0.22), transparent 55%),
+    radial-gradient(circle at 70% 60%, rgba(156,42,42,0.14), transparent 60%) !important;
+
+  transform: translateX(-35%) !important;
+  animation: waveSweep 3.0s ease-in-out infinite !important;
+  pointer-events:none !important;
+}

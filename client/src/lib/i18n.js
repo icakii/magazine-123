@@ -215,9 +215,9 @@ opp_email_help_alt: "Open in email app",
     help: "Help",
     profile: "Profile",
 
-    displayName: "Username:",
-    email: "Email:",
-    subscription: "Subscription:",
+    displayName: "Username",
+    email: "Email",
+    subscription: "Subscription",
     security: "Security",
 
     create_account: "Create Account",

@@ -1,3 +1,4 @@
+// client/src/main.jsx
 import React, { useEffect } from "react"
 import ReactDOM from "react-dom/client"
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom"
@@ -30,7 +31,7 @@ import Footer from "./components/Footer"
 import AuthGuard from "./components/AuthGuard"
 import MaintenanceGate from "./components/MaintenanceGate"
 
-// ✅ Auth Context Provider
+// Auth provider
 import { AuthProvider } from "./context/AuthContext"
 
 // Стилове
@@ -38,9 +39,6 @@ import "./styles/global.css"
 import "./styles/layout.css"
 import "./styles/animations.css"
 
-/**
- * ✅ FIX: persist theme across routes + reloads
- */
 function ThemeBootstrap() {
   useEffect(() => {
     const KEY = "miren_theme"
@@ -73,20 +71,17 @@ function ThemeBootstrap() {
 }
 
 ReactDOM.createRoot(document.getElementById("root")).render(
-  <BrowserRouter>
-    <ThemeBootstrap />
+  <AuthProvider>
+    <BrowserRouter>
+      <ThemeBootstrap />
 
-    {/* ✅ AuthProvider трябва да е НАЙ-ОТГОРЕ, за да работи useAuth навсякъде */}
-    <AuthProvider>
-      {/* ✅ MaintenanceGate трябва да е ВЪТРЕ в AuthProvider (ползва useAuth) */}
       <MaintenanceGate>
         <NavBar />
         <main className="app-main">
           <Routes>
-            {/* Redirect: винаги като влезеш в сайта -> /home */}
             <Route path="/" element={<Navigate to="/home" replace />} />
 
-            {/* Публични страници */}
+            {/* Публични */}
             <Route path="/home" element={<Home />} />
             <Route path="/news" element={<News />} />
             <Route path="/events" element={<Events />} />
@@ -96,14 +91,14 @@ ReactDOM.createRoot(document.getElementById("root")).render(
             <Route path="/contact" element={<Contact />} />
             <Route path="/help" element={<Help />} />
 
-            {/* Auth страници */}
+            {/* Auth */}
             <Route path="/register" element={<Register />} />
             <Route path="/login" element={<Login />} />
             <Route path="/confirm" element={<Confirm />} />
             <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/2fa/verify" element={<TwoFAVerify />} />
 
-            {/* Защитени страници (с AuthGuard) */}
+            {/* Protected */}
             <Route
               path="/profile"
               element={
@@ -163,12 +158,11 @@ ReactDOM.createRoot(document.getElementById("root")).render(
               }
             />
 
-            {/* fallback */}
             <Route path="*" element={<Navigate to="/home" replace />} />
           </Routes>
         </main>
         <Footer />
       </MaintenanceGate>
-    </AuthProvider>
-  </BrowserRouter>
+    </BrowserRouter>
+  </AuthProvider>
 )

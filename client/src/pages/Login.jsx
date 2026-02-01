@@ -6,17 +6,17 @@ import { t } from "../lib/i18n"
 import { useAuth } from "../context/AuthContext"
 
 export default function Login() {
+  const { login } = useAuth()
+  const nav = useNavigate()
+  const loc = useLocation()
+
   const [form, setForm] = useState({ email: "", password: "" })
   const [msg, setMsg] = useState({ type: "", text: "" })
   const [isForgotPass, setIsForgotPass] = useState(false)
   const [loading, setLoading] = useState(false)
 
-  const nav = useNavigate()
-  const loc = useLocation()
-  const auth = useAuth() // очакваме { user, loading, refreshMe? } или подобно
-
   function update(e) {
-    setForm((f) => ({ ...f, [e.target.name]: e.target.value }))
+    setForm({ ...form, [e.target.name]: e.target.value })
   }
 
   async function submitLogin(e) {
@@ -25,37 +25,17 @@ export default function Login() {
     setLoading(true)
 
     try {
-      const email = String(form.email || "").trim().toLowerCase()
-      const password = form.password
+      const res = await login(form)
 
-      const res = await api.post("/auth/login", { email, password })
-
-      // 2FA flow
-      if (res.data?.requires2fa) {
-        sessionStorage.setItem("twofa_email", email)
-        // вместо location.href
+      if (res?.requires2fa) {
+        sessionStorage.setItem("twofa_email", form.email)
         nav("/2fa/verify", { replace: true })
         return
       }
 
-      // Save token (Safari/mobile)
-      if (res.data?.token) {
-        localStorage.setItem("auth_token", res.data.token)
-      }
-
-      // ✅ уведомяваме целия сайт, че auth се е променил
-      window.dispatchEvent(new Event("auth:changed"))
-
-      // ако контекстът има refresh метод, извикай го (без да чупи ако няма)
-      if (typeof auth?.refreshMe === "function") {
-        await auth.refreshMe()
-      } else if (typeof auth?.refresh === "function") {
-        await auth.refresh()
-      }
-
-      // ако AuthGuard те е пратил тук, връщаме те откъдето си дошъл
-      const backTo = loc.state?.from || "/profile"
-      nav(backTo, { replace: true })
+      // redirect back ако е дошъл от AuthGuard
+      const to = loc.state?.from || "/profile"
+      nav(to, { replace: true })
     } catch (err) {
       setMsg({ type: "error", text: err?.response?.data?.error || "Login failed" })
     } finally {
@@ -69,8 +49,7 @@ export default function Login() {
     setLoading(true)
 
     try {
-      const email = String(form.email || "").trim().toLowerCase()
-      await api.post("/auth/reset-password-request", { email })
+      await api.post("/auth/reset-password-request", { email: form.email })
       setMsg({ type: "success", text: "Reset link sent to your email!" })
     } catch {
       setMsg({ type: "error", text: "Error sending link." })
@@ -174,7 +153,11 @@ export default function Login() {
           </form>
         )}
 
-        {msg.text && <p className={`msg ${msg.type === "error" ? "danger" : "success"} auth-msg`}>{msg.text}</p>}
+        {msg.text && (
+          <p className={`msg ${msg.type === "error" ? "danger" : "success"} auth-msg`}>
+            {msg.text}
+          </p>
+        )}
       </div>
     </div>
   )

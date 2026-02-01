@@ -1,4 +1,5 @@
-import { createContext, useContext, useEffect, useMemo, useState } from "react"
+// client/src/context/AuthContext.jsx
+import { createContext, useContext, useEffect, useMemo, useState, useCallback } from "react"
 import { api } from "../lib/api"
 
 const AuthContext = createContext(null)
@@ -7,54 +8,78 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
 
-  async function refreshMe() {
+  const refreshMe = useCallback(async () => {
     try {
-      const res = await api.get("/api/user/me")
-      setUser(res.data)
+      const res = await api.get("/user/me")
+      setUser(res.data?.user || null)
     } catch {
       setUser(null)
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
 
-  async function login(email, password) {
-    // backend: /api/auth/login :contentReference[oaicite:4]{index=4}
-    const res = await api.post("/api/auth/login", { email, password })
+  useEffect(() => {
+    refreshMe()
 
-    // ако ползваш 2FA flow:
+    const onChanged = () => refreshMe()
+    window.addEventListener("auth:changed", onChanged)
+
+    return () => window.removeEventListener("auth:changed", onChanged)
+  }, [refreshMe])
+
+  const login = useCallback(async ({ email, password }) => {
+    const res = await api.post("/auth/login", { email, password })
+
+    // 2FA required
     if (res.data?.requires2fa) {
       return { requires2fa: true }
     }
 
-    // запази token (по желание), cookie вече се сетва от backend-а
-    if (res.data?.token) localStorage.setItem("auth_token", res.data.token)
+    if (res.data?.token) {
+      localStorage.setItem("auth_token", res.data.token)
+    }
+
+    // ако бекенд върне user директно — сетваме го веднага
+    if (res.data?.user) {
+      setUser(res.data.user)
+      setLoading(false)
+    } else {
+      await refreshMe()
+    }
+
+    window.dispatchEvent(new Event("auth:changed"))
+    return { ok: true }
+  }, [refreshMe])
+
+  const verify2FA = useCallback(async ({ email, code }) => {
+    const res = await api.post("/auth/verify-2fa", { email, code })
+
+    if (res.data?.token) {
+      localStorage.setItem("auth_token", res.data.token)
+    }
 
     await refreshMe()
+    window.dispatchEvent(new Event("auth:changed"))
+
     return { ok: true }
-  }
+  }, [refreshMe])
 
-  async function logout() {
-    // backend: /api/auth/logout :contentReference[oaicite:5]{index=5}
-    await api.post("/api/auth/logout")
+  const logout = useCallback(async () => {
+    try {
+      await api.post("/auth/logout")
+    } catch {}
+
     localStorage.removeItem("auth_token")
+    localStorage.removeItem("token")
     setUser(null)
-  }
-
-  useEffect(() => {
-    refreshMe()
-    // sync между табове (ако logout-неш в друг tab)
-    const onStorage = (e) => {
-      if (e.key === "auth_token") refreshMe()
-    }
-    window.addEventListener("storage", onStorage)
-    return () => window.removeEventListener("storage", onStorage)
+    setLoading(false)
+    window.dispatchEvent(new Event("auth:changed"))
   }, [])
 
-  const value = useMemo(
-    () => ({ user, loading, refreshMe, login, logout }),
-    [user, loading]
-  )
+  const value = useMemo(() => {
+    return { user, loading, refreshMe, login, verify2FA, logout }
+  }, [user, loading, refreshMe, login, verify2FA, logout])
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }

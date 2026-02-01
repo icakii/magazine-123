@@ -1,10 +1,9 @@
 // client/src/components/MaintenanceGate.jsx
 import { useEffect, useMemo, useState } from "react"
-import { api } from "../lib/api"
 import { useAuth } from "../context/AuthContext"
+import { api } from "../lib/api"
 
-// София: 1 март 2026, 18:00 (преди смяна към лятно време)
-// Фиксираме го като абсолютен момент с +02:00.
+// София: 1 март 2026, 18:00 (+02:00)
 const TARGET_TS = Date.parse("2026-03-01T18:00:00+02:00")
 
 const ADMIN_EMAILS = [
@@ -23,16 +22,12 @@ function splitMs(ms) {
   const hours = Math.floor((total % 86400) / 3600)
   const minutes = Math.floor((total % 3600) / 60)
   const seconds = total % 60
-  return { days, hours, minutes, seconds, total }
+  return { days, hours, minutes, seconds }
 }
 
 export default function MaintenanceGate({ children }) {
-  const { user, loading, refreshMe } = useAuth()
-
-  const isAdmin = useMemo(() => {
-    const email = String(user?.email || "").trim().toLowerCase()
-    return !!email && ADMIN_EMAILS.includes(email)
-  }, [user])
+  const { user, loading, login, verify2FA, refreshMe } = useAuth()
+  const isAdmin = !!(user && ADMIN_EMAILS.includes(user.email))
 
   const [now, setNow] = useState(Date.now())
   const [panelOpen, setPanelOpen] = useState(false)
@@ -45,13 +40,13 @@ export default function MaintenanceGate({ children }) {
   const remaining = useMemo(() => splitMs(TARGET_TS - now), [now])
   const locked = useMemo(() => now < TARGET_TS && !isAdmin, [now, isAdmin])
 
-  // Tick за countdown
+  // Countdown tick
   useEffect(() => {
     const id = setInterval(() => setNow(Date.now()), 1000)
     return () => clearInterval(id)
   }, [])
 
-  // Tick за resend timer
+  // Resend tick
   useEffect(() => {
     if (resendTimer <= 0) return
     const id = setInterval(() => {
@@ -60,7 +55,7 @@ export default function MaintenanceGate({ children }) {
     return () => clearInterval(id)
   }, [resendTimer])
 
-  // Докато е заключено -> спираме скрола в body
+  // lock scroll while locked
   useEffect(() => {
     if (!locked) return
     const prev = document.body.style.overflow
@@ -70,83 +65,25 @@ export default function MaintenanceGate({ children }) {
     }
   }, [locked])
 
-  function resetPanel() {
-    setStep("login")
-    setForm({ email: "", password: "", code: "" })
-    setMsg({ type: "", text: "" })
-    setBusy(false)
-    setResendTimer(0)
-  }
+  // ако имаш token и refreshMe още не е минал стабилно — опитай още веднъж
+  useEffect(() => {
+    if (locked && !loading) {
+      const hasToken = !!(localStorage.getItem("auth_token") || localStorage.getItem("token"))
+      if (hasToken && !user) refreshMe()
+    }
+  }, [locked, loading, user, refreshMe])
 
   function update(e) {
     setForm((f) => ({ ...f, [e.target.name]: e.target.value }))
   }
 
-  async function doLogin(e) {
-    e?.preventDefault?.()
-    setMsg({ type: "", text: "" })
-    setBusy(true)
-
-    const email = String(form.email || "").trim().toLowerCase()
-    const password = form.password
-
-    // Admin allowlist BEFORE login (UX + security)
-    if (!ADMIN_EMAILS.includes(email)) {
-      setBusy(false)
-      setMsg({ type: "error", text: "Нямаш админ достъп." })
-      return
-    }
-
-    try {
-      const res = await api.post("/auth/login", { email, password })
-
-      // 2FA flow
-      if (res.data?.requires2fa) {
-        setStep("2fa")
-        await send2FA(email)
-        return
-      }
-
-      // Save token (ако backend връща token)
-      if (res.data?.token) {
-        localStorage.setItem("auth_token", res.data.token)
-      }
-
-      // ✅ кажи на целия сайт, че auth се е сменил
-      window.dispatchEvent(new Event("auth:changed"))
-
-      // ✅ обнови user в контекста без reload
-      if (typeof refreshMe === "function") {
-        await refreshMe()
-      }
-
-      setPanelOpen(false)
-      resetPanel()
-    } catch (err) {
-      setMsg({
-        type: "error",
-        text: err?.response?.data?.error || "Login failed",
-      })
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  async function send2FA(forceEmail) {
-    const email = String(forceEmail || form.email || "").trim().toLowerCase()
-    if (!email) {
+  async function send2FA() {
+    if (!form.email) {
       setMsg({ type: "error", text: "Липсва имейл." })
       return
     }
-
-    // allowlist guard
-    if (!ADMIN_EMAILS.includes(email)) {
-      setMsg({ type: "error", text: "Нямаш админ достъп." })
-      return
-    }
-
     try {
-      await api.post("/auth/send-2fa", { email })
+      await api.post("/auth/send-2fa", { email: form.email })
       setResendTimer(60)
       setMsg({ type: "success", text: "Кодът е изпратен на имейла." })
     } catch (err) {
@@ -157,37 +94,65 @@ export default function MaintenanceGate({ children }) {
     }
   }
 
-  async function verify2FA(e) {
+  async function doLogin(e) {
     e?.preventDefault?.()
     setMsg({ type: "", text: "" })
     setBusy(true)
 
-    const email = String(form.email || "").trim().toLowerCase()
+    try {
+      // 1) login
+      const result = await login({ email: form.email, password: form.password })
 
-    // allowlist guard
-    if (!ADMIN_EMAILS.includes(email)) {
+      // блокираме non-admin (дори да знаят паролата)
+      if (!ADMIN_EMAILS.includes(form.email)) {
+        try {
+          await api.post("/auth/logout")
+        } catch {}
+        localStorage.removeItem("auth_token")
+        localStorage.removeItem("token")
+        setMsg({ type: "error", text: "Нямаш админ достъп." })
+        return
+      }
+
+      // 2) 2FA flow
+      if (result?.requires2fa) {
+        setStep("2fa")
+        await send2FA()
+        return
+      }
+
+      // 3) ако е OK — няма нужда от reload, AuthProvider вече е сетнал user
+      setPanelOpen(false)
+    } catch (err) {
+      setMsg({
+        type: "error",
+        text: err?.response?.data?.error || "Login failed",
+      })
+    } finally {
       setBusy(false)
-      setMsg({ type: "error", text: "Нямаш админ достъп." })
-      return
     }
+  }
+
+  async function doVerify2FA(e) {
+    e?.preventDefault?.()
+    setMsg({ type: "", text: "" })
+    setBusy(true)
 
     try {
-      const res = await api.post("/auth/verify-2fa", {
-        email,
-        code: form.code,
-      })
+      await verify2FA({ email: form.email, code: form.code })
 
-      if (res.data?.token) {
-        localStorage.setItem("auth_token", res.data.token)
+      if (!ADMIN_EMAILS.includes(form.email)) {
+        try {
+          await api.post("/auth/logout")
+        } catch {}
+        localStorage.removeItem("auth_token")
+        localStorage.removeItem("token")
+        setMsg({ type: "error", text: "Нямаш админ достъп." })
+        return
       }
 
-      window.dispatchEvent(new Event("auth:changed"))
-      if (typeof refreshMe === "function") {
-        await refreshMe()
-      }
-
+      // след verify2FA provider вече е refetch-нaл /user/me
       setPanelOpen(false)
-      resetPanel()
     } catch (err) {
       setMsg({
         type: "error",
@@ -198,7 +163,6 @@ export default function MaintenanceGate({ children }) {
     }
   }
 
-  // Ако вече не е заключено (или си админ), рендерираме сайта
   if (!locked) return children
 
   return (
@@ -212,8 +176,8 @@ export default function MaintenanceGate({ children }) {
           <div className="maintenance-badge">MIREN</div>
           <h1 className="maintenance-title">Сайтът е временно заключен</h1>
           <p className="maintenance-subtitle">
-            Работим по плащанията и системите. Отваряме на{" "}
-            <strong>1 март</strong> в <strong>18:00</strong> (София).
+            Работим по плащанията и системите. Отваряме на <strong>1 март</strong> в{" "}
+            <strong>18:00</strong> (София).
           </p>
         </div>
 
@@ -245,22 +209,12 @@ export default function MaintenanceGate({ children }) {
         </div>
       </div>
 
-      {/* Faded lock */}
-      <div className="maintenance-lock" aria-hidden="true">
-        🔒
-      </div>
+      <div className="maintenance-lock" aria-hidden="true">🔒</div>
 
-      {/* Admin lock button */}
       <button
         type="button"
         className={"maintenance-admin-tab" + (panelOpen ? " is-open" : "")}
-        onClick={() => {
-          setPanelOpen((v) => {
-            const next = !v
-            if (!next) resetPanel()
-            return next
-          })
-        }}
+        onClick={() => setPanelOpen((v) => !v)}
         aria-label="admin login"
         title="Admin login"
       >
@@ -274,10 +228,7 @@ export default function MaintenanceGate({ children }) {
             <button
               type="button"
               className="mph-close"
-              onClick={() => {
-                setPanelOpen(false)
-                resetPanel()
-              }}
+              onClick={() => setPanelOpen(false)}
               aria-label="close"
             >
               ×
@@ -319,19 +270,17 @@ export default function MaintenanceGate({ children }) {
               {msg.text && <div className={"mf-msg " + (msg.type || "")}>{msg.text}</div>}
             </form>
           ) : (
-            <form onSubmit={verify2FA} className="maintenance-form">
-              <div className="mf-row">
+            <form onSubmit={doVerify2FA} className="maintenance-form">
+              <div className="mf-row mf-row--between">
                 <span>2FA код</span>
-                <div className="mf-inline">
-                  <button
-                    type="button"
-                    className="mf-btn ghost"
-                    onClick={() => send2FA()}
-                    disabled={resendTimer > 0 || busy}
-                  >
-                    {resendTimer > 0 ? `Resend (${resendTimer})` : "Send"}
-                  </button>
-                </div>
+                <button
+                  type="button"
+                  className="mf-btn ghost"
+                  onClick={send2FA}
+                  disabled={resendTimer > 0 || busy}
+                >
+                  {resendTimer > 0 ? `Resend (${resendTimer})` : "Resend"}
+                </button>
               </div>
 
               <input
@@ -355,7 +304,6 @@ export default function MaintenanceGate({ children }) {
                   setStep("login")
                   setForm((f) => ({ ...f, code: "" }))
                   setMsg({ type: "", text: "" })
-                  setResendTimer(0)
                 }}
               >
                 Back
@@ -371,3 +319,4 @@ export default function MaintenanceGate({ children }) {
     </div>
   )
 }
+    

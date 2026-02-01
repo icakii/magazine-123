@@ -3923,18 +3923,6 @@ html[data-theme="dark"] .maintenance-overlay {
   pointer-events: none;
 }
 
-.maintenance-overlay.is-panel-open .maintenance-card {
-  opacity: 0.22;
-  transform: scale(0.985);
-  filter: blur(1.2px);
-  pointer-events: none;
-}
-
-.maintenance-overlay.is-panel-open .maintenance-countdown,
-.maintenance-overlay.is-panel-open .maintenance-note {
-  opacity: 0.25;
-}
-
 .maintenance-brand { position: relative; z-index: 1; }
 
 .maintenance-badge {
@@ -4088,13 +4076,12 @@ html[data-theme="dark"] .maintenance-admin-tab {
   position: fixed;
   right: 18px;
   bottom: 78px;
-  width: min(380px, calc(100% - 36px));
+  width: min(360px, calc(100% - 36px));
   border-radius: var(--radius-lg);
   border: 1px solid var(--border);
   background: var(--grad-card);
   box-shadow: var(--shadow-lg);
   overflow: hidden;
-  z-index: 10002; /* ✅ над всичко */
 }
 
 .maintenance-panel-head {
@@ -4213,24 +4200,3 @@ html[data-theme="dark"] .maintenance-loading {
   .mc-item { min-width: 66px; }
   .maintenance-lock { font-size: 64px; }
 }
-@media (max-width: 900px) {
-  .maintenance-panel {
-    right: 50%;
-    bottom: auto;
-    top: 50%;
-    transform: translate(50%, -50%);
-    width: min(520px, calc(100% - 28px));
-  }
-
-  .maintenance-admin-tab {
-    right: 14px;
-    bottom: 14px;
-  }
-
-  .maintenance-lock {
-    right: 10px;
-    bottom: 6px;
-    font-size: 62px;
-  }
-}
-

@@ -3877,3 +3877,112 @@ html[data-theme="dark"] .plan-badge{
   animation: waveSweep 3.0s ease-in-out infinite !important;
   pointer-events:none !important;
 }
+/* =========================
+   Maintenance Overlay
+   ========================= */
+.maint-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 999999;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(10, 10, 10, 0.86);
+  backdrop-filter: blur(10px);
+}
+
+.maint-card {
+  width: min(860px, 100%);
+  border-radius: 18px;
+  padding: 26px 22px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  box-shadow: 0 20px 80px rgba(0, 0, 0, 0.55);
+  color: white;
+  text-align: center;
+}
+
+.maint-badge {
+  display: inline-block;
+  padding: 7px 12px;
+  border-radius: 999px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  font-size: 0.78rem;
+  background: rgba(255, 255, 255, 0.10);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  margin-bottom: 14px;
+}
+
+.maint-title {
+  margin: 0 0 10px;
+  font-size: clamp(1.6rem, 3.2vw, 2.4rem);
+  font-weight: 900;
+}
+
+.maint-sub {
+  margin: 0 auto 18px;
+  max-width: 58ch;
+  opacity: 0.9;
+  line-height: 1.55;
+}
+
+.maint-countdown {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(120px, 1fr));
+  gap: 12px;
+  margin: 18px 0 14px;
+}
+
+.maint-box {
+  border-radius: 14px;
+  padding: 14px 12px;
+  background: rgba(255, 255, 255, 0.09);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+}
+
+.maint-num {
+  font-size: 2rem;
+  font-weight: 900;
+  letter-spacing: 0.02em;
+  line-height: 1.1;
+}
+
+.maint-label {
+  margin-top: 6px;
+  font-size: 0.85rem;
+  opacity: 0.85;
+}
+
+.maint-meta {
+  margin-top: 12px;
+  display: grid;
+  gap: 8px;
+  justify-items: center;
+  opacity: 0.95;
+}
+
+.maint-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.maint-muted {
+  opacity: 0.8;
+  font-size: 0.95rem;
+}
+
+.maint-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: rgba(255, 199, 64, 0.95);
+  box-shadow: 0 0 18px rgba(255, 199, 64, 0.6);
+}
+
+@media (max-width: 720px) {
+  .maint-countdown {
+    grid-template-columns: repeat(2, minmax(140px, 1fr));
+  }
+}

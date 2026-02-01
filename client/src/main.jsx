@@ -30,6 +30,7 @@ import Opportunities from "./pages/Opportunities"
 import NavBar from "./components/NavBar"
 import Footer from "./components/Footer"
 import AuthGuard from "./components/AuthGuard"
+import MaintenanceGate from "./components/MaintenanceGate"
 
 // Стилове
 import "./styles/global.css"
@@ -79,7 +80,7 @@ function ThemeBootstrap() {
 ReactDOM.createRoot(document.getElementById("root")).render(
   <BrowserRouter>
     <ThemeBootstrap />
-
+  <MaintenanceGate>
     <NavBar />
     <main className="app-main">
       <Routes>
@@ -169,5 +170,6 @@ ReactDOM.createRoot(document.getElementById("root")).render(
       </Routes>
     </main>
     <Footer />
+    </MaintenanceGate>
   </BrowserRouter>
 )

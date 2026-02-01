@@ -1,329 +1,373 @@
 // client/src/components/MaintenanceGate.jsx
 import { useEffect, useMemo, useState } from "react"
-import { useLocation, useNavigate } from "react-router-dom"
 import { api } from "../lib/api"
-import { useAuth } from "../hooks/useAuth"
+import { useAuth } from "../context/AuthContext"
 
-const ADMIN_EMAILS = ["icaki06@gmail.com", "icaki2k@gmail.com", "mirenmagazine@gmail.com"]
+// София: 1 март 2026, 18:00 (преди смяна към лятно време)
+// Фиксираме го като абсолютен момент с +02:00.
+const TARGET_TS = Date.parse("2026-03-01T18:00:00+02:00")
 
-function getNextMarch1_1800_Sofia() {
-  // София е EET/EEST; за простота фиксираме +02:00 (както искаш).
-  // Ако искаш 100% DST коректно, ще го направим с timezone lib, но това ще ти върши работа.
-  const now = new Date()
-  const year = now.getFullYear()
-  const candidate = new Date(`${year}-03-01T18:00:00+02:00`)
-  if (now < candidate) return candidate
-  return new Date(`${year + 1}-03-01T18:00:00+02:00`)
-}
+const ADMIN_EMAILS = [
+  "icaki06@gmail.com",
+  "icaki2k@gmail.com",
+  "mirenmagazine@gmail.com",
+]
 
 function pad2(n) {
-  return String(n).padStart(2, "0")
+  return String(Math.max(0, n)).padStart(2, "0")
 }
 
-function diffParts(ms) {
-  const total = Math.max(0, ms)
-  const s = Math.floor(total / 1000)
-  const days = Math.floor(s / 86400)
-  const hours = Math.floor((s % 86400) / 3600)
-  const mins = Math.floor((s % 3600) / 60)
-  const secs = s % 60
-  return { days, hours, mins, secs }
+function splitMs(ms) {
+  const total = Math.max(0, Math.floor(ms / 1000))
+  const days = Math.floor(total / 86400)
+  const hours = Math.floor((total % 86400) / 3600)
+  const minutes = Math.floor((total % 3600) / 60)
+  const seconds = total % 60
+  return { days, hours, minutes, seconds, total }
 }
 
 export default function MaintenanceGate({ children }) {
-  const { user, refresh } = useAuth()
-  const location = useLocation()
-  const navigate = useNavigate()
+  const { user, loading, refreshMe } = useAuth()
 
-  const openAt = useMemo(() => getNextMarch1_1800_Sofia(), [])
-  const [now, setNow] = useState(() => new Date())
-  const [showAdminModal, setShowAdminModal] = useState(false)
+  const isAdmin = useMemo(() => {
+    const email = String(user?.email || "").trim().toLowerCase()
+    return !!email && ADMIN_EMAILS.includes(email)
+  }, [user])
 
-  const [step, setStep] = useState(1) // 1 = login, 2 = 2fa
-  const [form, setForm] = useState({ email: "", password: "" })
-  const [code, setCode] = useState("")
-  const [msg, setMsg] = useState("")
+  const [now, setNow] = useState(Date.now())
+  const [panelOpen, setPanelOpen] = useState(false)
+  const [step, setStep] = useState("login") // 'login' | '2fa'
+  const [form, setForm] = useState({ email: "", password: "", code: "" })
+  const [msg, setMsg] = useState({ type: "", text: "" })
   const [busy, setBusy] = useState(false)
-  const [timer, setTimer] = useState(0)
+  const [resendTimer, setResendTimer] = useState(0)
 
-  const isAdmin = !!(user?.email && ADMIN_EMAILS.includes(user.email))
-  const isMaintenanceOn = now.getTime() < openAt.getTime()
-  const shouldBlock = isMaintenanceOn && !isAdmin
+  const remaining = useMemo(() => splitMs(TARGET_TS - now), [now])
+  const locked = useMemo(() => now < TARGET_TS && !isAdmin, [now, isAdmin])
 
-  // tick timer for countdown
+  // Tick за countdown
   useEffect(() => {
-    const t = setInterval(() => setNow(new Date()), 1000)
-    return () => clearInterval(t)
+    const id = setInterval(() => setNow(Date.now()), 1000)
+    return () => clearInterval(id)
   }, [])
 
-  // force-lock routes (ако не е админ, да не може да “влезе” на друга страница с /route)
+  // Tick за resend timer
   useEffect(() => {
-    if (!shouldBlock) return
-    if (location.pathname !== "/home") {
-      navigate("/home", { replace: true })
-    }
-  }, [shouldBlock, location.pathname, navigate])
-
-  // 2FA resend timer
-  useEffect(() => {
-    if (timer <= 0) return
-    const iv = setInterval(() => {
-      setTimer((t) => (t <= 1 ? 0 : t - 1))
+    if (resendTimer <= 0) return
+    const id = setInterval(() => {
+      setResendTimer((t) => (t <= 1 ? 0 : t - 1))
     }, 1000)
-    return () => clearInterval(iv)
-  }, [timer])
+    return () => clearInterval(id)
+  }, [resendTimer])
 
-  function resetModal() {
-    setStep(1)
-    setForm({ email: "", password: "" })
-    setCode("")
-    setMsg("")
+  // Докато е заключено -> спираме скрола в body
+  useEffect(() => {
+    if (!locked) return
+    const prev = document.body.style.overflow
+    document.body.style.overflow = "hidden"
+    return () => {
+      document.body.style.overflow = prev
+    }
+  }, [locked])
+
+  function resetPanel() {
+    setStep("login")
+    setForm({ email: "", password: "", code: "" })
+    setMsg({ type: "", text: "" })
     setBusy(false)
-    setTimer(0)
+    setResendTimer(0)
   }
 
-  function closeModal() {
-    setShowAdminModal(false)
-    resetModal()
-  }
-
-  function openModal() {
-    setShowAdminModal(true)
-    resetModal()
-  }
-
-  function onChange(e) {
+  function update(e) {
     setForm((f) => ({ ...f, [e.target.name]: e.target.value }))
   }
 
-  async function submitLogin(e) {
-    e.preventDefault()
-    setMsg("")
+  async function doLogin(e) {
+    e?.preventDefault?.()
+    setMsg({ type: "", text: "" })
     setBusy(true)
 
     const email = String(form.email || "").trim().toLowerCase()
+    const password = form.password
+
+    // Admin allowlist BEFORE login (UX + security)
     if (!ADMIN_EMAILS.includes(email)) {
       setBusy(false)
-      setMsg("Този имейл няма admin достъп.")
+      setMsg({ type: "error", text: "Нямаш админ достъп." })
       return
     }
 
     try {
-      const res = await api.post("/auth/login", { email, password: form.password })
+      const res = await api.post("/auth/login", { email, password })
 
-      // ако има 2FA – показваме стъпка 2 и пращаме код
+      // 2FA flow
       if (res.data?.requires2fa) {
-        await api.post("/auth/send-2fa", { email })
-        setStep(2)
-        setTimer(60)
-        setMsg("2FA кодът е изпратен на имейла.")
+        setStep("2fa")
+        await send2FA(email)
         return
       }
 
-      // ако няма 2FA – логваме (рядко при теб, но го поддържаме)
+      // Save token (ако backend връща token)
       if (res.data?.token) {
         localStorage.setItem("auth_token", res.data.token)
       }
+
+      // ✅ кажи на целия сайт, че auth се е сменил
       window.dispatchEvent(new Event("auth:changed"))
-      await refresh()
-      closeModal()
+
+      // ✅ обнови user в контекста без reload
+      if (typeof refreshMe === "function") {
+        await refreshMe()
+      }
+
+      setPanelOpen(false)
+      resetPanel()
     } catch (err) {
-      setMsg(err?.response?.data?.error || "Login failed")
+      setMsg({
+        type: "error",
+        text: err?.response?.data?.error || "Login failed",
+      })
     } finally {
       setBusy(false)
     }
   }
 
-  async function resend2fa() {
-    setMsg("")
-    const email = String(form.email || "").trim().toLowerCase()
+  async function send2FA(forceEmail) {
+    const email = String(forceEmail || form.email || "").trim().toLowerCase()
+    if (!email) {
+      setMsg({ type: "error", text: "Липсва имейл." })
+      return
+    }
+
+    // allowlist guard
+    if (!ADMIN_EMAILS.includes(email)) {
+      setMsg({ type: "error", text: "Нямаш админ достъп." })
+      return
+    }
+
     try {
       await api.post("/auth/send-2fa", { email })
-      setTimer(60)
-      setMsg("Кодът е изпратен отново.")
-    } catch {
-      setMsg("Грешка при изпращане.")
+      setResendTimer(60)
+      setMsg({ type: "success", text: "Кодът е изпратен на имейла." })
+    } catch (err) {
+      setMsg({
+        type: "error",
+        text: err?.response?.data?.error || "Грешка при изпращане",
+      })
     }
   }
 
-  async function verify2fa(e) {
-    e.preventDefault()
-    setMsg("")
+  async function verify2FA(e) {
+    e?.preventDefault?.()
+    setMsg({ type: "", text: "" })
     setBusy(true)
+
     const email = String(form.email || "").trim().toLowerCase()
 
+    // allowlist guard
+    if (!ADMIN_EMAILS.includes(email)) {
+      setBusy(false)
+      setMsg({ type: "error", text: "Нямаш админ достъп." })
+      return
+    }
+
     try {
-      const res = await api.post("/auth/verify-2fa", { email, code })
+      const res = await api.post("/auth/verify-2fa", {
+        email,
+        code: form.code,
+      })
 
       if (res.data?.token) {
         localStorage.setItem("auth_token", res.data.token)
       }
 
       window.dispatchEvent(new Event("auth:changed"))
-      await refresh()
-      closeModal()
+      if (typeof refreshMe === "function") {
+        await refreshMe()
+      }
+
+      setPanelOpen(false)
+      resetPanel()
     } catch (err) {
-      setMsg(err?.response?.data?.error || "Невалиден код")
+      setMsg({
+        type: "error",
+        text: err?.response?.data?.error || "Невалиден код",
+      })
     } finally {
       setBusy(false)
     }
   }
 
-  const leftMs = openAt.getTime() - now.getTime()
-  const parts = diffParts(leftMs)
+  // Ако вече не е заключено (или си админ), рендерираме сайта
+  if (!locked) return children
 
   return (
-    <>
-      {children}
+    <div
+      className={`maintenance-overlay ${panelOpen ? "is-panel-open" : ""}`}
+      role="dialog"
+      aria-modal="true"
+    >
+      <div className="maintenance-card">
+        <div className="maintenance-brand">
+          <div className="maintenance-badge">MIREN</div>
+          <h1 className="maintenance-title">Сайтът е временно заключен</h1>
+          <p className="maintenance-subtitle">
+            Работим по плащанията и системите. Отваряме на{" "}
+            <strong>1 март</strong> в <strong>18:00</strong> (София).
+          </p>
+        </div>
 
-      {shouldBlock && (
-        <div className="maintenance-overlay" role="dialog" aria-modal="true">
-          <div className="maintenance-shell">
-            <div className="maintenance-hero">
-              <div className="maintenance-dot" />
-              <h1 className="maintenance-title">Сайтът е временно заключен</h1>
-              <p className="maintenance-sub">
-                Работим по плащанията и системите. Отваряме на{" "}
-                <strong>1 март в 18:00</strong>.
-              </p>
-            </div>
+        <div className="maintenance-countdown" aria-label="countdown">
+          <div className="mc-item">
+            <div className="mc-num">{remaining.days}</div>
+            <div className="mc-lbl">дни</div>
+          </div>
+          <div className="mc-sep">:</div>
+          <div className="mc-item">
+            <div className="mc-num">{pad2(remaining.hours)}</div>
+            <div className="mc-lbl">часа</div>
+          </div>
+          <div className="mc-sep">:</div>
+          <div className="mc-item">
+            <div className="mc-num">{pad2(remaining.minutes)}</div>
+            <div className="mc-lbl">мин</div>
+          </div>
+          <div className="mc-sep">:</div>
+          <div className="mc-item">
+            <div className="mc-num">{pad2(remaining.seconds)}</div>
+            <div className="mc-lbl">сек</div>
+          </div>
+        </div>
 
-            <div className="maintenance-countdown">
-              <div className="mc-item">
-                <div className="mc-num">{pad2(parts.days)}</div>
-                <div className="mc-lbl">ДНИ</div>
-              </div>
-              <div className="mc-sep">:</div>
-              <div className="mc-item">
-                <div className="mc-num">{pad2(parts.hours)}</div>
-                <div className="mc-lbl">ЧАСА</div>
-              </div>
-              <div className="mc-sep">:</div>
-              <div className="mc-item">
-                <div className="mc-num">{pad2(parts.mins)}</div>
-                <div className="mc-lbl">МИН</div>
-              </div>
-              <div className="mc-sep">:</div>
-              <div className="mc-item">
-                <div className="mc-num">{pad2(parts.secs)}</div>
-                <div className="mc-lbl">СЕК</div>
-              </div>
-            </div>
+        <div className="maintenance-note">
+          <span className="dot" />
+          Ако си админ, отключи от катинара долу вдясно.
+        </div>
+      </div>
 
-            <div className="maintenance-hint">
-              Ако си админ, отключи от катинара долу вдясно.
-            </div>
+      {/* Faded lock */}
+      <div className="maintenance-lock" aria-hidden="true">
+        🔒
+      </div>
+
+      {/* Admin lock button */}
+      <button
+        type="button"
+        className={"maintenance-admin-tab" + (panelOpen ? " is-open" : "")}
+        onClick={() => {
+          setPanelOpen((v) => {
+            const next = !v
+            if (!next) resetPanel()
+            return next
+          })
+        }}
+        aria-label="admin login"
+        title="Admin login"
+      >
+        🔐
+      </button>
+
+      {panelOpen && (
+        <div className="maintenance-panel" role="dialog" aria-label="admin login">
+          <div className="maintenance-panel-head">
+            <div className="mph-title">Админ вход</div>
+            <button
+              type="button"
+              className="mph-close"
+              onClick={() => {
+                setPanelOpen(false)
+                resetPanel()
+              }}
+              aria-label="close"
+            >
+              ×
+            </button>
           </div>
 
-          {/* faded lock bg */}
-          <div className="maintenance-lock-bg">🔒</div>
+          {step === "login" ? (
+            <form onSubmit={doLogin} className="maintenance-form">
+              <label className="mf-row">
+                <span>Email</span>
+                <input
+                  className="mf-input"
+                  type="email"
+                  name="email"
+                  value={form.email}
+                  onChange={update}
+                  autoComplete="email"
+                  required
+                />
+              </label>
 
-          {/* lock button */}
-          <button className="maintenance-lock-btn" onClick={openModal} type="button" aria-label="Admin login">
-            🔒
-          </button>
+              <label className="mf-row">
+                <span>Password</span>
+                <input
+                  className="mf-input"
+                  type="password"
+                  name="password"
+                  value={form.password}
+                  onChange={update}
+                  autoComplete="current-password"
+                  required
+                />
+              </label>
 
-          {/* modal */}
-          {showAdminModal && (
-            <div className="maintenance-modal-backdrop" onClick={closeModal}>
-              <div className="maintenance-modal" onClick={(e) => e.stopPropagation()}>
-                <button className="maintenance-modal-close" onClick={closeModal} type="button">
-                  ×
-                </button>
+              <button className="mf-btn" type="submit" disabled={busy}>
+                {busy ? "Loading…" : "Login"}
+              </button>
 
-                <h2 className="maintenance-modal-title">Админ вход</h2>
-
-                {step === 1 ? (
-                  <form onSubmit={submitLogin} className="maintenance-form">
-                    <label className="maintenance-label">
-                      Email
-                      <input
-                        className="maintenance-input"
-                        name="email"
-                        type="email"
-                        value={form.email}
-                        onChange={onChange}
-                        placeholder="admin@email.com"
-                        autoComplete="email"
-                        required
-                      />
-                    </label>
-
-                    <label className="maintenance-label">
-                      Password
-                      <input
-                        className="maintenance-input"
-                        name="password"
-                        type="password"
-                        value={form.password}
-                        onChange={onChange}
-                        placeholder="••••••••"
-                        autoComplete="current-password"
-                        required
-                      />
-                    </label>
-
-                    <button className="maintenance-btn primary" type="submit" disabled={busy}>
-                      {busy ? "Loading..." : "Login"}
-                    </button>
-
-                    {msg && <div className="maintenance-msg">{msg}</div>}
-                  </form>
-                ) : (
-                  <form onSubmit={verify2fa} className="maintenance-form">
-                    <div className="maintenance-small">
-                      2FA кодът е изпратен на: <strong>{form.email}</strong>
-                    </div>
-
-                    <div className="maintenance-2fa-row">
-                      <label className="maintenance-label" style={{ flex: 1 }}>
-                        2FA код
-                        <input
-                          className="maintenance-input"
-                          value={code}
-                          onChange={(e) => setCode(e.target.value)}
-                          placeholder="Въведи код"
-                          inputMode="numeric"
-                          required
-                        />
-                      </label>
-
-                      <button
-                        className="maintenance-btn ghost"
-                        type="button"
-                        onClick={resend2fa}
-                        disabled={timer > 0}
-                        style={{ height: 44, marginTop: 22 }}
-                      >
-                        {timer > 0 ? `Resend (${timer})` : "Resend"}
-                      </button>
-                    </div>
-
-                    <button className="maintenance-btn primary" type="submit" disabled={busy}>
-                      {busy ? "Verifying..." : "Verify"}
-                    </button>
-
-                    <button
-                      className="maintenance-btn secondary"
-                      type="button"
-                      onClick={() => {
-                        setStep(1)
-                        setCode("")
-                        setMsg("")
-                        setTimer(0)
-                      }}
-                    >
-                      Back
-                    </button>
-
-                    {msg && <div className="maintenance-msg">{msg}</div>}
-                  </form>
-                )}
+              {msg.text && <div className={"mf-msg " + (msg.type || "")}>{msg.text}</div>}
+            </form>
+          ) : (
+            <form onSubmit={verify2FA} className="maintenance-form">
+              <div className="mf-row">
+                <span>2FA код</span>
+                <div className="mf-inline">
+                  <button
+                    type="button"
+                    className="mf-btn ghost"
+                    onClick={() => send2FA()}
+                    disabled={resendTimer > 0 || busy}
+                  >
+                    {resendTimer > 0 ? `Resend (${resendTimer})` : "Send"}
+                  </button>
+                </div>
               </div>
-            </div>
+
+              <input
+                className="mf-input"
+                name="code"
+                value={form.code}
+                onChange={update}
+                placeholder="Въведи код"
+                inputMode="numeric"
+                required
+              />
+
+              <button className="mf-btn" type="submit" disabled={busy}>
+                {busy ? "Verifying…" : "Verify"}
+              </button>
+
+              <button
+                type="button"
+                className="mf-btn ghost"
+                onClick={() => {
+                  setStep("login")
+                  setForm((f) => ({ ...f, code: "" }))
+                  setMsg({ type: "", text: "" })
+                  setResendTimer(0)
+                }}
+              >
+                Back
+              </button>
+
+              {msg.text && <div className={"mf-msg " + (msg.type || "")}>{msg.text}</div>}
+            </form>
           )}
         </div>
       )}
-    </>
+
+      {loading && <div className="maintenance-loading">Checking session…</div>}
+    </div>
   )
 }

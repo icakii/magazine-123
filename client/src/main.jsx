@@ -37,6 +37,8 @@ import "./styles/global.css"
 import "./styles/layout.css"
 import "./styles/animations.css"
 
+import { AuthProvider } from "./context/AuthContext"
+
 /**
  * ✅ FIX: persist theme across routes + reloads
  * - reads theme from localS  rage (miren_theme)
@@ -81,6 +83,7 @@ ReactDOM.createRoot(document.getElementById("root")).render(
   <BrowserRouter>
     <ThemeBootstrap />
   <MaintenanceGate>
+    <AuthProvider>
     <NavBar />
     <main className="app-main">
       <Routes>
@@ -170,6 +173,7 @@ ReactDOM.createRoot(document.getElementById("root")).render(
       </Routes>
     </main>
     <Footer />
+    </AuthProvider>
     </MaintenanceGate>
   </BrowserRouter>
 )

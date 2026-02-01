@@ -1,8 +1,9 @@
 // client/src/pages/Login.jsx
 import { useState } from "react"
-import { Link } from "react-router-dom"
+import { Link, useLocation, useNavigate } from "react-router-dom"
 import { api } from "../lib/api"
 import { t } from "../lib/i18n"
+import { useAuth } from "../context/AuthContext"
 
 export default function Login() {
   const [form, setForm] = useState({ email: "", password: "" })
@@ -10,8 +11,12 @@ export default function Login() {
   const [isForgotPass, setIsForgotPass] = useState(false)
   const [loading, setLoading] = useState(false)
 
+  const nav = useNavigate()
+  const loc = useLocation()
+  const auth = useAuth() // очакваме { user, loading, refreshMe? } или подобно
+
   function update(e) {
-    setForm({ ...form, [e.target.name]: e.target.value })
+    setForm((f) => ({ ...f, [e.target.name]: e.target.value }))
   }
 
   async function submitLogin(e) {
@@ -20,12 +25,16 @@ export default function Login() {
     setLoading(true)
 
     try {
-      const res = await api.post("/auth/login", form)
+      const email = String(form.email || "").trim().toLowerCase()
+      const password = form.password
+
+      const res = await api.post("/auth/login", { email, password })
 
       // 2FA flow
       if (res.data?.requires2fa) {
-        sessionStorage.setItem("twofa_email", form.email)
-        location.href = "/2fa/verify"
+        sessionStorage.setItem("twofa_email", email)
+        // вместо location.href
+        nav("/2fa/verify", { replace: true })
         return
       }
 
@@ -34,7 +43,19 @@ export default function Login() {
         localStorage.setItem("auth_token", res.data.token)
       }
 
-      location.href = "/profile"
+      // ✅ уведомяваме целия сайт, че auth се е променил
+      window.dispatchEvent(new Event("auth:changed"))
+
+      // ако контекстът има refresh метод, извикай го (без да чупи ако няма)
+      if (typeof auth?.refreshMe === "function") {
+        await auth.refreshMe()
+      } else if (typeof auth?.refresh === "function") {
+        await auth.refresh()
+      }
+
+      // ако AuthGuard те е пратил тук, връщаме те откъдето си дошъл
+      const backTo = loc.state?.from || "/profile"
+      nav(backTo, { replace: true })
     } catch (err) {
       setMsg({ type: "error", text: err?.response?.data?.error || "Login failed" })
     } finally {
@@ -48,7 +69,8 @@ export default function Login() {
     setLoading(true)
 
     try {
-      await api.post("/auth/reset-password-request", { email: form.email })
+      const email = String(form.email || "").trim().toLowerCase()
+      await api.post("/auth/reset-password-request", { email })
       setMsg({ type: "success", text: "Reset link sent to your email!" })
     } catch {
       setMsg({ type: "error", text: "Error sending link." })
@@ -59,9 +81,7 @@ export default function Login() {
 
   return (
     <div className="page auth-page">
-      <h2 className="headline auth-title">
-        {isForgotPass ? "Reset password" : t("login")}
-      </h2>
+      <h2 className="headline auth-title">{isForgotPass ? "Reset password" : t("login")}</h2>
 
       <div className="form-container auth-card">
         {!isForgotPass ? (
@@ -119,9 +139,7 @@ export default function Login() {
           </form>
         ) : (
           <form onSubmit={submitReset} className="form auth-form">
-            <p className="auth-help">
-              Enter your email address to receive a password reset link.
-            </p>
+            <p className="auth-help">Enter your email address to receive a password reset link.</p>
 
             <label className="form-row">
               <span className="label">{t("email")}</span>
@@ -156,11 +174,7 @@ export default function Login() {
           </form>
         )}
 
-        {msg.text && (
-          <p className={`msg ${msg.type === "error" ? "danger" : "success"} auth-msg`}>
-            {msg.text}
-          </p>
-        )}
+        {msg.text && <p className={`msg ${msg.type === "error" ? "danger" : "success"} auth-msg`}>{msg.text}</p>}
       </div>
     </div>
   )

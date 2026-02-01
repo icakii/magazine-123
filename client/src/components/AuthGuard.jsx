@@ -1,11 +1,15 @@
-import { Navigate } from "react-router-dom";
-import { useAuth } from "../hooks/useAuth";
+import { Navigate, useLocation } from "react-router-dom"
+import { useAuth } from "../context/AuthContext"
 
 export default function AuthGuard({ children }) {
-  const { user, loading } = useAuth();
+  const { user, loading } = useAuth()
+  const loc = useLocation()
 
-  if (loading) return <div className="page"><p>Loading...</p></div>;
-  if (!user) return <Navigate to="/login" replace />;
+  if (loading) return null // или spinner
 
-  return children;
+  if (!user) {
+    return <Navigate to="/login" replace state={{ from: loc.pathname }} />
+  }
+
+  return children
 }

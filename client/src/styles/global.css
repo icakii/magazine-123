@@ -4233,4 +4233,24 @@ html[data-theme="dark"] .maintenance-loading {
     font-size: 62px;
   }
 }
+/* --- Auth small polish --- */
+.auth-card .auth-msg {
+  margin-top: 14px;
+  border-radius: 14px;
+  padding: 10px 12px;
+}
+
+.auth-card .auth-msg.success {
+  border: 1px solid rgba(107, 123, 78, 0.35);
+  background: rgba(107, 123, 78, 0.10);
+}
+
+.auth-card .auth-msg.danger {
+  border: 1px solid rgba(156, 42, 42, 0.35);
+  background: rgba(156, 42, 42, 0.10);
+}
+
+.auth-form .input.xl {
+  height: 46px;
+}
 

@@ -168,7 +168,8 @@ export default function MaintenanceGate({ children }) {
 
   // Заключено: НЕ рендерираме сайта отдолу (за да не може да се “обикаля” по route-ове)
   return (
-    <div className="maintenance-overlay" role="dialog" aria-modal="true">
+    <div className={`maintenance-overlay ${panelOpen ? "is-panel-open" : ""}`} role="dialog" aria-modal="true">
+
       <div className="maintenance-card">
         <div className="maintenance-brand">
           <div className="maintenance-badge">MIREN</div>

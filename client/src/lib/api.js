@@ -35,9 +35,17 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (r) => r,
   (err) => {
-    // ❗️Важно: чистим token-а, но НЕ dispatch-ваме auth:changed,
-    // иначе AuthContext ще прави refreshMe -> 401 -> refreshMe -> loop...
-    if (err?.response?.status === 401) {
+    // ❗️Важно: чистим token-а само ако самата заявка е пратила auth header.
+    // Така избягваме race: стар /user/me (без token) да изчисти току-що записан token след login.
+    // НЕ dispatch-ваме auth:changed, за да няма refresh loop.
+    const hadAuthHeader = Boolean(
+      err?.config?.headers?.Authorization ||
+        err?.config?.headers?.authorization ||
+        (typeof err?.config?.headers?.get === "function" &&
+          (err.config.headers.get("Authorization") || err.config.headers.get("authorization")))
+    )
+
+    if (err?.response?.status === 401 && hadAuthHeader) {
       localStorage.removeItem("auth_token")
       localStorage.removeItem("token")
     }

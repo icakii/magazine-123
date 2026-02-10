@@ -12,8 +12,20 @@ export const api = axios.create({
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem("auth_token") || localStorage.getItem("token")
 
+    const url = String(config?.url || "")
+  const isPublicAuthRoute = [
+    "/auth/login",
+    "/auth/register",
+    "/auth/confirm",
+    "/auth/send-2fa",
+    "/auth/verify-2fa",
+  ].some((route) => url.includes(route))
+
+  // пазим кой token е бил изпратен с тази заявка (за anti-race логика при 401)
+  config._authTokenSnapshot = !isPublicAuthRoute ? token || null : null
+
   // axios v1 може да има AxiosHeaders (set()), затова поддържаме и двата начина
-  if (token) {
+  if (token && !isPublicAuthRoute) {
     if (config.headers && typeof config.headers.set === "function") {
       config.headers.set("Authorization", `Bearer ${token}`)
     } else {

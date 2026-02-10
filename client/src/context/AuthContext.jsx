@@ -1,261 +1,118 @@
-// client/src/components/NavBar.jsx
-"use client"
+// client/src/context/AuthContext.jsx
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react"
+import { api } from "../lib/api"
 
-import { Link, useNavigate } from "react-router-dom"
-import { useEffect, useLayoutEffect, useRef, useState } from "react"
-import { t, getLang, setLang } from "../lib/i18n"
-import { useAuth } from "../context/AuthContext"
+const AuthContext = createContext(null)
 
-const ADMIN_EMAILS = ["icaki06@gmail.com", "icaki2k@gmail.com", "mirenmagazine@gmail.com"]
+export function AuthProvider({ children }) {
+  const [user, setUser] = useState(null)
+  const [loading, setLoading] = useState(true)
 
-function toggleTheme() {
-  const html = document.documentElement
-  const current = html.getAttribute("data-theme") || "light"
-  const next = current === "dark" ? "light" : "dark"
-  html.setAttribute("data-theme", next)
-  try {
-    localStorage.setItem("miren_theme", next)
-  } catch {}
-}
+  const refreshInFlight = useRef(false)
+  const loggingOutRef = useRef(false)
 
-export default function NavBar() {
-  const navigate = useNavigate()
-  const { user, loading, logout } = useAuth()
+  const refreshMe = useCallback(async () => {
+    // ✅ ако сме в logout процес – НЕ рефрешвай user/me
+    if (loggingOutRef.current) return
 
-  const [open, setOpen] = useState(false)
-  const [lang, setLangState] = useState(getLang())
-  const [showLoginModal, setShowLoginModal] = useState(false)
+    if (refreshInFlight.current) return
+    refreshInFlight.current = true
 
-  const navRef = useRef(null)
-
-  const isAdmin = !!user?.email && ADMIN_EMAILS.includes(user.email)
+    try {
+      const res = await api.get("/user/me")
+      setUser(res.data || null)
+    } catch {
+      setUser(null)
+    } finally {
+      setLoading(false)
+      refreshInFlight.current = false
+    }
+  }, [])
 
   useEffect(() => {
-    function onLangChange(e) {
-      setLangState(e.detail.lang)
-    }
-    window.addEventListener("lang:change", onLangChange)
-    return () => window.removeEventListener("lang:change", onLangChange)
-  }, [])
+    refreshMe()
 
-  // ✅ measure navbar height -> --nav-offset
-  useLayoutEffect(() => {
-    const el = navRef.current
-    if (!el) return
+    const onChanged = () => refreshMe()
+    window.addEventListener("auth:changed", onChanged)
+    return () => window.removeEventListener("auth:changed", onChanged)
+  }, [refreshMe])
 
-    const apply = () => {
-      const h = el.offsetHeight || 72
-      document.documentElement.style.setProperty("--nav-offset", `${h}px`)
-    }
+  const login = useCallback(
+    async ({ email, password }) => {
+      const res = await api.post("/auth/login", { email, password })
 
-    apply()
+      if (res.data?.requires2fa) return { requires2fa: true }
 
-    const ro = new ResizeObserver(() => apply())
-    ro.observe(el)
-    window.addEventListener("resize", apply)
+      if (res.data?.token) localStorage.setItem("auth_token", res.data.token)
 
-    return () => {
-      ro.disconnect()
-      window.removeEventListener("resize", apply)
-    }
-  }, [])
-
-  async function handleLogout(e) {
-    if (e) e.preventDefault()
-    setOpen(false)
-
-    // ✅ logout през AuthContext -> UI се обновява веднага (без refresh)
-    await logout()
-
-    // redirect към home
-    navigate("/", { replace: true })
-  }
-
-  function changeLang() {
-    const next = lang === "bg" ? "en" : "bg"
-    setLang(next)
-  }
-
-  function toggleDrawer() {
-    setOpen((o) => !o)
-  }
-  function closeDrawer() {
-    setOpen(false)
-  }
-
-  const handleProtectedClick = (e) => {
-    if (!user) {
-      e.preventDefault()
-      setShowLoginModal(true)
-      closeDrawer()
-    } else {
-      closeDrawer()
-    }
-  }
-
-  return (
-    <>
-      <nav className="nav" ref={navRef}>
-        <div className="nav-inner">
-          <div className="nav-top">
-            <div className="nav-left">
-              <button className="hamburger" aria-label="Open menu" onClick={toggleDrawer} type="button">
-                <span className="lines">
-                  <span className="line" />
-                  <span className="line" />
-                  <span className="line" />
-                </span>
-              </button>
-            </div>
-
-            <div className="nav-center">
-              <Link className="brand" to="/" onClick={closeDrawer}>
-                {t("brand")}
-              </Link>
-            </div>
-          </div>
-
-          <div className="nav-right nav-right-wrap">
-            <div className="nav-actions">
-              {!loading && !user && (
-                <>
-                  <Link to="/register" className="btn ghost nav-btn" style={{ border: "none" }} onClick={closeDrawer}>
-                    {t("register")}
-                  </Link>
-                  <Link to="/login" className="btn primary nav-btn" onClick={closeDrawer}>
-                    {t("login")}
-                  </Link>
-                </>
-              )}
-
-              {user && (
-                <form onSubmit={handleLogout} style={{ display: "inline" }}>
-                  <button className="btn secondary nav-btn logout-btn" type="submit">
-                    {t("logout")}
-                  </button>
-                </form>
-              )}
-            </div>
-
-            <div className="nav-toggles">
-              <button className="theme-toggle" onClick={toggleTheme} type="button">
-                {t("theme")}
-              </button>
-
-              <button className="lang-toggle" onClick={changeLang} type="button">
-                {lang.toUpperCase()}
-              </button>
-            </div>
-          </div>
-        </div>
-      </nav>
-
-      <div className={`drawer-backdrop ${open ? "open" : ""}`} onClick={closeDrawer} />
-
-      <aside className={`drawer ${open ? "open" : ""}`} aria-hidden={!open}>
-        <nav className="drawer-list">
-          <Link className="drawer-item" to="/" onClick={closeDrawer}>
-            {t("home")}
-          </Link>
-
-          <Link className="drawer-item" to="/e-magazine" onClick={handleProtectedClick}>
-            {t("emag")}
-          </Link>
-          <Link className="drawer-item" to="/news" onClick={handleProtectedClick}>
-            {t("news")}
-          </Link>
-          <Link className="drawer-item" to="/events" onClick={handleProtectedClick}>
-            {t("events")}
-          </Link>
-
-          <Link className="drawer-item" to="/gallery" onClick={handleProtectedClick}>
-            {t("gallery")}
-          </Link>
-
-          <Link className="drawer-item" to="/store" onClick={closeDrawer}>
-            {t("store")}
-          </Link>
-
-          <Link className="drawer-item" to="/subscriptions" onClick={closeDrawer}>
-            {t("subscriptions")}
-          </Link>
-
-          <Link className="drawer-item" to="/opportunities" onClick={closeDrawer}>
-            {t("opportunities")}
-          </Link>
-
-          <Link className="drawer-item" to="/games" onClick={handleProtectedClick}>
-            {t("games")}
-          </Link>
-
-          <Link className="drawer-item" to="/about" onClick={closeDrawer}>
-            {t("about")}
-          </Link>
-          <Link className="drawer-item" to="/contact" onClick={closeDrawer}>
-            {t("contact")}
-          </Link>
-          <Link className="drawer-item" to="/help" onClick={closeDrawer}>
-            {t("help")}
-          </Link>
-
-          <div className="drawer-sep" />
-
-          <Link className="drawer-item" to="/profile" onClick={closeDrawer}>
-            {t("profile")}
-          </Link>
-
-          {isAdmin && (
-            <Link
-              className="drawer-item"
-              to="/admin"
-              onClick={closeDrawer}
-              style={{ color: "var(--oxide-red)", fontWeight: "bold" }}
-            >
-              ⚙️ Admin Panel
-            </Link>
-          )}
-        </nav>
-      </aside>
-
-      {showLoginModal && (
-        <div className="modal-backdrop" onClick={() => setShowLoginModal(false)}>
-          <div
-            className="modal-content"
-            onClick={(e) => e.stopPropagation()}
-            style={{ textAlign: "center", maxWidth: "400px" }}
-          >
-            <button className="modal-close" onClick={() => setShowLoginModal(false)} type="button">
-              ×
-            </button>
-            <div style={{ fontSize: "3rem", marginBottom: "10px" }}>🔒</div>
-            <h2 className="headline" style={{ fontSize: "1.8rem" }}>
-              Access Restricted
-            </h2>
-            <p style={{ marginBottom: "20px", color: "gray" }}>
-              You must be a registered member to access this content. <br />
-              Join MIREN today!
-            </p>
-            <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-              <Link
-                to="/register"
-                className="btn primary"
-                onClick={() => setShowLoginModal(false)}
-                style={{ textDecoration: "none" }}
-              >
-                Create Account
-              </Link>
-              <Link
-                to="/login"
-                className="btn ghost"
-                onClick={() => setShowLoginModal(false)}
-                style={{ textDecoration: "none" }}
-              >
-                Login
-              </Link>
-            </div>
-          </div>
-        </div>
-      )}
-    </>
+      await refreshMe()
+      window.dispatchEvent(new Event("auth:changed"))
+      return { ok: true }
+    },
+    [refreshMe]
   )
+
+  const send2FA = useCallback(async (email) => {
+    await api.post("/auth/send-2fa", { email })
+    return { ok: true }
+  }, [])
+
+  const verify2FA = useCallback(
+    async ({ email, code }) => {
+      const res = await api.post("/auth/verify-2fa", { email, code })
+      if (res.data?.token) localStorage.setItem("auth_token", res.data.token)
+
+      await refreshMe()
+      window.dispatchEvent(new Event("auth:changed"))
+      return { ok: true }
+    },
+    [refreshMe]
+  )
+
+  // ✅ FIX: logout без "връщане обратно" логнат
+  const logout = useCallback(async () => {
+    if (loggingOutRef.current) return
+    loggingOutRef.current = true
+
+    try {
+      // 1) ПЪРВО: кажи на сървъра да изчисти cookie/session
+      await api.post("/auth/logout")
+    } catch {}
+
+    // 2) после чистим локалните токени
+    try {
+      localStorage.removeItem("auth_token")
+      localStorage.removeItem("token")
+      localStorage.removeItem("miren_token")
+    } catch {}
+
+    // 3) UI -> logout веднага и стабилно
+    setUser(null)
+    setLoading(false)
+
+    // 4) вече е безопасно да известим
+    window.dispatchEvent(new Event("auth:changed"))
+
+    loggingOutRef.current = false
+  }, [])
+
+  const value = useMemo(() => {
+    return { user, loading, refreshMe, login, send2FA, verify2FA, logout }
+  }, [user, loading, refreshMe, login, send2FA, verify2FA, logout])
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
+}
+
+export function useAuth() {
+  const ctx = useContext(AuthContext)
+  if (!ctx) throw new Error("useAuth must be used inside <AuthProvider/>")
+  return ctx
 }

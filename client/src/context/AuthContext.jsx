@@ -8,7 +8,6 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
 
-  // ✅ пазим флаг да не правим refresh loop
   const refreshInFlight = useRef(false)
 
   const refreshMe = useCallback(async () => {
@@ -17,7 +16,6 @@ export function AuthProvider({ children }) {
 
     try {
       const res = await api.get("/user/me")
-      // бекендът ти връща директно { email, displayName, twoFaEnabled }
       setUser(res.data || null)
     } catch {
       setUser(null)
@@ -35,50 +33,54 @@ export function AuthProvider({ children }) {
     return () => window.removeEventListener("auth:changed", onChanged)
   }, [refreshMe])
 
-  const login = useCallback(async ({ email, password }) => {
-    const res = await api.post("/auth/login", { email, password })
+  const login = useCallback(
+    async ({ email, password }) => {
+      const res = await api.post("/auth/login", { email, password })
+      if (res.data?.requires2fa) return { requires2fa: true }
 
-    if (res.data?.requires2fa) {
-      return { requires2fa: true }
-    }
+      if (res.data?.token) localStorage.setItem("auth_token", res.data.token)
 
-    if (res.data?.token) {
-      localStorage.setItem("auth_token", res.data.token)
-    }
-
-    await refreshMe()
-    window.dispatchEvent(new Event("auth:changed"))
-    return { ok: true }
-  }, [refreshMe])
+      await refreshMe()
+      window.dispatchEvent(new Event("auth:changed"))
+      return { ok: true }
+    },
+    [refreshMe]
+  )
 
   const send2FA = useCallback(async (email) => {
     await api.post("/auth/send-2fa", { email })
     return { ok: true }
   }, [])
 
-  const verify2FA = useCallback(async ({ email, code }) => {
-    const res = await api.post("/auth/verify-2fa", { email, code })
+  const verify2FA = useCallback(
+    async ({ email, code }) => {
+      const res = await api.post("/auth/verify-2fa", { email, code })
+      if (res.data?.token) localStorage.setItem("auth_token", res.data.token)
 
-    // ✅ ТУК е ключът: verify-2fa връща token в твоя бекенд
-    if (res.data?.token) {
-      localStorage.setItem("auth_token", res.data.token)
-    }
+      await refreshMe()
+      window.dispatchEvent(new Event("auth:changed"))
+      return { ok: true }
+    },
+    [refreshMe]
+  )
 
-    await refreshMe()
-    window.dispatchEvent(new Event("auth:changed"))
-    return { ok: true }
-  }, [refreshMe])
-
+  // ✅ FIX: logout обновява UI веднага (без refresh)
   const logout = useCallback(async () => {
+    // 1) веднага махаме user, за да се обнови UI на момента
+    setUser(null)
+    setLoading(false)
+
+    // 2) чистим tokens веднага
+    localStorage.removeItem("auth_token")
+    localStorage.removeItem("token")
+
+    // 3) казваме на целия сайт, че auth се е сменил
+    window.dispatchEvent(new Event("auth:changed"))
+
+    // 4) после викaме backend logout (ако fail-не, UI пак е logout)
     try {
       await api.post("/auth/logout")
     } catch {}
-
-    localStorage.removeItem("auth_token")
-    localStorage.removeItem("token")
-    setUser(null)
-    setLoading(false)
-    window.dispatchEvent(new Event("auth:changed"))
   }, [])
 
   const value = useMemo(() => {

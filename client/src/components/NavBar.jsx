@@ -2,16 +2,11 @@
 "use client"
 
 import { Link, useNavigate } from "react-router-dom"
-import { useAuth } from "../hooks/useAuth"
-import { api } from "../lib/api"
-import { t, getLang, setLang } from "../lib/i18n"
 import { useEffect, useLayoutEffect, useRef, useState } from "react"
+import { t, getLang, setLang } from "../lib/i18n"
+import { useAuth } from "../context/AuthContext"
 
 const ADMIN_EMAILS = ["icaki06@gmail.com", "icaki2k@gmail.com", "mirenmagazine@gmail.com"]
-
-// store release gate (UTC date)
-const STORE_RELEASE = "2026-02-27"
-
 
 function toggleTheme() {
   const html = document.documentElement
@@ -25,7 +20,7 @@ function toggleTheme() {
 
 export default function NavBar() {
   const navigate = useNavigate()
-  const { user, loading } = useAuth()
+  const { user, loading, logout } = useAuth()
 
   const [open, setOpen] = useState(false)
   const [lang, setLangState] = useState(getLang())
@@ -67,14 +62,12 @@ export default function NavBar() {
 
   async function handleLogout(e) {
     if (e) e.preventDefault()
-    try {
-      await api.post("/auth/logout")
-    } catch {}
-    try {
-      localStorage.removeItem("auth_token")
-      localStorage.removeItem("miren_token")
-    } catch {}
     setOpen(false)
+
+    // ✅ logout през AuthContext -> UI се обновява веднага (без refresh)
+    await logout()
+
+    // redirect към home
     navigate("/", { replace: true })
   }
 
@@ -116,7 +109,6 @@ export default function NavBar() {
             </div>
 
             <div className="nav-center">
-              {/* ✅ IMPORTANT: go to "/" (your router redirects to /home) */}
               <Link className="brand" to="/" onClick={closeDrawer}>
                 {t("brand")}
               </Link>
@@ -162,7 +154,6 @@ export default function NavBar() {
 
       <aside className={`drawer ${open ? "open" : ""}`} aria-hidden={!open}>
         <nav className="drawer-list">
-          {/* ✅ IMPORTANT: Home to "/" */}
           <Link className="drawer-item" to="/" onClick={closeDrawer}>
             {t("home")}
           </Link>
@@ -181,19 +172,17 @@ export default function NavBar() {
             {t("gallery")}
           </Link>
 
-            <Link className="drawer-item" to="/store" onClick={closeDrawer}>
-              {t("store")}
-            </Link>
-          
+          <Link className="drawer-item" to="/store" onClick={closeDrawer}>
+            {t("store")}
+          </Link>
 
           <Link className="drawer-item" to="/subscriptions" onClick={closeDrawer}>
             {t("subscriptions")}
           </Link>
 
           <Link className="drawer-item" to="/opportunities" onClick={closeDrawer}>
-  {t("opportunities")}
-</Link>
-
+            {t("opportunities")}
+          </Link>
 
           <Link className="drawer-item" to="/games" onClick={handleProtectedClick}>
             {t("games")}
@@ -247,10 +236,20 @@ export default function NavBar() {
               Join MIREN today!
             </p>
             <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-              <Link to="/register" className="btn primary" onClick={() => setShowLoginModal(false)} style={{ textDecoration: "none" }}>
+              <Link
+                to="/register"
+                className="btn primary"
+                onClick={() => setShowLoginModal(false)}
+                style={{ textDecoration: "none" }}
+              >
                 Create Account
               </Link>
-              <Link to="/login" className="btn ghost" onClick={() => setShowLoginModal(false)} style={{ textDecoration: "none" }}>
+              <Link
+                to="/login"
+                className="btn ghost"
+                onClick={() => setShowLoginModal(false)}
+                style={{ textDecoration: "none" }}
+              >
                 Login
               </Link>
             </div>

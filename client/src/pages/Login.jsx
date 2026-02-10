@@ -1,14 +1,13 @@
 // client/src/pages/Login.jsx
 import { useState } from "react"
-import { Link, useLocation, useNavigate } from "react-router-dom"
+import { Link, useNavigate } from "react-router-dom"
 import { api } from "../lib/api"
 import { t } from "../lib/i18n"
 import { useAuth } from "../context/AuthContext"
 
 export default function Login() {
-  const { login } = useAuth()
-  const nav = useNavigate()
-  const loc = useLocation()
+  const navigate = useNavigate()
+  const { setAuthToken } = useAuth()
 
   const [form, setForm] = useState({ email: "", password: "" })
   const [msg, setMsg] = useState({ type: "", text: "" })
@@ -25,17 +24,20 @@ export default function Login() {
     setLoading(true)
 
     try {
-      const res = await login(form)
+      const res = await api.post("/auth/login", form)
 
-      if (res?.requires2fa) {
+      // 2FA flow
+      if (res.data?.requires2fa) {
         sessionStorage.setItem("twofa_email", form.email)
-        nav("/2fa/verify", { replace: true })
+        navigate("/2fa/verify", { replace: true })
         return
       }
 
-      // redirect back ако е дошъл от AuthGuard
-      const to = loc.state?.from || "/profile"
-      nav(to, { replace: true })
+      if (res.data?.token) {
+        await setAuthToken(res.data.token) // ✅ no refresh needed
+      }
+
+      navigate("/profile", { replace: true })
     } catch (err) {
       setMsg({ type: "error", text: err?.response?.data?.error || "Login failed" })
     } finally {
@@ -154,11 +156,10 @@ export default function Login() {
         )}
 
         {msg.text && (
-          <p className={`msg ${msg.type === "error" ? "danger" : "success"} auth-msg`}>
-            {msg.text}
-          </p>
+          <p className={`msg ${msg.type === "error" ? "danger" : "success"} auth-msg`}>{msg.text}</p>
         )}
       </div>
     </div>
   )
 }
+  

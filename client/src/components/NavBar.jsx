@@ -60,16 +60,12 @@ export default function NavBar() {
     }
   }, [])
 
-  async function handleLogout(e) {
-    if (e) e.preventDefault()
-    setOpen(false)
-
-    // ✅ logout през AuthContext -> UI се обновява веднага (без refresh)
-    await logout()
-
-    // redirect към home
-    navigate("/", { replace: true })
-  }
+async function handleLogout(e) {
+  if (e) e.preventDefault()
+  await logout()              // ✅ веднага user=null
+  setOpen(false)
+  navigate("/", { replace: true })
+}
 
   function changeLang() {
     const next = lang === "bg" ? "en" : "bg"

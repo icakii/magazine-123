@@ -1,118 +1,94 @@
 // client/src/context/AuthContext.jsx
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react"
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react"
 import { api } from "../lib/api"
 
 const AuthContext = createContext(null)
+
+function readToken() {
+  try {
+    return localStorage.getItem("auth_token") || localStorage.getItem("token") || ""
+  } catch {
+    return ""
+  }
+}
+
+function clearTokens() {
+  try {
+    localStorage.removeItem("auth_token")
+    localStorage.removeItem("token")
+    localStorage.removeItem("miren_token")
+  } catch {}
+}
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
 
-  const refreshInFlight = useRef(false)
-  const loggingOutRef = useRef(false)
-
   const refreshMe = useCallback(async () => {
-    // ✅ ако сме в logout процес – НЕ рефрешвай user/me
-    if (loggingOutRef.current) return
-
-    if (refreshInFlight.current) return
-    refreshInFlight.current = true
-
+    setLoading(true)
     try {
       const res = await api.get("/user/me")
       setUser(res.data || null)
-    } catch {
+      return res.data || null
+    } catch (e) {
+      // 401/403 => не сме логнати
       setUser(null)
+      return null
     } finally {
       setLoading(false)
-      refreshInFlight.current = false
     }
   }, [])
 
-  useEffect(() => {
-    refreshMe()
-
-    const onChanged = () => refreshMe()
-    window.addEventListener("auth:changed", onChanged)
-    return () => window.removeEventListener("auth:changed", onChanged)
-  }, [refreshMe])
-
-  const login = useCallback(
-    async ({ email, password }) => {
-      const res = await api.post("/auth/login", { email, password })
-
-      if (res.data?.requires2fa) return { requires2fa: true }
-
-      if (res.data?.token) localStorage.setItem("auth_token", res.data.token)
-
-      await refreshMe()
-      window.dispatchEvent(new Event("auth:changed"))
-      return { ok: true }
+  const setAuthToken = useCallback(
+    async (token) => {
+      if (token) {
+        try {
+          localStorage.setItem("auth_token", token)
+        } catch {}
+      }
+      return await refreshMe()
     },
     [refreshMe]
   )
 
-  const send2FA = useCallback(async (email) => {
-    await api.post("/auth/send-2fa", { email })
-    return { ok: true }
-  }, [])
-
-  const verify2FA = useCallback(
-    async ({ email, code }) => {
-      const res = await api.post("/auth/verify-2fa", { email, code })
-      if (res.data?.token) localStorage.setItem("auth_token", res.data.token)
-
-      await refreshMe()
-      window.dispatchEvent(new Event("auth:changed"))
-      return { ok: true }
-    },
-    [refreshMe]
-  )
-
-  // ✅ FIX: logout без "връщане обратно" логнат
   const logout = useCallback(async () => {
-    if (loggingOutRef.current) return
-    loggingOutRef.current = true
-
+    setLoading(true)
     try {
-      // 1) ПЪРВО: кажи на сървъра да изчисти cookie/session
       await api.post("/auth/logout")
     } catch {}
-
-    // 2) после чистим локалните токени
-    try {
-      localStorage.removeItem("auth_token")
-      localStorage.removeItem("token")
-      localStorage.removeItem("miren_token")
-    } catch {}
-
-    // 3) UI -> logout веднага и стабилно
+    clearTokens()
     setUser(null)
     setLoading(false)
-
-    // 4) вече е безопасно да известим
-    window.dispatchEvent(new Event("auth:changed"))
-
-    loggingOutRef.current = false
   }, [])
 
-  const value = useMemo(() => {
-    return { user, loading, refreshMe, login, send2FA, verify2FA, logout }
-  }, [user, loading, refreshMe, login, send2FA, verify2FA, logout])
+  useEffect(() => {
+    // ако има token или cookie — пробваме да вземем user
+    const token = readToken()
+    if (token) {
+      // token ще влезе в api interceptor автоматично
+      refreshMe()
+      return
+    }
+    // иначе пак пробвай (ако имаме httpOnly cookie)
+    refreshMe()
+  }, [refreshMe])
+
+  const value = useMemo(
+    () => ({
+      user,
+      loading,
+      refreshMe,
+      setAuthToken,
+      logout,
+    }),
+    [user, loading, refreshMe, setAuthToken, logout]
+  )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }
 
 export function useAuth() {
   const ctx = useContext(AuthContext)
-  if (!ctx) throw new Error("useAuth must be used inside <AuthProvider/>")
+  if (!ctx) throw new Error("useAuth must be used within <AuthProvider>")
   return ctx
 }

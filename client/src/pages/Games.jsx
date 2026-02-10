@@ -317,15 +317,14 @@ export default function Games() {
         </div>
       )}
 
-      <div style={{ display: "grid", gap: 8, margin: "24px 0" }}>
-        {guesses.map((guess, rowIdx) => (
-          <div key={rowIdx} style={{ display: "flex", gap: 8, justifyContent: "center" }}>
+<div style={{ display: "grid", gap: 8, margin: "24px 0", width: "100%", maxWidth: "min(100%, 360px)" }}>        {guesses.map((guess, rowIdx) => (
+           <div key={rowIdx} style={{ display: "flex", gap: "clamp(4px, 1.6vw, 8px)", justifyContent: "center" }}>
             {guess.split("").map((letter, colIdx) => (
               <div
                 key={colIdx}
                 style={{
-                  width: 60,
-                  height: 60,
+                                    width: "clamp(48px, 14vw, 60px)",
+                  height: "clamp(48px, 14vw, 60px)",
                   display: "grid",
                   placeItems: "center",
                   background: getLetterColor(letter, colIdx),
@@ -367,13 +366,13 @@ export default function Games() {
       </div>
 
       {!gameOver && (
-        <div style={{ display: "flex", flexDirection: "column", gap: 8, alignItems: "center", marginTop: 24, maxWidth: 500 }}>
-          {[["Q","W","E","R","T","Y","U","I","O","P"], ["A","S","D","F","G","H","J","K","L"], ["Z","X","C","V","B","N","M"]].map((row, rowIdx) => (
-            <div key={rowIdx} style={{ display: "flex", gap: 6, justifyContent: "center" }}>
+         <div style={{ display: "flex", flexDirection: "column", gap: 8, alignItems: "center", marginTop: 24, width: "100%", maxWidth: "min(100%, 560px)" }}>
+          {[["Q", "W", "E", "R", "T", "Y", "U", "I", "O", "P"], ["A", "S", "D", "F", "G", "H", "J", "K", "L"], ["Z", "X", "C", "V", "B", "N", "M"]].map((row, rowIdx) => (
+            <div key={rowIdx} style={{ display: "flex", gap: "clamp(3px, 1.2vw, 6px)", justifyContent: "center", width: "100%" }}>
               {rowIdx === 2 && (
                 <button
                   onClick={handleBackspace}
-                  style={{ padding: "8px 12px", borderRadius: 6, border: "none", background: "#999", color: "white", fontWeight: 600, cursor: "pointer" }}
+                  style={{ width: "clamp(34px, 12vw, 52px)", height: "clamp(36px, 11vw, 44px)", borderRadius: 6, border: "none", background: "#999", color: "white", fontWeight: 700, cursor: "pointer", flex: "0 0 auto" }}
                 >
                   ←
                 </button>
@@ -384,14 +383,16 @@ export default function Games() {
                   key={letter}
                   onClick={() => handleKeyClick(letter)}
                   style={{
-                    width: 38,
-                    height: 38,
+                    width: "clamp(24px, 7.2vw, 38px)",
+                    height: "clamp(36px, 10vw, 42px)",
                     borderRadius: 6,
                     border: "none",
                     background: getKeyboardButtonStyle(letter),
                     color: usedLetters.has(letter) ? "white" : "black",
                     fontWeight: 600,
                     cursor: "pointer",
+                    flex: "1 1 0",
+                    minWidth: 0,
                   }}
                 >
                   {letter}
@@ -401,8 +402,7 @@ export default function Games() {
               {rowIdx === 2 && (
                 <button
                   onClick={handleSubmit}
-                  style={{ padding: "8px 12px", borderRadius: 6, border: "none", background: "var(--oxide-red)", color: "white", fontWeight: 600, cursor: "pointer" }}
-                >
+ style={{ width: "clamp(34px, 12vw, 52px)", height: "clamp(36px, 11vw, 44px)", borderRadius: 6, border: "none", background: "var(--oxide-red)", color: "white", fontWeight: 700, cursor: "pointer", flex: "0 0 auto" }}                >
                   ↵
                 </button>
               )}

@@ -585,6 +585,49 @@ html[data-theme="dark"] .lang-toggle {
   .theme-toggle, .lang-toggle { padding: 8px 10px; min-width: 66px; }
 }
 
+/* Extra small phones: keep nav controls readable and avoid overflow */
+@media (max-width: 560px) {
+  :root {
+    --nav-height: 64px;
+    --nav-offset: 64px;
+  }
+
+  .nav {
+    padding: 0 10px;
+  }
+
+  .nav-inner {
+    gap: 6px;
+  }
+
+  .brand {
+    font-size: clamp(1.45rem, 6.8vw, 1.8rem);
+    letter-spacing: 0.05em;
+  }
+
+  .hamburger {
+    width: 42px;
+    height: 40px;
+    border-radius: 10px;
+  }
+
+  .hamburger .line {
+    width: 22px;
+  }
+
+  .theme-toggle,
+  .lang-toggle {
+    min-width: 56px;
+    padding: 7px 8px;
+    font-size: 0.74rem;
+    border-radius: 10px;
+  }
+
+  .drawer {
+    width: min(92vw, 320px);
+  }
+}
+
 /* =========================
    7) BUTTONS
 ========================= */
@@ -3961,8 +4004,9 @@ html[data-theme="dark"] .maintenance-overlay {
   z-index: 1;
   margin-top: 18px;
   display: flex;
-  align-items: center;
+  align-items: stretch;
   justify-content: center;
+  flex-wrap: wrap;
   gap: 10px;
   padding: 18px 14px;
   border-radius: var(--radius-lg);
@@ -3974,7 +4018,12 @@ html[data-theme="dark"] .maintenance-countdown {
   background: rgba(0, 0, 0, 0.25);
 }
 
-.mc-item { min-width: 84px; text-align: center; }
+.mc-item {
+  min-width: 84px;
+  text-align: center;
+  display: grid;
+  place-items: center;
+}
 
 .mc-num {
   font-family: var(--font-display);
@@ -3982,6 +4031,9 @@ html[data-theme="dark"] .maintenance-countdown {
   font-size: clamp(26px, 4.6vw, 44px);
   line-height: 1;
   color: var(--heading);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+  min-width: 2ch;
 }
 
 .mc-lbl {
@@ -3998,6 +4050,8 @@ html[data-theme="dark"] .maintenance-countdown {
   font-size: 30px;
   opacity: 0.45;
   transform: translateY(-4px);
+  align-self: center;
+  font-variant-numeric: tabular-nums;
 }
 
 .maintenance-note {
@@ -4211,7 +4265,21 @@ html[data-theme="dark"] .maintenance-loading {
 
 @media (max-width: 560px) {
   .maintenance-card { padding: 18px; }
-  .mc-item { min-width: 66px; }
+   .maintenance-countdown {
+    gap: 8px;
+    padding: 14px 10px;
+  }
+  .mc-item {
+    min-width: 62px;
+    flex: 0 0 62px;
+  }
+  .mc-num {
+    font-size: clamp(22px, 8vw, 32px);
+  }
+  .mc-sep {
+    font-size: 24px;
+    transform: translateY(-2px);
+  }
   .maintenance-lock { font-size: 64px; }
 }
 @media (max-width: 900px) {
@@ -4252,4 +4320,35 @@ html[data-theme="dark"] .maintenance-loading {
 
 .mf-btn {
   height: 44px;
+}
+/* FINAL MOBILE NAV + WORD-GAME SAFETY FIXES */
+@media (max-width: 560px) {
+  .nav-inner {
+    display: flex !important;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    row-gap: 8px;
+    column-gap: 8px;
+  }
+
+  .nav-left,
+  .nav-center {
+    flex: 0 0 auto;
+  }
+
+  .nav-right {
+    flex: 1 1 100%;
+    order: 3;
+    justify-content: flex-end !important;
+    flex-wrap: wrap !important;
+    gap: 6px !important;
+  }
+
+  .theme-toggle,
+  .lang-toggle {
+    min-width: 52px !important;
+    padding: 6px 8px !important;
+    font-size: 0.72rem !important;
+  }
 }

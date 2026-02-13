@@ -4,15 +4,14 @@ import { api } from "../lib/api"
 
 const AuthContext = createContext(null)
 
-function readToken() {
+function storeToken(token) {
   try {
-    return localStorage.getItem("auth_token") || localStorage.getItem("token") || ""
-  } catch {
-    return ""
-  }
+    localStorage.setItem("auth_token", token)
+    localStorage.setItem("token", token)
+  } catch {}
 }
 
-function clearTokens() {
+function clearToken() {
   try {
     localStorage.removeItem("auth_token")
     localStorage.removeItem("token")
@@ -30,8 +29,7 @@ export function AuthProvider({ children }) {
       const res = await api.get("/user/me")
       setUser(res.data || null)
       return res.data || null
-    } catch (e) {
-      // 401/403 => не сме логнати
+    } catch {
       setUser(null)
       return null
     } finally {
@@ -39,14 +37,33 @@ export function AuthProvider({ children }) {
     }
   }, [])
 
-  const setAuthToken = useCallback(
-    async (token) => {
-      if (token) {
-        try {
-          localStorage.setItem("auth_token", token)
-        } catch {}
+  useEffect(() => {
+    refreshMe()
+  }, [refreshMe])
+
+  const login = useCallback(
+    async ({ email, password }) => {
+      const res = await api.post("/auth/login", { email, password })
+
+      if (res.data?.requires2fa) {
+        return { requires2fa: true }
       }
-      return await refreshMe()
+
+      if (res.data?.token) storeToken(res.data.token)
+      await refreshMe()
+      return { ok: true }
+    },
+    [refreshMe]
+  )
+
+  // NOTE: в твоя бекенд verify-2fa enable-ва 2FA.
+  // Засега го ползваме и за login flow (по-късно е добре да ги разделим на два endpoint-а).
+  const verify2FA = useCallback(
+    async ({ email, code }) => {
+      const res = await api.post("/auth/verify-2fa", { email, code })
+      if (res.data?.token) storeToken(res.data.token)
+      await refreshMe()
+      return { ok: true }
     },
     [refreshMe]
   )
@@ -56,32 +73,14 @@ export function AuthProvider({ children }) {
     try {
       await api.post("/auth/logout")
     } catch {}
-    clearTokens()
+    clearToken()
     setUser(null)
     setLoading(false)
   }, [])
 
-  useEffect(() => {
-    // ако има token или cookie — пробваме да вземем user
-    const token = readToken()
-    if (token) {
-      // token ще влезе в api interceptor автоматично
-      refreshMe()
-      return
-    }
-    // иначе пак пробвай (ако имаме httpOnly cookie)
-    refreshMe()
-  }, [refreshMe])
-
   const value = useMemo(
-    () => ({
-      user,
-      loading,
-      refreshMe,
-      setAuthToken,
-      logout,
-    }),
-    [user, loading, refreshMe, setAuthToken, logout]
+    () => ({ user, loading, refreshMe, login, verify2FA, logout }),
+    [user, loading, refreshMe, login, verify2FA, logout]
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

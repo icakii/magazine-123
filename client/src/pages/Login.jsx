@@ -16,7 +16,7 @@ export default function Login() {
   const [loading, setLoading] = useState(false)
 
   function update(e) {
-    setForm({ ...form, [e.target.name]: e.target.value })
+    setForm((f) => ({ ...f, [e.target.name]: e.target.value }))
   }
 
   function normalizedEmail() {
@@ -38,7 +38,6 @@ export default function Login() {
         return
       }
 
-      // redirect back ако е дошъл от AuthGuard
       const to = loc.state?.from || "/profile"
       nav(to, { replace: true })
     } catch (err) {

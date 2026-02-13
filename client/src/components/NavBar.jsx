@@ -115,7 +115,7 @@ async function handleLogout(e) {
             <div className="nav-actions">
               {!loading && !user && (
                 <>
-                  <Link to="/register" className="btn ghost nav-btn" style={{ border: "none" }} onClick={closeDrawer}>
+                  <Link to="/register" className="btn ghost nav-btn" onClick={closeDrawer}>
                     {t("register")}
                   </Link>
                   <Link to="/login" className="btn primary nav-btn" onClick={closeDrawer}>

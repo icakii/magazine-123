@@ -4469,7 +4469,7 @@ html[data-theme="dark"] .maintenance-loading {
       height: calc(100dvh - var(--nav-offset)) !important;
     }
   }
- 
+
 /* === Navbar auth buttons visibility fix (forced over globals) === */
 .nav .nav-btn,
 .nav .logout-btn {
@@ -4504,4 +4504,42 @@ html[data-theme="dark"] .nav .logout-btn {
   background: var(--oxide-red) !important;
   color: var(--ivory) !important;
   border-color: var(--ivory) !important;
+}
+
+/* === Navbar auth buttons hard visibility/layout fix === */
+.nav .nav-actions {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  justify-content: flex-end !important;
+  align-items: center !important;
+  gap: 8px !important;
+  overflow: visible !important;
+}
+
+.nav .nav-btn,
+.nav .logout-btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+@media (max-width: 520px) {
+  .nav .nav-actions {
+    flex: 1 1 auto !important;
+    overflow-x: auto !important;
+    scrollbar-width: none !important;
+  }
+
+  .nav .nav-btn,
+  .nav .logout-btn {
+    font-size: 0.74rem !important;
+    padding: 6px 10px !important;
+    white-space: nowrap !important;
+  }
+
+  .nav .nav-actions::-webkit-scrollbar {
+    display: none !important;
+  }
 }

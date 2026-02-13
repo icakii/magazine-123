@@ -344,6 +344,11 @@ function setAuthCookie(res, token) {
   })
 }
 
+function normalizeEmail(email = "") {
+  return String(email).trim().toLowerCase()
+}
+
+
 
 // ---------------------------------------------------------------
 // 6) RATE LIMITING
@@ -439,12 +444,13 @@ app.get("/api/fix-db", async (req, res) => {
 // ---------------------------------------------------------------
 app.post("/api/newsletter/subscribe", async (req, res) => {
   const { email } = req.body
-  if (!email) return res.status(400).json({ error: "Email required" })
+  const normalizedEmail = normalizeEmail(email)
+  if (!normalizedEmail) return res.status(400).json({ error: "Email required" })
 
   try {
     await db.query(
       "INSERT INTO newsletter_subscribers (email) VALUES ($1) ON CONFLICT (email) DO NOTHING",
-      [email]
+      [normalizedEmail]
     )
     res.json({ ok: true, message: "Subscribed!" })
   } catch (err) {
@@ -848,13 +854,16 @@ app.post("/api/events/send-reminders", async (req, res) => {
 // ---------------------------------------------------------------
 app.post("/api/auth/register", async (req, res) => {
   const { email, password, displayName } = req.body
-  if (!email || !password || !displayName) {
+   const normalizedEmail = normalizeEmail(email)
+  const normalizedDisplayName = String(displayName || "").trim()
+
+  if (!normalizedEmail || !password || !normalizedDisplayName) {
     return res.status(400).json({ error: "Missing fields" })
   }
 
   try {
-    const userCheck = await db.query("SELECT * FROM users WHERE email = $1", [
-      email,
+    const userCheck = await db.query("SELECT * FROM users WHERE lower(email) = lower($1)", [
+      normalizedEmail,
     ])
     if (userCheck.rows.length > 0) {
       return res.status(409).json({ error: "Email taken" })
@@ -862,7 +871,7 @@ app.post("/api/auth/register", async (req, res) => {
 
     const nameCheck = await db.query(
       "SELECT * FROM users WHERE display_name = $1",
-      [displayName]
+      [normalizedDisplayName]
     )
     if (nameCheck.rows.length > 0) {
       return res.status(409).json({ error: "Display name taken" })
@@ -873,10 +882,10 @@ app.post("/api/auth/register", async (req, res) => {
 
     await db.query(
       "INSERT INTO users (email, display_name, password_hash, created_at, confirmation_token, is_confirmed) VALUES ($1,$2,$3,NOW(),$4,false)",
-      [email, displayName, hash, token]
+      [normalizedEmail, normalizedDisplayName, hash, token]
     )
     await db.query("INSERT INTO subscriptions (email, plan) VALUES ($1,$2)", [
-      email,
+      normalizedEmail,
       "free",
     ])
 
@@ -887,7 +896,7 @@ app.post("/api/auth/register", async (req, res) => {
 
         const info = await transporter.sendMail({
   from: `"MIREN" <${process.env.EMAIL_USER}>`,
-  to: email,
+  to: normalizedEmail,
   subject: "Welcome to MIREN — Confirm your email",
   html: `
     <div style="font-family: Arial, Helvetica, sans-serif; line-height:1.6; color:#111;">
@@ -932,10 +941,10 @@ app.post("/api/auth/register", async (req, res) => {
 
 app.post("/api/auth/login", async (req, res) => {
   const { email, password } = req.body
-
+  const normalizedEmail = normalizeEmail(email)
   try {
-    const { rows } = await db.query("SELECT * FROM users WHERE email = $1", [
-      email,
+    const { rows } = await db.query("SELECT * FROM users WHERE lower(email) = lower($1)", [
+      normalizedEmail,
     ])
     const user = rows[0]
     if (!user) return res.status(404).json({ error: "User not found" })
@@ -1002,15 +1011,15 @@ app.post("/api/auth/confirm", async (req, res) => {
 
 app.post("/api/auth/reset-password-request", async (req, res) => {
   const { email } = req.body
-  if (!email) return res.status(400).json({ error: "Email required" })
-
+const normalizedEmail = normalizeEmail(email)
+  if (!normalizedEmail) return res.status(400).json({ error: "Email required" })
   try {
     const token = crypto.randomBytes(32).toString("hex")
     const expiry = new Date(Date.now() + 3600000)
 
     await db.query(
-      "UPDATE users SET reset_password_token = $1, reset_password_expires = $2 WHERE email = $3",
-      [token, expiry, email]
+"UPDATE users SET reset_password_token = $1, reset_password_expires = $2 WHERE lower(email) = lower($3)",
+      [token, expiry, normalizedEmail]
     )
 
     const url = `${APP_URL}/reset-password?token=${token}`
@@ -1021,7 +1030,7 @@ app.post("/api/auth/reset-password-request", async (req, res) => {
       try {
         const info = await transporter.sendMail({
   from: `"MIREN" <${process.env.EMAIL_USER}>`,
-  to: email,
+  to: normalizedEmail,
   subject: "MIREN — Reset your password",
   html: `
     <div style="font-family: Arial, Helvetica, sans-serif; line-height:1.6; color:#111;">
@@ -1066,19 +1075,20 @@ app.post("/api/auth/reset-password-request", async (req, res) => {
 // --- 2FA ---
 app.post("/api/auth/send-2fa", async (req, res) => {
   const { email } = req.body
-
+const normalizedEmail = normalizeEmail(email)
+  if (!normalizedEmail) return res.status(400).json({ error: "Email required" })
   try {
     const code = crypto.randomInt(100000, 999999).toString()
     const expiry = new Date(Date.now() + 10 * 60 * 1000)
 
     await db.query(
-      "UPDATE users SET two_fa_code = $1, two_fa_expiry = $2 WHERE email = $3",
-      [code, expiry, email]
+      "UPDATE users SET two_fa_code = $1, two_fa_expiry = $2 WHERE lower(email) = lower($3)",
+      [code, expiry, normalizedEmail]
     )
 
     await transporter.sendMail({
   from: `"MIREN Security" <${process.env.EMAIL_USER}>`,
-  to: email,
+to: normalizedEmail,
   subject: "MIREN — Your 2FA code",
   html: `
     <div style="font-family: Arial, Helvetica, sans-serif; line-height:1.6; color:#111;">
@@ -1108,9 +1118,10 @@ app.post("/api/auth/send-2fa", async (req, res) => {
 
 app.post("/api/auth/verify-2fa", async (req, res) => {
   const { email, code } = req.body
+    const normalizedEmail = normalizeEmail(email)
 
   try {
-    const { rows } = await db.query("SELECT * FROM users WHERE email = $1", [email])
+  const { rows } = await db.query("SELECT * FROM users WHERE lower(email) = lower($1)", [normalizedEmail])
     const user = rows[0]
     if (!user) return res.status(404).json({ error: "User not found" })
 
@@ -1119,8 +1130,8 @@ app.post("/api/auth/verify-2fa", async (req, res) => {
     }
 
     await db.query(
-      "UPDATE users SET two_fa_enabled = true, two_fa_code = NULL WHERE email = $1",
-      [email]
+       "UPDATE users SET two_fa_enabled = true, two_fa_code = NULL WHERE lower(email) = lower($1)",
+      [normalizedEmail]
     )
 
     const token = signToken({ email: user.email })
@@ -1131,7 +1142,7 @@ app.post("/api/auth/verify-2fa", async (req, res) => {
       try {
         await transporter.sendMail({
           from: `"MIREN Security" <${process.env.EMAIL_USER}>`,
-          to: email,
+          to: normalizedEmail,  
           subject: "MIREN — 2FA is now enabled",
           html: `
             <div style="font-family: Arial, Helvetica, sans-serif; line-height:1.6; color:#111;">
@@ -1142,7 +1153,7 @@ app.post("/api/auth/verify-2fa", async (req, res) => {
 
               <div style="margin:18px 0; padding:14px 16px; border:1px solid #eee; border-radius:12px; background:#fafafa;">
                 <div style="font-size:12px; color:#666; margin-bottom:6px;">Account</div>
-                <div style="font-size:14px; font-weight:700;">${email}</div>
+                <div style="font-size:14px; font-weight:700;">${normalizedEmail}</div>
               </div>
 
               <p style="margin:0; font-size:12px; color:#666;">

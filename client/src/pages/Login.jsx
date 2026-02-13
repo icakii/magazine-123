@@ -1,13 +1,14 @@
 // client/src/pages/Login.jsx
 import { useState } from "react"
-import { Link, useNavigate } from "react-router-dom"
+import { Link, useLocation, useNavigate } from "react-router-dom"
 import { api } from "../lib/api"
 import { t } from "../lib/i18n"
 import { useAuth } from "../context/AuthContext"
 
 export default function Login() {
-  const navigate = useNavigate()
-  const { setAuthToken } = useAuth()
+  const { login } = useAuth()
+  const nav = useNavigate()
+  const loc = useLocation()
 
   const [form, setForm] = useState({ email: "", password: "" })
   const [msg, setMsg] = useState({ type: "", text: "" })
@@ -18,26 +19,28 @@ export default function Login() {
     setForm({ ...form, [e.target.name]: e.target.value })
   }
 
+  function normalizedEmail() {
+    return (form.email || "").trim().toLowerCase()
+  }
+
   async function submitLogin(e) {
     e.preventDefault()
     setMsg({ type: "", text: "" })
     setLoading(true)
 
     try {
-      const res = await api.post("/auth/login", form)
+      const payload = { email: normalizedEmail(), password: form.password }
+      const res = await login(payload)
 
-      // 2FA flow
-      if (res.data?.requires2fa) {
-        sessionStorage.setItem("twofa_email", form.email)
-        navigate("/2fa/verify", { replace: true })
+      if (res?.requires2fa) {
+        sessionStorage.setItem("twofa_email", payload.email)
+        nav("/2fa/verify", { replace: true })
         return
       }
 
-      if (res.data?.token) {
-        await setAuthToken(res.data.token) // ✅ no refresh needed
-      }
-
-      navigate("/profile", { replace: true })
+      // redirect back ако е дошъл от AuthGuard
+      const to = loc.state?.from || "/profile"
+      nav(to, { replace: true })
     } catch (err) {
       setMsg({ type: "error", text: err?.response?.data?.error || "Login failed" })
     } finally {
@@ -51,10 +54,10 @@ export default function Login() {
     setLoading(true)
 
     try {
-      await api.post("/auth/reset-password-request", { email: form.email })
+      await api.post("/auth/reset-password-request", { email: normalizedEmail() })
       setMsg({ type: "success", text: "Reset link sent to your email!" })
-    } catch {
-      setMsg({ type: "error", text: "Error sending link." })
+    } catch (err) {
+      setMsg({ type: "error", text: err?.response?.data?.error || "Error sending link." })
     } finally {
       setLoading(false)
     }
@@ -156,10 +159,11 @@ export default function Login() {
         )}
 
         {msg.text && (
-          <p className={`msg ${msg.type === "error" ? "danger" : "success"} auth-msg`}>{msg.text}</p>
+          <p className={`msg ${msg.type === "error" ? "danger" : "success"} auth-msg`}>
+            {msg.text}
+          </p>
         )}
       </div>
     </div>
   )
 }
-  

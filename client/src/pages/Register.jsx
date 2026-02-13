@@ -1,99 +1,91 @@
-// client/src/pages/Register.jsx
+// src/pages/Register.jsx
 import { useState, useRef } from "react"
-import { Link, useNavigate } from "react-router-dom"
+import { Link } from "react-router-dom"
 import { api } from "../lib/api"
 import { t } from "../lib/i18n"
 
 export default function Register() {
-  const nav = useNavigate()
   const [form, setForm] = useState({ email: "", password: "", displayName: "" })
-  const [msg, setMsg] = useState({ type: "", text: "" })
+  const [msg, setMsg] = useState("")
   const [errors, setErrors] = useState({ email: "", displayName: "" })
   const [loading, setLoading] = useState(false)
-  const [success, setSuccess] = useState(false)
   const msgRef = useRef(null)
-
-  function scrollToMsg() {
-    setTimeout(() => {
-      if (msgRef.current) msgRef.current.scrollIntoView({ behavior: "smooth", block: "center" })
-    }, 50)
-  }
 
   function update(e) {
     setForm({ ...form, [e.target.name]: e.target.value })
     setErrors((prev) => ({ ...prev, [e.target.name]: "" }))
-    if (msg.text) setMsg({ type: "", text: "" })
+  }
+
+  function normalizedForm() {
+    return {
+      email: form.email.trim().toLowerCase(),
+      password: form.password,
+      displayName: form.displayName.trim(),
+    }
   }
 
   async function checkAvailability(field) {
-    const value = form[field]
+    const value = (form[field] || "").trim()
     if (!value) return
+
     try {
       const q =
         field === "email"
-          ? `?email=${encodeURIComponent(value)}`
+          ? `?email=${encodeURIComponent(value.toLowerCase())}`
           : `?displayName=${encodeURIComponent(value)}`
       const res = await api.get(`/auth/check${q}`)
-      if (res.data?.taken) {
+      if (res.data && res.data.taken) {
         setErrors((prev) => ({
           ...prev,
           [field]:
-            field === "email"
-              ? "Имейлът вече е регистриран"
-              : "Потребителското име е заето",
+            field === "email" ? "Имейлът вече е регистриран" : "Потребителското име е заето",
         }))
-        scrollToMsg()
+        setTimeout(() => {
+          const el = document.querySelector(".input.is-error") || msgRef.current
+          if (el) el.scrollIntoView({ behavior: "smooth", block: "center" })
+        }, 50)
       }
     } catch {
-      // ignore
+      // optional check endpoint may not be deployed; ignore and continue with submit validation
     }
   }
 
   async function submit(e) {
     e.preventDefault()
-    if (loading) return
-
-    setMsg({ type: "", text: "" })
+    setMsg("")
     setErrors({ email: "", displayName: "" })
 
-    if (!form.email || !form.password || !form.displayName) {
-      setMsg({ type: "error", text: "Попълни всички полета" })
-      scrollToMsg()
+    const payload = normalizedForm()
+
+    if (!payload.email || !payload.password || !payload.displayName) {
+      setMsg("Попълни всички полета")
+      if (msgRef.current) msgRef.current.scrollIntoView({ behavior: "smooth", block: "center" })
       return
     }
 
     setLoading(true)
     try {
-      const res = await api.post("/auth/register", form)
-
-      setSuccess(true)
-      setMsg({
-        type: "success",
-        text:
-          res.data?.message ||
-          "Регистрацията е успешна. Провери имейла за потвърждение.",
-      })
-      scrollToMsg()
-
-      // optional: auto redirect към login след кратко време
-      setTimeout(() => nav("/login", { replace: true }), 1400)
+      const res = await api.post("/auth/register", payload)
+      setMsg(res.data?.message || "Регистрацията е успешна. Провери имейла за потвърждение.")
+      setForm({ email: payload.email, password: "", displayName: payload.displayName })
+      if (msgRef.current) msgRef.current.scrollIntoView({ behavior: "smooth", block: "center" })
     } catch (err) {
       const status = err?.response?.status
       const error = err?.response?.data?.error || "Грешка при регистрация"
 
       if (status === 409) {
-        const lower = String(error).toLowerCase()
-        if (lower.includes("email")) {
+        if (error.toLowerCase().includes("email")) {
           setErrors((prev) => ({ ...prev, email: "Имейлът вече е регистриран" }))
-        } else if (lower.includes("display")) {
+        } else if (error.toLowerCase().includes("display")) {
           setErrors((prev) => ({ ...prev, displayName: "Потребителското име е заето" }))
-        } else {
-          setMsg({ type: "error", text: error })
         }
-        scrollToMsg()
+        setTimeout(() => {
+          const el = document.querySelector(".input.is-error") || msgRef.current
+          if (el) el.scrollIntoView({ behavior: "smooth", block: "center" })
+        }, 50)
       } else {
-        setMsg({ type: "error", text: error })
-        scrollToMsg()
+        setMsg(error)
+        if (msgRef.current) msgRef.current.scrollIntoView({ behavior: "smooth", block: "center" })
       }
     } finally {
       setLoading(false)
@@ -118,7 +110,6 @@ export default function Register() {
               placeholder="example@mail.com"
               required
               autoComplete="email"
-              disabled={loading || success}
             />
             {errors.email && <div className="msg danger auth-inline-msg">{errors.email}</div>}
           </label>
@@ -134,7 +125,6 @@ export default function Register() {
               placeholder={t("password")}
               required
               autoComplete="new-password"
-              disabled={loading || success}
             />
           </label>
 
@@ -150,9 +140,10 @@ export default function Register() {
               placeholder={t("displayName")}
               required
               autoComplete="nickname"
-              disabled={loading || success}
             />
-            {errors.displayName && <div className="msg danger auth-inline-msg">{errors.displayName}</div>}
+            {errors.displayName && (
+              <div className="msg danger auth-inline-msg">{errors.displayName}</div>
+            )}
           </label>
 
           <div className="auth-links auth-links--single">
@@ -162,18 +153,14 @@ export default function Register() {
           </div>
 
           <div className="form-footer auth-actions">
-            <button className="btn primary auth-btn" type="submit" disabled={loading || success}>
-              {loading ? "Loading..." : success ? "Check your email ✅" : t("create_account")}
+            <button className="btn primary auth-btn" type="submit" disabled={loading}>
+              {loading ? "Creating..." : t("create_account")}
             </button>
           </div>
         </form>
 
         <div ref={msgRef} style={{ marginTop: 12 }}>
-          {msg.text && (
-            <p className={`msg auth-msg ${msg.type === "error" ? "danger" : "success"}`}>
-              {msg.text}
-            </p>
-          )}
+          {msg && <p className="msg auth-msg">{msg}</p>}
         </div>
       </div>
     </div>

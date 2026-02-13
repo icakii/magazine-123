@@ -1,25 +1,26 @@
 // client/src/pages/TwoFASetup.jsx
-import { useEffect, useState } from "react"
+import { useState, useEffect } from "react"
+import { useNavigate } from "react-router-dom"
 import { api } from "../lib/api"
 import { t } from "../lib/i18n"
 import { useAuth } from "../context/AuthContext"
-import { useNavigate } from "react-router-dom"
 
 export default function TwoFASetup() {
-  const nav = useNavigate()
   const { user, loading, refreshMe } = useAuth()
-
+  const navigate = useNavigate()
   const [code, setCode] = useState("")
   const [msg, setMsg] = useState("")
   const [timer, setTimer] = useState(0)
   const [busy, setBusy] = useState(false)
 
-  const email = user?.email
+  const email = user?.email || ""
 
   useEffect(() => {
-    if (timer <= 0) return
-    const id = setInterval(() => setTimer((t) => (t <= 1 ? 0 : t - 1)), 1000)
-    return () => clearInterval(id)
+    let interval = null
+    if (timer > 0) {
+      interval = setInterval(() => setTimer((t) => Math.max(0, t - 1)), 1000)
+    }
+    return () => clearInterval(interval)
   }, [timer])
 
   async function sendEmail() {
@@ -27,8 +28,8 @@ export default function TwoFASetup() {
       setMsg("Error: User email not found.")
       return
     }
+
     setBusy(true)
-    setMsg("")
     try {
       await api.post("/auth/send-2fa", { email })
       setMsg("Code sent.")
@@ -45,21 +46,18 @@ export default function TwoFASetup() {
       setMsg("Error: User email not found.")
       return
     }
-    if (!code) {
-      setMsg("Enter code.")
-      return
-    }
 
     setBusy(true)
-    setMsg("")
     try {
-      await api.post("/auth/verify-2fa", { email, code })
-
-      // ✅ обнови user (twoFaEnabled=true) без refresh
+      const res = await api.post("/auth/verify-2fa", { email, code: code.trim() })
+      if (res.data?.token) {
+        localStorage.setItem("auth_token", res.data.token)
+        localStorage.setItem("token", res.data.token)
+      }
       await refreshMe()
-
+      window.dispatchEvent(new Event("auth:changed"))
       setMsg("2FA activated.")
-      setTimeout(() => nav("/profile", { replace: true }), 600)
+      setTimeout(() => navigate("/profile", { replace: true }), 600)
     } catch (err) {
       setMsg(err?.response?.data?.error || "Invalid code")
     } finally {
@@ -67,15 +65,19 @@ export default function TwoFASetup() {
     }
   }
 
-  if (loading) return <div className="page"><p className="text-muted">{t("loading")}</p></div>
+  if (loading) {
+    return (
+      <div className="page">
+        <p className="text-muted">{t("loading")}</p>
+      </div>
+    )
+  }
+
   if (!user) {
     return (
       <div className="page">
         <p>
-          {t("not_logged_in")}{" "}
-          <a href="/login" className="btn outline">
-            {t("go_login")}
-          </a>
+          {t("not_logged_in")} <a href="/login" className="btn outline">{t("go_login")}</a>
         </p>
       </div>
     )
@@ -90,7 +92,7 @@ export default function TwoFASetup() {
 
       <div className="stack mt-3">
         <button className="btn primary" onClick={sendEmail} disabled={timer > 0 || busy}>
-          {timer > 0 ? `Resend (${timer})` : busy ? "Sending..." : "Send Email"}
+          {timer > 0 ? `Resend (${timer})` : "Send Email"}
         </button>
 
         <input
@@ -102,8 +104,8 @@ export default function TwoFASetup() {
         />
 
         <div className="form-footer">
-          <button className="btn secondary" onClick={verify} disabled={busy}>
-            {busy ? "Verifying..." : "Verify"}
+          <button className="btn secondary" onClick={verify} disabled={busy || !code.trim()}>
+            Verify
           </button>
         </div>
 

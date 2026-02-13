@@ -4363,88 +4363,26 @@ html[data-theme="dark"] .maintenance-loading {
 .mf-btn {
   height: 44px;
 }
-/* FINAL MOBILE NAV + WORD-GAME SAFETY FIXES */
-@media (max-width: 560px) {
-  .nav-inner {
-    display: flex !important;
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: space-between;
-    row-gap: 8px;
-    column-gap: 8px;
-  }
-
-  .nav-left,
-  .nav-center {
-    flex: 0 0 auto;
-  }
-
-  .nav-right {
-    flex: 1 1 100%;
-    order: 3;
-    justify-content: flex-end !important;
-    flex-wrap: wrap !important;
-    gap: 6px !important;
-  }
-
-  .theme-toggle,
-  .lang-toggle {
-    min-width: 52px !important;
-    padding: 6px 8px !important;
-    font-size: 0.72rem !important;
-  }
-}
-/* FINAL MOBILE NAV + WORD-GAME SAFETY FIXES */
-@media (max-width: 560px) {
-  .nav-inner {
-    display: flex !important;
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: space-between;
-    row-gap: 8px;
-    column-gap: 8px;
-  }
-
-  .nav-left,
-  .nav-center {
-    flex: 0 0 auto;
-  }
-
-  .nav-right {
-    flex: 1 1 100%;
-    order: 3;
-    justify-content: flex-end !important;
-    flex-wrap: wrap !important;
-    gap: 6px !important;
-  }
-
-  .theme-toggle,
-  .lang-toggle {
-    min-width: 52px !important;
-    padding: 6px 8px !important;
-    font-size: 0.72rem !important;
-  }
-}
-
-/* MOBILE NAVBAR HOTFIX: keep logo + logout visible and aligned */
+/* FINAL MOBILE NAV FIX (single source of truth) */
 @media (max-width: 560px) {
   .nav {
-    padding: 0 8px !important;
+        height: auto !important;
+    min-height: 64px;
+    padding: 8px !important;  
   }
 
   .nav-inner {
-    display: flex !important;
-    flex-wrap: wrap !important;
-    align-items: center !important;
-    justify-content: space-between !important;
-    gap: 6px 8px !important;
+    display: grid !important;
+    grid-template-columns: auto 1fr !important;
+    gap: 8px !important;
+    align-items: stretch !important;
   }
 
   .nav-top {
     display: flex !important;
     align-items: center !important;
-    justify-content: space-between !important;
     width: 100% !important;
+    min-width: 0 !important;
     gap: 8px !important;
   }
 
@@ -4453,70 +4391,81 @@ html[data-theme="dark"] .maintenance-loading {
   }
 
   .nav-center {
-    flex: 1 1 auto !important;
     min-width: 0 !important;
     justify-content: center !important;
   }
 
   .brand {
-    display: inline-block !important;
-    max-width: 100% !important;
+     display: block !important;
+    width: 100% !important;
+    text-align: center !important;
     white-space: nowrap !important;
     overflow: hidden !important;
     text-overflow: ellipsis !important;
-    font-size: clamp(1.25rem, 6.3vw, 1.65rem) !important;
-    line-height: 1 !important;
+    font-size: clamp(1.2rem, 6.1vw, 1.6rem) !important;
+    line-height: 1.05 !important;
   }
 
   .nav-right,
   .nav-right-wrap {
     width: 100% !important;
-    flex: 1 1 100% !important;
-    order: 3 !important;
     display: flex !important;
-    flex-wrap: wrap !important;
+    flex-wrap: nowrap !important;
     justify-content: space-between !important;
     align-items: center !important;
-    gap: 6px 8px !important;
-  }
-
-  .nav-actions,
-  .nav-toggles {
-    display: flex !important;
-    flex-wrap: wrap !important;
-    align-items: center !important;
-    gap: 6px !important;
+    gap: 8px !important;
+    min-width: 0 !important;
   }
 
   .nav-actions {
     flex: 1 1 auto !important;
-    justify-content: flex-start !important;
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    align-items: center !important;
+    gap: 6px !important;
+    overflow-x: auto !important;
+    scrollbar-width: none;
     min-width: 0 !important;
   }
 
-  .nav-toggles {
-    flex: 0 0 auto !important;
-    justify-content: flex-end !important;
+.nav-actions::-webkit-scrollbar {
+    display: none;
   }
 
   .nav-btn,
   .logout-btn {
-    min-height: 36px !important;
-    padding: 7px 10px !important;
-    font-size: 0.78rem !important;
+    flex: 0 0 auto !important;
+    min-height: 34px !important;
+    padding: 6px 10px !important;
+    font-size: 0.75rem !important;
+    white-space: nowrap !important;
   }
 
-  .logout-btn {
-    max-width: 100% !important;
-    white-space: nowrap !important;
+  .nav-toggles {
+    flex: 0 0 auto !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 6px !important;
   }
 
   .theme-toggle,
   .lang-toggle {
-    min-width: 48px !important;
+    min-width: 44px !important;
     min-height: 34px !important;
-    padding: 6px 7px !important;
-    font-size: 0.7rem !important;
+     padding: 6px 8px !important;
+    font-size: 0.68rem !important;
     border-radius: 9px !important;
+  }
+  .drawer {
+    top: var(--nav-offset) !important;
+    width: min(86vw, 330px) !important;
+    height: calc(100dvh - var(--nav-offset)) !important;
+    max-height: calc(100dvh - var(--nav-offset)) !important;
+    z-index: 3000 !important;
+  }
+
+  .drawer-backdrop {
+    top: var(--nav-offset) !important;
+    height: calc(100dvh - var(--nav-offset)) !important;
   }
 }

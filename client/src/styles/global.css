@@ -4616,7 +4616,7 @@ html[data-theme="dark"] .maintenance-loading {
     line-height: 1 !important;
     font-size: clamp(1.95rem, 6.6vw, 2.25rem) !important;
     white-space: nowrap !important;
-    transform: translateX(64px) !important;
+    transform: translateX(56px) !important;
   }
 
   .nav .nav-right,

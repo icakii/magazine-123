@@ -4497,46 +4497,54 @@ html[data-theme="dark"] .maintenance-loading {
 
 @media (max-width: 520px) {
 .nav .nav-inner {
-    grid-template-columns: 1fr !important;
+    grid-template-columns: auto 1fr auto !important;
+    align-items: center !important;
+    gap: 8px !important;
   }
 
   .nav .nav-top {
-    width: 100% !important;
-    display: grid !important;
-    grid-template-columns: 42px 1fr 42px !important;
-    align-items: center !important;
+    display: contents !important;
   }
 
-  .nav .nav-top::after {
-    content: "";
-    width: 42px;
-    height: 1px;
+  .nav .nav-left {
+    grid-column: 1;
   }
 
   .nav .nav-center {
     grid-column: 2;
+    min-width: 0 !important;
     justify-content: center !important;
   }
 
   .nav .brand {
     margin: 0 auto !important;
+    display: block !important;
+    text-align: center !important;
   }
-
   .nav .nav-right,
   .nav .nav-right-wrap {
-    width: 100% !important;
+        grid-column: 3;
+    width: auto !important;
     min-width: 0 !important;
-        display: flex !important;
-    flex-wrap: wrap !important;
-    justify-content: flex-end !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: flex-end !important;
+    justify-content: center !important;
+    gap: 6px !important;
+  }
+
+  .nav .nav-toggles {
+    order: 1 !important;
+    margin-left: 0 !important;
   }
 
   .nav .nav-actions {
-    flex: 0 0 100% !important;
     order: 2 !important;
-    width: 100% !important;
+    width: auto !important;
+    display: flex !important;
     justify-content: flex-end !important;
     flex-wrap: wrap !important;
+    gap: 6px !important;
     overflow: visible !important;
   }
 
@@ -4552,7 +4560,7 @@ html[data-theme="dark"] .maintenance-loading {
   .nav .nav-btn,
   .nav .logout-btn {
     flex: 0 0 auto !important;
-    font-size: 0.74rem !important;
-    padding: 6px 10px !important;
+    font-size: 0.72rem !important;
+    padding: 5px 9px !important;
   }
 }

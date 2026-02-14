@@ -4496,6 +4496,28 @@ html[data-theme="dark"] .maintenance-loading {
 }
 
 @media (max-width: 520px) {
+    .nav .nav-top {
+    width: 100% !important;
+    display: grid !important;
+    grid-template-columns: 42px 1fr 42px !important;
+    align-items: center !important;
+  }
+
+  .nav .nav-top::after {
+    content: "";
+    width: 42px;
+    height: 1px;
+  }
+
+  .nav .nav-center {
+    grid-column: 2;
+    justify-content: center !important;
+  }
+
+  .nav .brand {
+    margin: 0 auto !important;
+  }
+  
   .nav .nav-right,
   .nav .nav-right-wrap {
     width: 100% !important;

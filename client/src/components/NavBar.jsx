@@ -60,12 +60,18 @@ export default function NavBar() {
     }
   }, [])
 
-async function handleLogout(e) {
-  if (e) e.preventDefault()
-  await logout()              // ✅ веднага user=null
-  setOpen(false)
-  navigate("/", { replace: true })
-}
+  // ✅ lock body scroll when drawer open
+  useEffect(() => {
+    document.body.classList.toggle("drawer-open", open)
+    return () => document.body.classList.remove("drawer-open")
+  }, [open])
+
+  async function handleLogout(e) {
+    if (e) e.preventDefault()
+    await logout()
+    setOpen(false)
+    navigate("/", { replace: true })
+  }
 
   function changeLang() {
     const next = lang === "bg" ? "en" : "bg"
@@ -201,12 +207,7 @@ async function handleLogout(e) {
           </Link>
 
           {isAdmin && (
-            <Link
-              className="drawer-item"
-              to="/admin"
-              onClick={closeDrawer}
-              style={{ color: "var(--oxide-red)", fontWeight: "bold" }}
-            >
+            <Link className="drawer-item drawer-item--admin" to="/admin" onClick={closeDrawer}>
               ⚙️ Admin Panel
             </Link>
           )}

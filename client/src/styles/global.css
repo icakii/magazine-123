@@ -4564,3 +4564,43 @@ html[data-theme="dark"] .maintenance-loading {
     padding: 5px 9px !important;
   }
 }
+/* MOBILE BRAND ALIGN FIX: keep MIREN visually centered vs right-side auth buttons */
+@media (max-width: 560px) {
+  .nav .nav-inner {
+    grid-template-columns: auto minmax(0, 1fr) auto !important;
+    align-items: center !important;
+  }
+
+  .nav .nav-top {
+    display: contents !important;
+  }
+
+  .nav .nav-left {
+    grid-column: 1 !important;
+    align-self: center !important;
+  }
+
+  .nav .nav-center {
+    grid-column: 2 !important;
+    align-self: center !important;
+    min-width: 0 !important;
+    display: flex !important;
+    justify-content: center !important;
+    padding-inline: 4px !important;
+  }
+
+  .nav .brand {
+    width: 100% !important;
+    text-align: center !important;
+    line-height: 1 !important;
+    margin: 0 !important;
+    transform: translateX(-4px) !important;
+  }
+
+  .nav .nav-right,
+  .nav .nav-right-wrap {
+    grid-column: 3 !important;
+    align-self: center !important;
+    justify-content: center !important;
+  }
+}

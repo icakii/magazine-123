@@ -4500,6 +4500,9 @@ html[data-theme="dark"] .maintenance-loading {
   .nav .nav-right-wrap {
     width: 100% !important;
     min-width: 0 !important;
+        display: flex !important;
+    flex-wrap: wrap !important;
+    justify-content: flex-end !important;
   }
 
   .nav .nav-actions {
@@ -4508,10 +4511,21 @@ html[data-theme="dark"] .maintenance-loading {
     overflow-x: auto !important;
     -webkit-overflow-scrolling: touch !important;
     scrollbar-width: none !important;
+    flex: 0 0 100% !important;
+    order: 2 !important;
+    width: 100% !important;
+    justify-content: flex-end !important;
+    flex-wrap: wrap !important;
+    overflow: visible !important;
   }
 
   .nav .nav-actions::-webkit-scrollbar {
     display: none !important;
+  }
+
+   .nav .nav-toggles {
+    order: 1 !important;
+    margin-left: auto !important;
   }
 
   .nav .nav-btn,

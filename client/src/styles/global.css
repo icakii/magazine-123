@@ -4496,7 +4496,11 @@ html[data-theme="dark"] .maintenance-loading {
 }
 
 @media (max-width: 520px) {
-    .nav .nav-top {
+.nav .nav-inner {
+    grid-template-columns: 1fr !important;
+  }
+
+  .nav .nav-top {
     width: 100% !important;
     display: grid !important;
     grid-template-columns: 42px 1fr 42px !important;
@@ -4517,7 +4521,7 @@ html[data-theme="dark"] .maintenance-loading {
   .nav .brand {
     margin: 0 auto !important;
   }
-  
+
   .nav .nav-right,
   .nav .nav-right-wrap {
     width: 100% !important;
@@ -4528,11 +4532,6 @@ html[data-theme="dark"] .maintenance-loading {
   }
 
   .nav .nav-actions {
-    flex: 1 1 auto !important;
-    flex-wrap: nowrap !important;
-    overflow-x: auto !important;
-    -webkit-overflow-scrolling: touch !important;
-    scrollbar-width: none !important;
     flex: 0 0 100% !important;
     order: 2 !important;
     width: 100% !important;

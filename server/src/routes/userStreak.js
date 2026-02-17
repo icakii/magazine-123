@@ -21,6 +21,13 @@ function effective(streak, lastWinYmd, todayYmd) {
   return diff === 0 || diff === 1 ? s : 0
 }
 
+let schemaEnsured = false
+async function ensureUserStreakSchema() {
+  if (schemaEnsured) return
+  await db.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS wordle_last_play_date DATE`)
+  schemaEnsured = true
+}
+
 /**
  * Factory router:
  * index.js ще подаде sendGameStreakEndedEmail()
@@ -31,12 +38,13 @@ module.exports = function makeUserStreakRouter({ sendGameStreakEndedEmail } = {}
   // GET /api/user/streak
   router.get("/user/streak", authMiddleware, async (req, res) => {
     try {
+         await ensureUserStreakSchema()
       const email = req.user?.email
       if (!email) return res.status(401).json({ error: "Unauthorized" })
 
       const today = utcTodayISO()
       const { rows } = await db.query(
-        "SELECT wordle_streak, wordle_last_win_date FROM users WHERE email=$1",
+       "SELECT wordle_streak, wordle_last_win_date, wordle_last_play_date FROM users WHERE email=$1",
         [email]
       )
       const u = rows[0]
@@ -45,12 +53,16 @@ module.exports = function makeUserStreakRouter({ sendGameStreakEndedEmail } = {}
       const lastWin = u.wordle_last_win_date
         ? String(u.wordle_last_win_date).slice(0, 10)
         : null
+              const lastPlay = u.wordle_last_play_date
+        ? String(u.wordle_last_play_date).slice(0, 10)
+        : null
       const raw = Number(u.wordle_streak || 0)
 
       return res.json({
         streak: raw,
         effectiveStreak: effective(raw, lastWin, today),
         lastWinDate: lastWin,
+                lastPlayDate: lastPlay,
         today,
       })
     } catch (e) {
@@ -62,6 +74,7 @@ module.exports = function makeUserStreakRouter({ sendGameStreakEndedEmail } = {}
   // POST /api/user/streak
   // Body: { type: "win" } OR { type: "reset" }
   router.post("/user/streak", authMiddleware, async (req, res) => {
+        await ensureUserStreakSchema()
     const email = req.user?.email
     if (!email) return res.status(401).json({ error: "Unauthorized" })
 
@@ -73,7 +86,7 @@ module.exports = function makeUserStreakRouter({ sendGameStreakEndedEmail } = {}
       await client.query("BEGIN")
 
       const { rows } = await client.query(
-        "SELECT wordle_streak, wordle_last_win_date FROM users WHERE email=$1 FOR UPDATE",
+         "SELECT wordle_streak, wordle_last_win_date, wordle_last_play_date FROM users WHERE email=$1 FOR UPDATE",
         [email]
       )
       const u = rows[0]
@@ -86,18 +99,28 @@ module.exports = function makeUserStreakRouter({ sendGameStreakEndedEmail } = {}
       const prevLastWin = u.wordle_last_win_date
         ? String(u.wordle_last_win_date).slice(0, 10)
         : null
-
+  const prevLastPlay = u.wordle_last_play_date
+        ? String(u.wordle_last_play_date).slice(0, 10)
+        : null
       if (type === "reset") {
         await client.query(
           `UPDATE users
            SET wordle_streak=0,
                streak=0,
-               wordle_last_win_date=NULL
+               wordle_last_win_date=NULL,
+               wordle_last_play_date=$2::date
            WHERE email=$1`,
-          [email]
+          [email, today]
         )
         await client.query("COMMIT")
-        return res.json({ ok: true, streak: 0, effectiveStreak: 0, lastWinDate: null, today })
+return res.json({
+          ok: true,
+          streak: 0,
+          effectiveStreak: 0,
+          lastWinDate: null,
+          lastPlayDate: today,
+          today,
+        })
       }
 
       // type === "win"
@@ -117,18 +140,41 @@ module.exports = function makeUserStreakRouter({ sendGameStreakEndedEmail } = {}
           })
         }
 
-        const next = diff === 1 ? prevStreak + 1 : 1
+        
+        if (prevLastPlay === today) {
+          await client.query("COMMIT")
+          return res.status(409).json({
+            ok: false,
+            lockedToday: true,
+            streak: 0,
+            effectiveStreak: 0,
+            lastWinDate: prevLastWin,
+            lastPlayDate: prevLastPlay,
+            today,
+            error: "Today's game is already finished.",
+          })
+        }
 
+        const next = diff === 1 ? prevStreak + 1 : 1
+        
         await client.query(
           `UPDATE users
            SET wordle_streak=$2,
                streak=$2,
-               wordle_last_win_date=$3::date
+               wordle_last_win_date=$3::date,
+               wordle_last_play_date=$3::date
            WHERE email=$1`,
           [email, next, today]
         )
         await client.query("COMMIT")
-        return res.json({ ok: true, streak: next, effectiveStreak: next, lastWinDate: today, today })
+ return res.json({
+          ok: true,
+          streak: next,
+          effectiveStreak: next,
+          lastWinDate: today,
+          lastPlayDate: today,
+          today,
+        })
       }
 
       // first win ever
@@ -136,13 +182,20 @@ module.exports = function makeUserStreakRouter({ sendGameStreakEndedEmail } = {}
         `UPDATE users
          SET wordle_streak=1,
              streak=1,
-             wordle_last_win_date=$2::date
+             wordle_last_win_date=$2::date,
+             wordle_last_play_date=$2::date
          WHERE email=$1`,
         [email, today]
       )
       await client.query("COMMIT")
-      return res.json({ ok: true, streak: 1, effectiveStreak: 1, lastWinDate: today, today })
-    } catch (e) {
+return res.json({
+        ok: true,
+        streak: 1,
+        effectiveStreak: 1,
+        lastWinDate: today,
+        lastPlayDate: today,
+        today,
+      })    } catch (e) {
       await client.query("ROLLBACK")
       console.error("POST STREAK ERROR:", e)
       return res.status(500).json({ error: "Failed to update streak" })
@@ -160,6 +213,9 @@ module.exports = function makeUserStreakRouter({ sendGameStreakEndedEmail } = {}
   // - праща email (ако sendGameStreakEndedEmail е подадена от index.js)
   router.post("/user/streak/check-and-notify", authMiddleware, async (req, res) => {
     try {
+
+            await ensureUserStreakSchema()
+
       const email = req.user?.email
       if (!email) return res.status(401).json({ error: "Unauthorized" })
 

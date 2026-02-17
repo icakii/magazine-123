@@ -19,6 +19,13 @@ function toTitleCasePlan(plan) {
   return "Free"
 }
 
+function planSuffix(plan) {
+  const p = String(plan || "free").toLowerCase()
+  if (p === "monthly") return "⭐"
+  if (p === "yearly") return "👑"
+  return ""
+}
+
 export default function Profile() {
   const { user, loading } = useAuth()
 
@@ -177,7 +184,7 @@ export default function Profile() {
 
           {/* ✅ animation like leaderboard style */}
           <span className={`plan-badge ${isPremium ? "plan-badge--premium" : "plan-badge--free"}`}>
-            {currentPlan} {isPremium && "★"}
+            {currentPlan} {planSuffix(subs?.[0]?.plan)}
           </span>
         </div>
 

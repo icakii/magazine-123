@@ -19,7 +19,7 @@ function todayUtcYmd() {
 export default function HeroIntro() {
   const navigate = useNavigate()
 
-  const [coverUrl, setCoverUrl] = useState(null)
+  const [heroMediaUrl, setHeroMediaUrl] = useState(null)
   const [heroVfxUrl, setHeroVfxUrl] = useState(null)
 
   const [me, setMe] = useState(null)
@@ -31,13 +31,10 @@ export default function HeroIntro() {
 
   useEffect(() => {
     api
-      .get("/magazines")
+      .get("/hero")
       .then((res) => {
-        if (Array.isArray(res.data) && res.data.length > 0) {
-          const first = res.data[0]
-          setCoverUrl(first.coverUrl || null)
-          setHeroVfxUrl(first.heroVfxUrl || null)
-        }
+                setHeroVfxUrl(res.data?.heroVfxUrl || null)
+        setHeroMediaUrl(res.data?.heroMediaUrl || null)
       })
       .catch(() => {})
   }, [])
@@ -180,8 +177,8 @@ export default function HeroIntro() {
         <div className="hero-media">
           {heroVfxUrl ? (
             <video className="hero-vfx" src={heroVfxUrl} autoPlay muted loop playsInline />
-          ) : coverUrl ? (
-            <img src={coverUrl} alt="MIREN cover" className="hero-cover" loading="lazy" />
+         ) : heroMediaUrl ? (
+            <img src={heroMediaUrl} alt="MIREN hero" className="hero-cover" loading="lazy" />
           ) : (
             <div className="hero-cover hero-cover--placeholder">
               <span>MIREN</span>

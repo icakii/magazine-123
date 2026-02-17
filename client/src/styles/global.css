@@ -4655,3 +4655,39 @@ html[data-theme="dark"] .maintenance-loading {
     justify-self: end !important;
   }
 }
+
+/* --- Home Work With Us / Spotify / Games / Calendar blocks --- */
+.home-work-grid{
+  margin-top: 28px;
+  display:grid;
+  grid-template-columns: repeat(2, minmax(0,1fr));
+  gap:16px;
+}
+.glass-card{
+  border:1px solid rgba(255,255,255,.18);
+  background:linear-gradient(135deg, rgba(255,255,255,.14), rgba(255,255,255,.06));
+  backdrop-filter: blur(14px);
+  border-radius:16px;
+  padding:18px;
+  box-shadow:0 10px 30px rgba(0,0,0,.15);
+  animation:floatIn .7s ease both;
+}
+.work-wide{ grid-column: 1 / -1; }
+.work-card, .calendar-card{ min-height: 220px; }
+.calendar-card{ grid-column: 1 / -1; }
+.calendar-grid{ display:grid; grid-template-columns: repeat(7,minmax(0,1fr)); gap:8px; margin-top:10px; }
+.cal-head{ text-align:center; font-weight:700; font-size:.85rem; opacity:.8; }
+.cal-cell{ min-height:72px; border:1px solid var(--nav-border); border-radius:10px; padding:6px; position:relative; overflow:hidden; }
+.cal-empty{ opacity:.25; }
+.cal-day{ font-weight:800; font-size:.85rem; }
+.cal-event{ font-size:.75rem; margin-top:6px; opacity:.88; }
+.cal-has-event{ border-color: rgba(56,128,255,.5); box-shadow: inset 0 0 0 1px rgba(56,128,255,.32); }
+.cal-has-event::after{ content:""; position:absolute; inset:0; background:linear-gradient(120deg, transparent 0%, rgba(56,128,255,.13) 35%, transparent 70%); animation:shineMove 2.5s linear infinite; }
+
+@keyframes shineMove{ from{ transform:translateX(-110%);} to{ transform:translateX(110%);} }
+@keyframes floatIn{ from{ opacity:0; transform: translateY(18px) scale(.98);} to{ opacity:1; transform: translateY(0) scale(1);} }
+
+@media (max-width: 860px){
+  .home-work-grid{ grid-template-columns: 1fr; }
+  .work-wide,.calendar-card{ grid-column:auto; }
+}

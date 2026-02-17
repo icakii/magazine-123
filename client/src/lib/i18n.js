@@ -154,7 +154,7 @@ twofa_code_placeholder: "Въведи код",
 twofa_verify_btn: "Потвърди",
 
 
-    footer_copy: "© 2025 MIREN. Всички права запазени.",
+    footer_copy: "© 2026 MIREN MAG. Всички права запазени.",
   },
 
   en: {
@@ -300,7 +300,7 @@ twofa_code_placeholder: "Enter code",
 twofa_verify_btn: "Verify",
 
 
-    footer_copy: "© 2025 MIREN. All rights reserved.",
+    footer_copy: "© 2026 MIREN MAG. All rights reserved.",
   },
 }
 

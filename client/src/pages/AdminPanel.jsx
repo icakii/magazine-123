@@ -68,13 +68,21 @@ export default function AdminPanel() {
 
   // ---------------- HERO (single) ----------------
   const [heroVfxUrl, setHeroVfxUrl] = useState("")
-
+  const [heroMediaUrl, setHeroMediaUrl] = useState("")
+  const [spotifyPlaylistUrl, setSpotifyPlaylistUrl] = useState("")
+  const [calendarJson, setCalendarJson] = useState("[]")
   const loadHero = async () => {
     try {
       const res = await api.get("/hero")
       setHeroVfxUrl(res.data?.heroVfxUrl || "")
+            setHeroMediaUrl(res.data?.heroMediaUrl || "")
+      setSpotifyPlaylistUrl(res.data?.spotifyPlaylistUrl || "")
+      setCalendarJson(JSON.stringify(res.data?.calendarEvents || [], null, 2))
     } catch {
       setHeroVfxUrl("")
+            setHeroMediaUrl("")
+      setSpotifyPlaylistUrl("")
+      setCalendarJson("[]")
     }
   }
 
@@ -82,11 +90,20 @@ export default function AdminPanel() {
     try {
       setBusy(true)
       setMsg("")
-      await api.put("/admin/hero", { heroVfxUrl })
-      setMsg("✅ Hero updated.")
+let calendarEvents = []
+      try {
+        calendarEvents = JSON.parse(calendarJson || "[]")
+      } catch {
+        setMsg("Calendar JSON is invalid.")
+        setBusy(false)
+        return
+      }
+
+      await api.put("/admin/hero", { heroVfxUrl, heroMediaUrl, spotifyPlaylistUrl, calendarEvents })
+      setMsg("✅ Hero/Home settings updated.")
     } catch (e) {
-      setMsg(e?.response?.data?.error || "Failed to save hero.")
-    } finally {
+      setMsg(e?.response?.data?.error || "Failed to save hero settings.")
+        } finally {
       setBusy(false)
     }
   }
@@ -101,6 +118,21 @@ export default function AdminPanel() {
       setMsg("✅ Uploaded. Now click Save.")
     } catch (e) {
       setMsg(e?.response?.data?.details || e?.response?.data?.error || "Video upload failed.")
+    } finally {
+      setBusy(false)
+    }
+  }
+
+   const onPickHeroMedia = async (file) => {
+    if (!file) return
+    try {
+      setBusy(true)
+      setMsg("Uploading hero media...")
+      const out = await uploadToCloudinary(file)
+      setHeroMediaUrl(out?.url || "")
+      setMsg("✅ Hero media uploaded. Now click Save.")
+    } catch (e) {
+      setMsg(e?.response?.data?.details || e?.response?.data?.error || "Hero media upload failed.")
     } finally {
       setBusy(false)
     }
@@ -468,8 +500,7 @@ export default function AdminPanel() {
         <div className="admin-grid admin-grid--single">
           <div className="admin-card">
             <h3 className="headline">Hero</h3>
-            <p className="text-muted">Only one hero. Upload VFX and click Save.</p>
-
+   <p className="text-muted">Hero is separate from the latest magazine cover. Configure VFX, fallback media and home widgets here.</p>
             <div className="upload-row">
               <div className="upload-box" style={{ width: "100%" }}>
                 <div className="upload-title">Hero VFX Video</div>
@@ -481,6 +512,33 @@ export default function AdminPanel() {
                 )}
 
                 <input type="file" accept="video/*" onChange={(e) => onPickHeroVfx(e.target.files?.[0])} disabled={busy} />
+              </div>
+            </div>
+
+                        <div className="upload-row" style={{ marginTop: 12 }}>
+              <div className="upload-box" style={{ width: "100%" }}>
+                <div className="upload-title">Hero fallback media (separate from magazine cover)</div>
+                {heroMediaUrl ? (
+                  <img className="preview-img" src={heroMediaUrl} alt="Hero media" />
+                ) : (
+                  <div className="preview-ph">No fallback media</div>
+                )}
+                <input type="file" accept="image/*,video/*" onChange={(e) => onPickHeroMedia(e.target.files?.[0])} disabled={busy} />
+                <input value={heroMediaUrl} onChange={(e) => setHeroMediaUrl(e.target.value)} placeholder="https://..." style={{ marginTop: 8 }} />
+              </div>
+            </div>
+
+            <div className="upload-row" style={{ marginTop: 12 }}>
+              <div className="upload-box" style={{ width: "100%" }}>
+                <div className="upload-title">Spotify playlist link</div>
+                <input value={spotifyPlaylistUrl} onChange={(e) => setSpotifyPlaylistUrl(e.target.value)} placeholder="https://open.spotify.com/..." />
+              </div>
+            </div>
+
+            <div className="upload-row" style={{ marginTop: 12 }}>
+              <div className="upload-box" style={{ width: "100%" }}>
+                <div className="upload-title">Home calendar JSON (e.g. [{{"date":"2026-03-05","title":"Launch"}}])</div>
+                <textarea rows={8} style={{ width: "100%" }} value={calendarJson} onChange={(e) => setCalendarJson(e.target.value)} />
               </div>
             </div>
 

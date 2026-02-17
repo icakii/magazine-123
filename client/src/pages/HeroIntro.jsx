@@ -10,10 +10,14 @@ const ADMIN_EMAILS = [
 ]
 
 // ⚠️ смени годината ако трябва
-const RELEASE_UTC_YMD = "2026-02-27"
+const RELEASE_UTC_YMD = "2026-03-25"
 
 function todayUtcYmd() {
   return new Date().toISOString().slice(0, 10)
+} 
+
+function isVideoUrl(url) {
+  return /\.(mp4|webm|ogg|mov)(\?.*)?$/i.test(String(url || ""))
 }
 
 export default function HeroIntro() {
@@ -177,8 +181,12 @@ export default function HeroIntro() {
         <div className="hero-media">
           {heroVfxUrl ? (
             <video className="hero-vfx" src={heroVfxUrl} autoPlay muted loop playsInline />
-         ) : heroMediaUrl ? (
-            <img src={heroMediaUrl} alt="MIREN hero" className="hero-cover" loading="lazy" />
+          ) : heroMediaUrl ? (
+            isVideoUrl(heroMediaUrl) ? (
+              <video className="hero-vfx" src={heroMediaUrl} autoPlay muted loop playsInline controls />
+            ) : (
+              <img src={heroMediaUrl} alt="MIREN hero" className="hero-cover" loading="lazy" />
+            )
           ) : (
             <div className="hero-cover hero-cover--placeholder">
               <span>MIREN</span>
@@ -202,9 +210,9 @@ export default function HeroIntro() {
               onClick={onOrderClick}
               type="button"
               disabled={orderLocked}
-              title={orderLocked ? "Order opens on 27 Feb" : "Open store"}
+              title={orderLocked ? "Order opens on 25 March" : "Open store"}
             >
-              {orderLocked ? "Order on 27 Feb 🔒" : "Order Now ⚡"}
+              {orderLocked ? "Order on 25 March 🔒" : "Order Now ⚡"}
             </button>
 
             {/* optional: show admin badge */}

@@ -519,8 +519,11 @@ let calendarEvents = []
               <div className="upload-box" style={{ width: "100%" }}>
                 <div className="upload-title">Hero fallback media (separate from magazine cover)</div>
                 {heroMediaUrl ? (
-                  <img className="preview-img" src={heroMediaUrl} alt="Hero media" />
-                ) : (
+                  isVideoUrl(heroMediaUrl) ? (
+                    <video className="preview-video" src={heroMediaUrl} controls />
+                  ) : (
+                    <img className="preview-img" src={heroMediaUrl} alt="Hero media" />
+                  )                ) : (
                   <div className="preview-ph">No fallback media</div>
                 )}
                 <input type="file" accept="image/*,video/*" onChange={(e) => onPickHeroMedia(e.target.files?.[0])} disabled={busy} />

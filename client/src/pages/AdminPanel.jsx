@@ -535,6 +535,11 @@ let calendarEvents = []
               <div className="upload-box" style={{ width: "100%" }}>
                 <div className="upload-title">Spotify playlist link</div>
                 <input value={spotifyPlaylistUrl} onChange={(e) => setSpotifyPlaylistUrl(e.target.value)} placeholder="https://open.spotify.com/..." />
+                                {spotifyPlaylistUrl && (
+                  <a href={spotifyPlaylistUrl} target="_blank" rel="noreferrer" className="spotify-link" style={{ marginTop: 10 }}>
+                    Open current playlist
+                  </a>
+                )}
               </div>
             </div>
 

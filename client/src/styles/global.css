@@ -4691,3 +4691,23 @@ html[data-theme="dark"] .maintenance-loading {
   .home-work-grid{ grid-template-columns: 1fr; }
   .work-wide,.calendar-card{ grid-column:auto; }
 }
+/* Home blocks: centered titles + spacing under titles */
+.home-work-grid .glass-card > h3,
+.home-work-grid .glass-card > h4 {
+  text-align: center;
+  margin: 0 0 14px;
+}
+
+.home-work-grid .glass-card > h3 + *,
+.home-work-grid .glass-card > h4 + * {
+  margin-top: 4px;
+}
+
+.spotify-link {
+  display: inline-block;
+  max-width: 100%;
+  color: var(--oxide-red);
+  font-weight: 700;
+  text-decoration: underline;
+  word-break: break-all;
+}

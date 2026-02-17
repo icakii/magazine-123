@@ -21,6 +21,18 @@ function monthMatrix(year, monthIndex0) {
   return cells
 }
 
+
+function normalizeHomeHeroPayload(data) {
+  return {
+    spotifyPlaylistUrl: String(data?.spotifyPlaylistUrl || data?.spotify_playlist_url || "").trim(),
+    calendarEvents: Array.isArray(data?.calendarEvents)
+      ? data.calendarEvents
+      : Array.isArray(data?.home_calendar_json)
+      ? data.home_calendar_json
+      : [],
+  }
+}
+
 export default function Home() {
   const { user, hasSubscription } = useAuth()
 
@@ -52,12 +64,12 @@ const [spotifyPlaylistUrl, setSpotifyPlaylistUrl] = useState("")
   }, [])
 
   useEffect(() => {
-      api
-      .get("/hero")
+api
+      .get("/hero", { params: { t: Date.now() } })
       .then((res) => {
-        setSpotifyPlaylistUrl(res.data?.spotifyPlaylistUrl || "")
-        const ev = Array.isArray(res.data?.calendarEvents) ? res.data.calendarEvents : []
-        setCalendarEvents(ev)
+const normalized = normalizeHomeHeroPayload(res.data || {})
+        setSpotifyPlaylistUrl(normalized.spotifyPlaylistUrl)
+        setCalendarEvents(normalized.calendarEvents)
       })
       .catch(() => {
         setSpotifyPlaylistUrl("")
@@ -190,8 +202,19 @@ const [spotifyPlaylistUrl, setSpotifyPlaylistUrl] = useState("")
 
               <div className="work-card glass-card">
                 <h4>Spotify Playlist Request 🎵</h4>
-                {spotifyPlaylistUrl && <a href={spotifyPlaylistUrl} target="_blank" rel="noreferrer" className="btn ghost">Open playlist</a>}
-                <p className="text-muted">1 request per day.</p>
+ {spotifyPlaylistUrl ? (
+                  <a
+                    href={spotifyPlaylistUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="spotify-link"
+                    title="Open Spotify playlist"
+                  >
+                    {spotifyPlaylistUrl}
+                  </a>
+                ) : (
+                  <p className="text-muted">Playlist link is not set yet.</p>
+                )}                <p className="text-muted">1 request per day.</p>
                 <input className="input" placeholder="Song" value={song} onChange={(e) => setSong(e.target.value)} />
                 <input className="input" placeholder="Artist" value={artist} onChange={(e) => setArtist(e.target.value)} style={{ marginTop: 8 }} />
                 <button className="btn primary" type="button" style={{ marginTop: 10 }} onClick={sendSpotifyRequest}>Send request</button>

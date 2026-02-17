@@ -20,6 +20,13 @@ function isVideoUrl(url) {
   return /\.(mp4|webm|ogg|mov)(\?.*)?$/i.test(String(url || ""))
 }
 
+function normalizeHeroPayload(data) {
+  return {
+    heroVfxUrl: String(data?.heroVfxUrl || data?.hero_vfx_url || "").trim(),
+    heroMediaUrl: String(data?.heroMediaUrl || data?.hero_media_url || "").trim(),
+  }
+}
+
 export default function HeroIntro() {
   const navigate = useNavigate()
 
@@ -35,12 +42,16 @@ export default function HeroIntro() {
 
   useEffect(() => {
     api
-      .get("/hero")
+      .get("/hero", { params: { t: Date.now() } })
       .then((res) => {
-                setHeroVfxUrl(res.data?.heroVfxUrl || null)
-        setHeroMediaUrl(res.data?.heroMediaUrl || null)
+ const normalized = normalizeHeroPayload(res.data || {})
+        setHeroVfxUrl(normalized.heroVfxUrl || null)
+        setHeroMediaUrl(normalized.heroMediaUrl || null)
       })
-      .catch(() => {})
+      .catch(() => {
+        setHeroVfxUrl(null)
+        setHeroMediaUrl(null)
+      })
   }, [])
 
   // get current user (optional)

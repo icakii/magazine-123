@@ -1,5 +1,6 @@
 // client/src/components/MaintenanceGate.jsx
 import { useEffect, useMemo, useState } from "react"
+import { useLocation } from "react-router-dom"
 import { useAuth } from "../context/AuthContext"
 import { api } from "../lib/api"
 
@@ -27,6 +28,7 @@ function splitMs(ms) {
 
 export default function MaintenanceGate({ children }) {
   const { user, loading, login, verify2FA, refreshMe } = useAuth()
+    const location = useLocation()
   const isAdmin = !!(user && ADMIN_EMAILS.includes(user.email))
 
   const [now, setNow] = useState(Date.now())
@@ -39,6 +41,7 @@ export default function MaintenanceGate({ children }) {
 
   const remaining = useMemo(() => splitMs(TARGET_TS - now), [now])
   const locked = useMemo(() => now < TARGET_TS && !isAdmin, [now, isAdmin])
+  const bypassForAdminRoute = location.pathname.startsWith("/admin")
 
   // Countdown tick
   useEffect(() => {
@@ -163,8 +166,8 @@ export default function MaintenanceGate({ children }) {
     }
   }
 
-  if (!locked) return children
-
+  if (bypassForAdminRoute || !locked) return children
+  
   return (
     <div
       className={`maintenance-overlay ${panelOpen ? "is-panel-open" : ""}`}
@@ -319,4 +322,3 @@ export default function MaintenanceGate({ children }) {
     </div>
   )
 }
-    

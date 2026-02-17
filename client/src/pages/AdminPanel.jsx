@@ -537,8 +537,7 @@ let calendarEvents = []
 
             <div className="upload-row" style={{ marginTop: 12 }}>
               <div className="upload-box" style={{ width: "100%" }}>
-                <div className="upload-title">Home calendar JSON (e.g. [{{"date":"2026-03-05","title":"Launch"}}])</div>
-                <textarea rows={8} style={{ width: "100%" }} value={calendarJson} onChange={(e) => setCalendarJson(e.target.value)} />
+ <div className="upload-title">{'Home calendar JSON (e.g. [{"date":"2026-03-05","title":"Launch"}])'}</div>                <textarea rows={8} style={{ width: "100%" }} value={calendarJson} onChange={(e) => setCalendarJson(e.target.value)} />
               </div>
             </div>
 

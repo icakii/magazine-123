@@ -31,38 +31,95 @@ async function ensureHeroSchema() {
   heroSchemaReady = true
 }
 
+function normalizeCalendarEvents(raw) {
+  let arr = []
+
+  if (Array.isArray(raw)) {
+    arr = raw
+  } else if (typeof raw === "string") {
+    try {
+      const parsed = JSON.parse(raw)
+      arr = Array.isArray(parsed) ? parsed : []
+    } catch {
+      arr = []
+    }
+  }
+
+  return arr
+    .map((ev) => ({
+      date: String(ev?.date || "").slice(0, 10),
+      title: String(ev?.title || "").trim(),
+    }))
+    .filter((ev) => ev.date && ev.title)
+}
+
+function normalizeHeroRow(row) {
+  const safe = row || {}
+  return {
+    heroVfxUrl: String(safe.heroVfxUrl || safe.hero_vfx_url || ""),
+    heroMediaUrl: String(safe.heroMediaUrl || safe.hero_media_url || ""),
+    spotifyPlaylistUrl: String(safe.spotifyPlaylistUrl || safe.spotify_playlist_url || ""),
+    calendarEvents: normalizeCalendarEvents(safe.calendarEvents || safe.home_calendar_json || []),
+  }
+}
+
+async function readHeroSettings() {
+  const { rows } = await db.query(
+    `SELECT hero_vfx_url AS "heroVfxUrl",
+            hero_media_url AS "heroMediaUrl",
+            spotify_playlist_url AS "spotifyPlaylistUrl",
+            home_calendar_json AS "calendarEvents"
+     FROM hero_settings
+     WHERE id = 1
+     LIMIT 1`
+  )
+
+  if (rows[0]) return normalizeHeroRow(rows[0])
+
+  const fallback = await db.query(
+    `SELECT hero_vfx_url AS "heroVfxUrl",
+            hero_media_url AS "heroMediaUrl",
+            spotify_playlist_url AS "spotifyPlaylistUrl",
+            home_calendar_json AS "calendarEvents"
+     FROM hero_settings
+     ORDER BY id ASC
+     LIMIT 1`
+  )
+
+  return normalizeHeroRow(fallback.rows[0] || {})
+}
+
 // Public (frontend) can read hero/home settings
 router.get("/hero", async (req, res) => {
   try {
-        await ensureHeroSchema()  
-    const { rows } = await db.query(
-  `SELECT hero_vfx_url AS "heroVfxUrl",
-              hero_media_url AS "heroMediaUrl",
-              spotify_playlist_url AS "spotifyPlaylistUrl",
-              home_calendar_json AS "calendarEvents"
-       FROM hero_settings
-       WHERE id=1`
-    )
-    res.json(rows[0] || { heroVfxUrl: "", heroMediaUrl: "", spotifyPlaylistUrl: "", calendarEvents: [] })
-    } catch (e) {
+    await ensureHeroSchema()
+    const data = await readHeroSettings()
+    res.json(data)
+  } catch (e) {
     console.error("HERO GET ERROR:", e)
-    res.json({ heroVfxUrl: "" })
+    res.status(500).json({
+      error: "Failed to load hero settings",
+      heroVfxUrl: "",
+      heroMediaUrl: "",
+      spotifyPlaylistUrl: "",
+      calendarEvents: [],
+    })
   }
 })
 
-// Admin update hero/hero settings
+// Admin update hero/home settings
 router.put("/admin/hero", auth, async (req, res) => {
   try {
     const email = req.user?.email
     if (!email) return res.status(401).json({ error: "Unauthorized" })
     if (!isAdmin(email)) return res.status(403).json({ error: "Admin access required" })
 
-await ensureHeroSchema()
+    await ensureHeroSchema()
 
-    const heroVfxUrl = String(req.body?.heroVfxUrl || "")
-    const heroMediaUrl = String(req.body?.heroMediaUrl || "")
-    const spotifyPlaylistUrl = String(req.body?.spotifyPlaylistUrl || "")
-    const calendarEvents = Array.isArray(req.body?.calendarEvents) ? req.body.calendarEvents : []
+    const heroVfxUrl = String(req.body?.heroVfxUrl || "").trim()
+    const heroMediaUrl = String(req.body?.heroMediaUrl || "").trim()
+    const spotifyPlaylistUrl = String(req.body?.spotifyPlaylistUrl || "").trim()
+    const calendarEvents = normalizeCalendarEvents(req.body?.calendarEvents)
 
     await db.query(
       `INSERT INTO hero_settings (id, hero_vfx_url, hero_media_url, spotify_playlist_url, home_calendar_json)
@@ -75,8 +132,9 @@ await ensureHeroSchema()
       [heroVfxUrl, heroMediaUrl, spotifyPlaylistUrl, JSON.stringify(calendarEvents)]
     )
 
-    res.json({ ok: true, heroVfxUrl, heroMediaUrl, spotifyPlaylistUrl, calendarEvents })
-  } catch (e) {
+    const persisted = await readHeroSettings()
+    res.json({ ok: true, ...persisted })
+    } catch (e) {
     console.error("HERO PUT ERROR:", e)
     res.status(500).json({ error: "Failed to save hero" })
   }

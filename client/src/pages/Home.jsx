@@ -23,13 +23,32 @@ function monthMatrix(year, monthIndex0) {
 
 
 function normalizeHomeHeroPayload(data) {
+    const calendarRaw = Array.isArray(data?.calendarEvents)
+    ? data.calendarEvents
+    : Array.isArray(data?.home_calendar_json)
+    ? data.home_calendar_json
+    : typeof data?.calendarEvents === "string"
+    ? (() => {
+        try {
+          const parsed = JSON.parse(data.calendarEvents)
+          return Array.isArray(parsed) ? parsed : []
+        } catch {
+          return []
+        }
+      })()
+    : typeof data?.home_calendar_json === "string"
+    ? (() => {
+        try {
+          const parsed = JSON.parse(data.home_calendar_json)
+          return Array.isArray(parsed) ? parsed : []
+        } catch {
+          return []
+        }
+      })()
+    : []
   return {
     spotifyPlaylistUrl: String(data?.spotifyPlaylistUrl || data?.spotify_playlist_url || "").trim(),
-    calendarEvents: Array.isArray(data?.calendarEvents)
-      ? data.calendarEvents
-      : Array.isArray(data?.home_calendar_json)
-      ? data.home_calendar_json
-      : [],
+    calendarEvents: calendarRaw,
   }
 }
 

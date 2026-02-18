@@ -56,6 +56,24 @@ function normalizeHeroPayload(data) {
     ? data.calendarEvents
     : Array.isArray(data?.home_calendar_json)
     ? data.home_calendar_json
+    : typeof data?.calendarEvents === "string"
+    ? (() => {
+        try {
+          const parsed = JSON.parse(data.calendarEvents)
+          return Array.isArray(parsed) ? parsed : []
+        } catch {
+          return []
+        }
+      })()
+    : typeof data?.home_calendar_json === "string"
+    ? (() => {
+        try {
+          const parsed = JSON.parse(data.home_calendar_json)
+          return Array.isArray(parsed) ? parsed : []
+        } catch {
+          return []
+        }
+      })()
     : []
 
   const calendarEvents = calendarRaw

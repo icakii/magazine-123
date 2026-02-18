@@ -90,29 +90,28 @@ export default function AdminPanel() {
   }, [activeTab])
 
   // ---------------- HERO (single) ----------------
-  const [heroVfxUrl, setHeroVfxUrl] = useState("")
+const [heroVfxUrl, setHeroVfxUrl] = useState("")
   const [heroMediaUrl, setHeroMediaUrl] = useState("")
   const [spotifyPlaylistUrl, setSpotifyPlaylistUrl] = useState("")
   const [calendarJson, setCalendarJson] = useState("[]")
-    const [calendarDraftDate, setCalendarDraftDate] = useState("")
+  const [calendarDraftDate, setCalendarDraftDate] = useState("")
   const [calendarDraftTitle, setCalendarDraftTitle] = useState("")
+
+  const applyHeroState = (rawData) => {
+    const normalized = normalizeHeroPayload(rawData || {})
+    setHeroVfxUrl(normalized.heroVfxUrl)
+    setHeroMediaUrl(normalized.heroMediaUrl)
+    setSpotifyPlaylistUrl(normalized.spotifyPlaylistUrl)
+    setCalendarJson(JSON.stringify(normalized.calendarEvents, null, 2))
+    setCalendarDraftDate("")
+    setCalendarDraftTitle("")
+  }
   const loadHero = async () => {
     try {
-      const res = await api.get("/hero")
-      const normalized = normalizeHeroPayload(res.data || {})
-      setHeroVfxUrl(normalized.heroVfxUrl)
-      setHeroMediaUrl(normalized.heroMediaUrl)
-      setSpotifyPlaylistUrl(normalized.spotifyPlaylistUrl)
-      setCalendarJson(JSON.stringify(normalized.calendarEvents, null, 2))
-      setCalendarDraftDate("")
-      setCalendarDraftTitle("")
-    } catch {
-      setHeroVfxUrl("")
-      setHeroMediaUrl("")
-      setSpotifyPlaylistUrl("")
-      setCalendarJson("[]")
-      setCalendarDraftDate("")
-      setCalendarDraftTitle("")
+            const res = await api.get("/hero", { params: { t: Date.now() } })
+      applyHeroState(res.data || {})
+    } catch (e) {
+      setMsg((prev) => prev || e?.response?.data?.error || "Could not refresh hero settings right now.")
     }
   }
 
@@ -182,15 +181,26 @@ export default function AdminPanel() {
       setMsg("")
       let payloadCalendarEvents = []
       try {
-payloadCalendarEvents = JSON.parse(calendarJson || "[]")
-      } catch {
+        const parsed = JSON.parse(calendarJson || "[]")
+        if (!Array.isArray(parsed)) {
+          setMsg("Calendar JSON must be an array.")
+          setBusy(false)
+          return
+        }
+        payloadCalendarEvents = parsed
+          .map((ev) => ({
+            date: String(ev?.date || "").slice(0, 10),
+            title: String(ev?.title || "").trim(),
+          }))
+          .filter((ev) => ev.date && ev.title)
+              } catch {
         setMsg("Calendar JSON is invalid.")
         setBusy(false)
         return
       }
 
-      await api.put("/admin/hero", { heroVfxUrl, heroMediaUrl, spotifyPlaylistUrl, calendarEvents: payloadCalendarEvents })
-      await loadHero()
+      const res = await api.put("/admin/hero", { heroVfxUrl, heroMediaUrl, spotifyPlaylistUrl, calendarEvents: payloadCalendarEvents })
+      applyHeroState(res.data || {})
       setMsg("✅ Hero/Home settings updated.")
     } catch (e) {
       setMsg(e?.response?.data?.error || "Failed to save hero settings.")

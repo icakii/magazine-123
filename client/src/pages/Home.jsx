@@ -202,10 +202,9 @@ const normalized = normalizeHomeHeroPayload(res.data || {})
                       {f.isPremium && <div style={{ position: "absolute", top: 10, right: 10, background: "#e63946", color: "white", padding: "2px 8px", borderRadius: 4, fontWeight: "bold", zIndex: 2 }}>🔒 Premium</div>}
                       {isLocked && <div style={{ position: "absolute", inset: 0, background: "rgba(255,255,255,0.7)", backdropFilter: "blur(5px)", zIndex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", borderRadius: 8 }}><span style={{ fontSize: "3rem" }}>🔒</span><p style={{ marginTop: 8, marginBottom: 12 }}>{t("premium_content")}</p><a href="/subscriptions" className="btn primary">{t("subscribe_unlock")}</a></div>}
                       {f.imageUrl && <img src={f.imageUrl} style={{ width: "100%", height: 200, objectFit: "cover", borderRadius: 8, marginBottom: 15 }} alt={f.title} loading="lazy" />}
-                      <h4 style={{ marginBottom: 12 }}>{f.title}</h4>
-
+<h4 className="featured-card-title" style={{ marginBottom: 12 }}>{f.title}</h4>
                      
-                      {f.excerpt && <p style={{ color: "var(--text-muted)", fontSize: "0.95rem", marginBottom: 15 }}>{f.excerpt}</p>}
+{f.excerpt && <p className="featured-card-excerpt" style={{ color: "var(--text-muted)", marginBottom: 15 }}>{f.excerpt}</p>}
                       <div style={{ marginTop: "auto" }}><button className="btn outline" onClick={() => !isLocked && setSelectedArticle(f)} disabled={isLocked} type="button">{t("read_more")}</button></div>
                     </div>
                   </div>

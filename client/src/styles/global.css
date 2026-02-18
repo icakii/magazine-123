@@ -4753,3 +4753,15 @@ html[data-theme="dark"] .maintenance-loading {
 .spotify-open-btn {
   margin: 4px 0 10px;
 }
+
+/* Featured cards typography aligned with home block sizing */
+.featured-card-title {
+  font-size: clamp(2.1rem, 4vw, 3rem);
+  line-height: 1.2;
+  font-weight: 900;
+}
+
+.featured-card-excerpt {
+  font-size: clamp(1.15rem, 1.9vw, 1.55rem);
+  line-height: 1.45;
+}

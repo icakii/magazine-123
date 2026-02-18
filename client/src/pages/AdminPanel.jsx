@@ -51,6 +51,29 @@ function isVideoUrl(url) {
   return /\.(mp4|webm|ogg|mov)(\?.*)?$/i.test(String(url || ""))
 }
 
+function normalizeHeroPayload(data) {
+  const calendarRaw = Array.isArray(data?.calendarEvents)
+    ? data.calendarEvents
+    : Array.isArray(data?.home_calendar_json)
+    ? data.home_calendar_json
+    : []
+
+  const calendarEvents = calendarRaw
+    .map((ev) => ({
+      date: String(ev?.date || "").slice(0, 10),
+      title: String(ev?.title || "").trim(),
+    }))
+    .filter((ev) => ev.date && ev.title)
+
+  return {
+    heroVfxUrl: String(data?.heroVfxUrl || data?.hero_vfx_url || "").trim(),
+    heroMediaUrl: String(data?.heroMediaUrl || data?.hero_media_url || "").trim(),
+    spotifyPlaylistUrl: String(data?.spotifyPlaylistUrl || data?.spotify_playlist_url || "").trim(),
+    calendarEvents,
+  }
+}
+
+
 export default function AdminPanel() {
   const { user, loading } = useAuth()
 
@@ -71,35 +94,103 @@ export default function AdminPanel() {
   const [heroMediaUrl, setHeroMediaUrl] = useState("")
   const [spotifyPlaylistUrl, setSpotifyPlaylistUrl] = useState("")
   const [calendarJson, setCalendarJson] = useState("[]")
+    const [calendarDraftDate, setCalendarDraftDate] = useState("")
+  const [calendarDraftTitle, setCalendarDraftTitle] = useState("")
   const loadHero = async () => {
     try {
       const res = await api.get("/hero")
-      setHeroVfxUrl(res.data?.heroVfxUrl || "")
-            setHeroMediaUrl(res.data?.heroMediaUrl || "")
-      setSpotifyPlaylistUrl(res.data?.spotifyPlaylistUrl || "")
-      setCalendarJson(JSON.stringify(res.data?.calendarEvents || [], null, 2))
+      const normalized = normalizeHeroPayload(res.data || {})
+      setHeroVfxUrl(normalized.heroVfxUrl)
+      setHeroMediaUrl(normalized.heroMediaUrl)
+      setSpotifyPlaylistUrl(normalized.spotifyPlaylistUrl)
+      setCalendarJson(JSON.stringify(normalized.calendarEvents, null, 2))
+      setCalendarDraftDate("")
+      setCalendarDraftTitle("")
     } catch {
       setHeroVfxUrl("")
-            setHeroMediaUrl("")
+      setHeroMediaUrl("")
       setSpotifyPlaylistUrl("")
       setCalendarJson("[]")
+      setCalendarDraftDate("")
+      setCalendarDraftTitle("")
     }
+  }
+
+ const calendarEvents = useMemo(() => {
+    try {
+      const parsed = JSON.parse(calendarJson || "[]")
+      if (!Array.isArray(parsed)) return []
+      return parsed
+        .map((ev) => ({
+          date: String(ev?.date || "").slice(0, 10),
+          title: String(ev?.title || "").trim(),
+        }))
+        .filter((ev) => ev.date && ev.title)
+        .sort((a, b) => a.date.localeCompare(b.date))
+    } catch {
+      return []
+    }
+  }, [calendarJson])
+
+  const applyCalendarEvents = (events) => {
+    const normalized = Array.isArray(events)
+      ? events
+          .map((ev) => ({
+            date: String(ev?.date || "").slice(0, 10),
+            title: String(ev?.title || "").trim(),
+          }))
+          .filter((ev) => ev.date && ev.title)
+      : []
+    setCalendarJson(JSON.stringify(normalized, null, 2))
+  }
+
+  const addCalendarEvent = () => {
+    const date = calendarDraftDate.trim()
+    const title = calendarDraftTitle.trim()
+    if (!date || !title) {
+      setMsg("Date and title are required for calendar event.")
+      return
+    }
+
+    const next = [...calendarEvents]
+    const idx = next.findIndex((ev) => ev.date === date)
+    if (idx >= 0) {
+      next[idx] = { date, title }
+    } else {
+      next.push({ date, title })
+    }
+
+    applyCalendarEvents(next)
+    setCalendarDraftTitle("")
+    setMsg("✅ Calendar event updated locally. Click Save Hero.")
+  }
+
+  const removeCalendarEvent = (date) => {
+    const next = calendarEvents.filter((ev) => ev.date !== date)
+    applyCalendarEvents(next)
+    setMsg("✅ Calendar event removed locally. Click Save Hero.")
+  }
+
+  const editCalendarEvent = (eventItem) => {
+    setCalendarDraftDate(eventItem?.date || "")
+    setCalendarDraftTitle(eventItem?.title || "")
   }
 
   const saveHero = async () => {
     try {
       setBusy(true)
       setMsg("")
-let calendarEvents = []
+      let payloadCalendarEvents = []
       try {
-        calendarEvents = JSON.parse(calendarJson || "[]")
+payloadCalendarEvents = JSON.parse(calendarJson || "[]")
       } catch {
         setMsg("Calendar JSON is invalid.")
         setBusy(false)
         return
       }
 
-      await api.put("/admin/hero", { heroVfxUrl, heroMediaUrl, spotifyPlaylistUrl, calendarEvents })
+      await api.put("/admin/hero", { heroVfxUrl, heroMediaUrl, spotifyPlaylistUrl, calendarEvents: payloadCalendarEvents })
+      await loadHero()
       setMsg("✅ Hero/Home settings updated.")
     } catch (e) {
       setMsg(e?.response?.data?.error || "Failed to save hero settings.")
@@ -545,7 +636,65 @@ let calendarEvents = []
 
             <div className="upload-row" style={{ marginTop: 12 }}>
               <div className="upload-box" style={{ width: "100%" }}>
- <div className="upload-title">{'Home calendar JSON (e.g. [{"date":"2026-03-05","title":"Launch"}])'}</div>                <textarea rows={8} style={{ width: "100%" }} value={calendarJson} onChange={(e) => setCalendarJson(e.target.value)} />
+                <div className="upload-title">Home calendar manager</div>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr auto", gap: 8, alignItems: "end", marginBottom: 12 }}>
+                  <label className="field" style={{ margin: 0 }}>
+                    <span>Date</span>
+                    <input
+                      type="date"
+                      value={calendarDraftDate}
+                      onChange={(e) => setCalendarDraftDate(e.target.value)}
+                    />
+                  </label>
+                  <label className="field" style={{ margin: 0 }}>
+                    <span>Title</span>
+                    <input
+                      value={calendarDraftTitle}
+                      onChange={(e) => setCalendarDraftTitle(e.target.value)}
+                      placeholder="Launch / Editorial / Event..."
+                    />
+                  </label>
+                  <button className="btn ghost" type="button" onClick={addCalendarEvent}>
+                    Add / Update
+                  </button>
+                </div>
+
+                <div className="preview-ph" style={{ textAlign: "left", minHeight: 72 }}>
+                  {calendarEvents.length === 0 ? (
+                    <span>No calendar events yet.</span>
+                  ) : (
+                    <div style={{ display: "grid", gap: 8 }}>
+                      {calendarEvents.map((ev) => (
+                        <div
+                          key={ev.date}
+                          style={{
+                            display: "grid",
+                            gridTemplateColumns: "120px 1fr auto auto",
+                            gap: 8,
+                            alignItems: "center",
+                          }}
+                        >
+                          <code>{ev.date}</code>
+                          <span>{ev.title}</span>
+                          <button className="btn ghost" type="button" onClick={() => editCalendarEvent(ev)}>
+                            Edit
+                          </button>
+                          <button className="btn ghost" type="button" onClick={() => removeCalendarEvent(ev.date)}>
+                            Remove
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <details style={{ marginTop: 10 }}>
+                  <summary>Advanced: edit raw JSON</summary>
+                  <div className="upload-title" style={{ marginTop: 8 }}>
+                    {'Home calendar JSON (e.g. [{"date":"2026-03-05","title":"Launch"}])'}
+                  </div>
+                  <textarea rows={8} style={{ width: "100%" }} value={calendarJson} onChange={(e) => setCalendarJson(e.target.value)} />
+                </details>
               </div>
             </div>
 

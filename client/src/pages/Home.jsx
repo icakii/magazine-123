@@ -48,7 +48,7 @@ function normalizeHomeHeroPayload(data) {
     : []
   return {
     spotifyPlaylistUrl: String(data?.spotifyPlaylistUrl || data?.spotify_playlist_url || "").trim(),
-    calendarEvents: calendarRaw,
+    calendarEvents: calendarRaw,                                                                            
   }
 }
 
@@ -216,7 +216,7 @@ const normalized = normalizeHomeHeroPayload(res.data || {})
               <div className="work-wide glass-card">
                 <h3>Work with us ✨</h3>
                 <p>Partnerships, sponsorships and custom brand campaigns with MIREN MAG. Let’s build something bold together.</p>
-                <a className="btn primary" href="/opportunities">Open Partnerships</a>
+<a className="btn primary work-wide-cta" href="/opportunities">Open Partnerships</a>
               </div>
 
               <div className="work-card glass-card">
@@ -226,14 +226,15 @@ const normalized = normalizeHomeHeroPayload(res.data || {})
                     href={spotifyPlaylistUrl}
                     target="_blank"
                     rel="noreferrer"
-                    className="spotify-link"
+                    className="btn outline spotify-open-btn"
                     title="Open Spotify playlist"
                   >
-                    {spotifyPlaylistUrl}
+                    Open Spotify Playlist
                   </a>
                 ) : (
                   <p className="text-muted">Playlist link is not set yet.</p>
-                )}                <p className="text-muted">1 request per day.</p>
+                )}
+                <p className="text-muted">1 request per day.</p>
                 <input className="input" placeholder="Song" value={song} onChange={(e) => setSong(e.target.value)} />
                 <input className="input" placeholder="Artist" value={artist} onChange={(e) => setArtist(e.target.value)} style={{ marginTop: 8 }} />
                 <button className="btn primary" type="button" style={{ marginTop: 10 }} onClick={sendSpotifyRequest}>Send request</button>

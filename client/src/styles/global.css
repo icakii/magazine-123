@@ -4658,56 +4658,98 @@ html[data-theme="dark"] .maintenance-loading {
 
 /* --- Home Work With Us / Spotify / Games / Calendar blocks --- */
 .home-work-grid{
-  margin-top: 28px;
+  margin-top: 32px;
   display:grid;
   grid-template-columns: repeat(2, minmax(0,1fr));
-  gap:16px;
+  gap:20px;
 }
 .glass-card{
-  border:1px solid rgba(255,255,255,.18);
-  background:linear-gradient(135deg, rgba(255,255,255,.14), rgba(255,255,255,.06));
+  border:1px solid rgba(255,255,255,.22);
+  background:
+    radial-gradient(circle at top right, rgba(156,42,42,.14), transparent 48%),
+    linear-gradient(145deg, rgba(255,255,255,.2), rgba(255,255,255,.08));
   backdrop-filter: blur(14px);
-  border-radius:16px;
-  padding:18px;
-  box-shadow:0 10px 30px rgba(0,0,0,.15);
-  animation:floatIn .7s ease both;
+  border-radius:20px;
+  padding:24px;
+  box-shadow:0 14px 34px rgba(20,16,13,.16);
+  transition:transform .28s ease, box-shadow .28s ease, border-color .28s ease;
+  animation:floatIn .75s cubic-bezier(.2,.85,.35,1) both;
 }
-.work-wide{ grid-column: 1 / -1; }
-.work-card, .calendar-card{ min-height: 220px; }
+.glass-card:hover{
+  transform:translateY(-3px);
+  box-shadow:0 18px 38px rgba(20,16,13,.22);
+  border-color:rgba(156,42,42,.28);
+}
+.work-wide{
+  grid-column: 1 / -1;
+  text-align:center;
+}
+.work-wide > p{
+  font-size:clamp(1.3rem, 2.6vw, 2rem);
+  line-height:1.45;
+  font-weight:560;
+  margin-bottom:24px;
+}
+.work-wide-cta{
+  margin-top:16px;
+}
+.work-card, .calendar-card{ min-height: 240px; }
 .calendar-card{ grid-column: 1 / -1; }
-.calendar-grid{ display:grid; grid-template-columns: repeat(7,minmax(0,1fr)); gap:8px; margin-top:10px; }
-.cal-head{ text-align:center; font-weight:700; font-size:.85rem; opacity:.8; }
-.cal-cell{ min-height:72px; border:1px solid var(--nav-border); border-radius:10px; padding:6px; position:relative; overflow:hidden; }
+.calendar-card h4{
+  font-size:clamp(1.45rem, 2.8vw, 2rem);
+  font-weight:800;
+  letter-spacing:.01em;
+}
+.calendar-grid{ display:grid; grid-template-columns: repeat(7,minmax(0,1fr)); gap:10px; margin-top:14px; }
+.cal-head{ text-align:center; font-weight:800; font-size:.92rem; opacity:.86; }
+.cal-cell{ min-height:82px; border:1px solid var(--nav-border); border-radius:12px; padding:8px; position:relative; overflow:hidden; background:rgba(255,255,255,.18); }
 .cal-empty{ opacity:.25; }
-.cal-day{ font-weight:800; font-size:.85rem; }
-.cal-event{ font-size:.75rem; margin-top:6px; opacity:.88; }
-.cal-has-event{ border-color: rgba(56,128,255,.5); box-shadow: inset 0 0 0 1px rgba(56,128,255,.32); }
-.cal-has-event::after{ content:""; position:absolute; inset:0; background:linear-gradient(120deg, transparent 0%, rgba(56,128,255,.13) 35%, transparent 70%); animation:shineMove 2.5s linear infinite; }
-
-@keyframes shineMove{ from{ transform:translateX(-110%);} to{ transform:translateX(110%);} }
+.cal-day{ font-weight:900; font-size:.95rem; }
+.cal-event{ font-size:.86rem; margin-top:7px; opacity:.94; font-weight:700; line-height:1.3; }
+.cal-has-event{
+  border-color: rgba(156,42,42,.58);
+  box-shadow: inset 0 0 0 1px rgba(156,42,42,.36), 0 0 0 1px rgba(156,42,42,.22);
+  animation:calPulse 2.8s ease-in-out infinite;
+}
+.cal-has-event::after{
+  content:"";
+  position:absolute;
+  inset:-35% -45%;
+  background:conic-gradient(from 90deg, transparent 0 35%, rgba(177,53,53,.32) 48%, transparent 62% 100%);
+  animation:crimsonSweep 5.5s linear infinite;
+  pointer-events:none;
+}
+@keyframes crimsonSweep{ from{ transform:rotate(0deg);} to{ transform:rotate(360deg);} }
+@keyframes calPulse{ 0%,100%{ box-shadow: inset 0 0 0 1px rgba(156,42,42,.34), 0 0 0 1px rgba(156,42,42,.16);} 50%{ box-shadow: inset 0 0 0 1px rgba(179,59,59,.52), 0 0 0 1px rgba(179,59,59,.34), 0 0 18px rgba(156,42,42,.2);} }
 @keyframes floatIn{ from{ opacity:0; transform: translateY(18px) scale(.98);} to{ opacity:1; transform: translateY(0) scale(1);} }
 
 @media (max-width: 860px){
-  .home-work-grid{ grid-template-columns: 1fr; }
+.home-work-grid{ grid-template-columns: 1fr; gap:16px; }
   .work-wide,.calendar-card{ grid-column:auto; }
+  .glass-card{ padding:20px; border-radius:16px; }
 }
 /* Home blocks: centered titles + spacing under titles */
 .home-work-grid .glass-card > h3,
 .home-work-grid .glass-card > h4 {
   text-align: center;
-  margin: 0 0 14px;
+  margin: 0 0 16px;
+  font-weight: 900;
+  letter-spacing: .01em;
+}
+
+.home-work-grid .glass-card > h3 {
+  font-size: clamp(2rem, 4vw, 3rem);
+}
+
+.home-work-grid .glass-card > h4 {
+  font-size: clamp(1.85rem, 3.2vw, 2.45rem);
 }
 
 .home-work-grid .glass-card > h3 + *,
 .home-work-grid .glass-card > h4 + * {
-  margin-top: 4px;
+  margin-top: 8px;
 }
 
-.spotify-link {
-  display: inline-block;
-  max-width: 100%;
-  color: var(--oxide-red);
-  font-weight: 700;
-  text-decoration: underline;
-  word-break: break-all;
+.spotify-open-btn {
+  margin: 4px 0 10px;
 }

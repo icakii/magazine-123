@@ -70,7 +70,6 @@ app.use("/api", cors(corsOptions))
 app.options("/api/*", cors(corsOptions))
 
 const heroRoutes = require("./routes/hero")
-app.use("/api", heroRoutes)
 
 app.use(cookieParser())
 // ---------------------------------------------------------------
@@ -283,6 +282,7 @@ app.post(
 // ---------------------------------------------------------------
 app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
+app.use("/api", heroRoutes)
 
 app.get("/__ping", (req, res) => {
   res.status(200).send("OK FROM NODE: " + new Date().toISOString())

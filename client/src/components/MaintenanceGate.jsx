@@ -4,8 +4,8 @@ import { useLocation } from "react-router-dom"
 import { useAuth } from "../context/AuthContext"
 import { api } from "../lib/api"
 
-// София: 1 март 2026, 18:00 (+02:00)
-const TARGET_TS = Date.parse("2026-03-01T18:00:00+02:00")
+// София: 13 март 2026, 18:00 (+02:00)
+const TARGET_TS = Date.parse("2026-03-13T18:00:00+02:00")
 
 const ADMIN_EMAILS = [
   "icaki06@gmail.com",
@@ -179,8 +179,7 @@ export default function MaintenanceGate({ children }) {
           <div className="maintenance-badge">MIREN</div>
           <h1 className="maintenance-title">Сайтът е временно заключен</h1>
           <p className="maintenance-subtitle">
-            Работим по плащанията и системите. Отваряме на <strong>1 март</strong> в{" "}
-            <strong>18:00</strong> (София).
+            Работим по плащанията и системите. Отваряме на <strong>13 март</strong> в{" "}<strong>18:00</strong> (София).
           </p>
         </div>
 

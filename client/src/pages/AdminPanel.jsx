@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState } from "react"
 import { useAuth } from "../hooks/useAuth"
 import { api } from "../lib/api"
 
-const ADMIN_EMAILS = ["icaki06@gmail.com", "icaki2k@gmail.com", "mirenmagazine@gmail.com"]
+const ADMIN_EMAILS = ["icaki@mirenmagazine.com"]
 
 const TABS = [
   { key: "hero", label: "Hero" },            // ✅ single hero (no list)

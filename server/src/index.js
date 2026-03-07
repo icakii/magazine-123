@@ -92,31 +92,71 @@ app.use(
 )
 
 // ---------------------------------------------------------------
-// 7) EMAIL TRANSPORTER
+// 7) EMAIL TRANSPORTERS
 // ---------------------------------------------------------------
-const transporter = nodemailer.createTransport({
-  host: "smtp.gmail.com",
-  port: 465,
-  secure: true,
-  pool: true,
-  maxConnections: 2,
-  maxMessages: 50,
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
+const EMAIL_ACCOUNTS = {
+  fallback: {
+    user: "icaki@mirenmagazine.com",
+    pass: "cxmo zntl ajeo cvyc",
+    label: "MIREN",
   },
-})
+  login: {
+    user: "support@mirenmagazine.com",
+    pass: "ezcp bccr lsed vthu",
+    label: "MIREN",
+  },
+  contact: {
+    user: "contact@mirenmagazine.com",
+    pass: "ovyo iwhi vjhu scji",
+    label: "MIREN Contact",
+  },
+  newsletter: {
+    user: "info@mirenmagazine.com",
+    pass: "uywk zcdo ymhe gjdb",
+    label: "MIREN Newsletter",
+  },
+  billing: {
+    user: "billing@mirenmagazine.com",
+    pass: "ztzg jkeh qvoq maed",
+    label: "MIREN Orders",
+  },
+}
 
-transporter.verify((err) => {
-  if (err) console.error("❌ EMAIL TRANSPORT VERIFY FAILED:", err)
-  else console.log("✅ EMAIL TRANSPORT READY")
+function createTransportFor(account) {
+  return nodemailer.createTransport({
+    host: "smtp.gmail.com",
+    port: 465,
+    secure: true,
+    pool: true,
+    maxConnections: 2,
+    maxMessages: 50,
+    auth: {
+      user: account.user,
+      pass: account.pass,
+    },
+  })
+}
+
+const transporters = {
+  fallback: createTransportFor(EMAIL_ACCOUNTS.fallback),
+  login: createTransportFor(EMAIL_ACCOUNTS.login),
+  contact: createTransportFor(EMAIL_ACCOUNTS.contact),
+  newsletter: createTransportFor(EMAIL_ACCOUNTS.newsletter),
+  billing: createTransportFor(EMAIL_ACCOUNTS.billing),
+}
+
+Object.entries(transporters).forEach(([key, transporter]) => {
+  transporter.verify((err) => {
+    if (err) console.error(`❌ EMAIL TRANSPORT VERIFY FAILED (${key}):`, err)
+    else console.log(`✅ EMAIL TRANSPORT READY (${key})`)
+  })
 })
 
 async function sendGameStreakEndedEmail({ to, gameKey, streak }) {
   const safeGame = String(gameKey || "game").toUpperCase()
 
-  return transporter.sendMail({
-    from: `"MIREN" <${process.env.EMAIL_USER}>`,
+ return transporters.fallback.sendMail({
+    from: `"${EMAIL_ACCOUNTS.fallback.label}" <${EMAIL_ACCOUNTS.fallback.user}>`,
     to,
     subject: `Streak ended — ${safeGame}`,
     html: `
@@ -196,11 +236,7 @@ app.post(
         // -----------------------------------------------------------
         if (session.payment_status === "paid" && session.mode === "payment") {
           try {
-            const adminTo = [
-              "mirenmagazine@gmail.com",
-              "icaki06@gmail.com",
-              "icaki2k@gmail.com",
-            ]
+                       const internalOrderInbox = "icaki@mirenmagazine.com"
 
             // line items
             let lines = "(no items)"
@@ -255,12 +291,22 @@ app.post(
               <p><b>Items:</b><br/>${lines}</p>
             `
 
-            await transporter.sendMail({
-              from: `"MIREN Orders" <${process.env.EMAIL_USER}>`,
-              to: adminTo.join(","),
+            await transporters.billing.sendMail({
+              from: `"${EMAIL_ACCOUNTS.billing.label}" <${EMAIL_ACCOUNTS.billing.user}>`,
+              to: internalOrderInbox,
               subject: `New Order • ${session.id}`,
               html,
             })
+
+                        if (customerEmail) {
+              await transporters.billing.sendMail({
+                from: `"${EMAIL_ACCOUNTS.billing.label}" <${EMAIL_ACCOUNTS.billing.user}>`,
+                to: customerEmail,
+                subject: `Order confirmation • ${session.id}`,
+                html,
+              })
+            }
+
           } catch (mailErr) {
             console.error("ORDER EMAIL ERROR:", mailErr)
           }
@@ -314,11 +360,7 @@ function authMiddleware(req, res, next) {
 
 function adminMiddleware(req, res, next) {
   authMiddleware(req, res, () => {
-    const adminEmails = [
-      "icaki06@gmail.com",
-      "icaki2k@gmail.com",
-      "mirenmagazine@gmail.com",
-    ]
+    const adminEmails = ["icaki@mirenmagazine.com"]
     if (!adminEmails.includes(req.user.email)) {
       return res.status(403).json({ error: "Admin access required" })
     }
@@ -479,8 +521,8 @@ app.post("/api/newsletter/send", adminMiddleware, async (req, res) => {
 
     const emails = rows.map((r) => r.email)
 
-    await transporter.sendMail({
-      from: `"MIREN Newsletter" <${process.env.EMAIL_USER}>`,
+    await transporters.newsletter.sendMail({
+      from: `"${EMAIL_ACCOUNTS.newsletter.label}" <${EMAIL_ACCOUNTS.newsletter.user}>`,
       bcc: emails,
       subject,
       html: body,
@@ -833,7 +875,7 @@ app.post("/api/events/send-reminders", async (req, res) => {
         )
         .join("")
 
-      await transporter.sendMail({
+      await transporters.fallback.sendMail({
         to: email,
         subject: "MIREN - Event reminder for tomorrow",
         html: `<p>You have upcoming events tomorrow:</p><ul>${htmlList}</ul>`,
@@ -894,8 +936,8 @@ app.post("/api/auth/register", async (req, res) => {
       try {
         console.log("📧 CONFIRM EMAIL TO =", email)
 
-        const info = await transporter.sendMail({
-  from: `"MIREN" <${process.env.EMAIL_USER}>`,
+        const info = await transporters.login.sendMail({
+  from: `"${EMAIL_ACCOUNTS.login.label}" <${EMAIL_ACCOUNTS.login.user}>`,
   to: normalizedEmail,
   subject: "Welcome to MIREN — Confirm your email",
   html: `
@@ -1028,8 +1070,8 @@ const normalizedEmail = normalizeEmail(email)
 
     setImmediate(async () => {
       try {
-        const info = await transporter.sendMail({
-  from: `"MIREN" <${process.env.EMAIL_USER}>`,
+        const info = await transporters.login.sendMail({
+  from: `"${EMAIL_ACCOUNTS.login.label}" <${EMAIL_ACCOUNTS.login.user}>`,
   to: normalizedEmail,
   subject: "MIREN — Reset your password",
   html: `
@@ -1086,8 +1128,8 @@ const normalizedEmail = normalizeEmail(email)
       [code, expiry, normalizedEmail]
     )
 
-    await transporter.sendMail({
-  from: `"MIREN Security" <${process.env.EMAIL_USER}>`,
+    await transporters.login.sendMail({
+  from: `"${EMAIL_ACCOUNTS.login.label} Security" <${EMAIL_ACCOUNTS.login.user}>`,
 to: normalizedEmail,
   subject: "MIREN — Your 2FA code",
   html: `
@@ -1140,8 +1182,8 @@ app.post("/api/auth/verify-2fa", async (req, res) => {
     // ✅ send "2FA enabled" email (async, doesn't block response)
     setImmediate(async () => {
       try {
-        await transporter.sendMail({
-          from: `"MIREN Security" <${process.env.EMAIL_USER}>`,
+        await transporters.login.sendMail({
+          from: `"${EMAIL_ACCOUNTS.login.label} Security" <${EMAIL_ACCOUNTS.login.user}>`,
           to: normalizedEmail,  
           subject: "MIREN — 2FA is now enabled",
           html: `
@@ -1227,9 +1269,10 @@ app.post("/api/create-checkout-session", authMiddleware, async (req, res) => {
 // ---------------------------------------------------------------
 app.post("/api/contact", async (req, res) => {
   const { email, message } = req.body
-  await transporter.sendMail({
-    from: email,
-    to: process.env.EMAIL_USER,
+  await transporters.contact.sendMail({
+    from: `"${EMAIL_ACCOUNTS.contact.label}" <${EMAIL_ACCOUNTS.contact.user}>`,
+    replyTo: email,
+    to: EMAIL_ACCOUNTS.contact.user,
     subject: "Contact",
     text: message,
   })

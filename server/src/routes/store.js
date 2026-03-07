@@ -8,9 +8,7 @@ const authMiddleware = require("../middleware/auth.middleware")
 const APP_URL = (process.env.APP_URL || "http://localhost:5173").replace(/\/$/, "")
 
 const ADMIN_EMAILS = [
-  "icaki06@gmail.com",
-  "icaki2k@gmail.com",
-  "mirenmagazine@gmail.com",
+  "icaki@mirenmagazine.com",
 ]
 
 function isAdmin(email) {

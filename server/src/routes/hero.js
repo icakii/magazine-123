@@ -4,7 +4,7 @@ const router = express.Router()
 const db = require("../db")
 const auth = require("../middleware/auth.middleware")
 
-const ADMIN_EMAILS = ["icaki06@gmail.com", "icaki2k@gmail.com", "mirenmagazine@gmail.com"]
+const ADMIN_EMAILS = ["icaki@mirenmagazine.com"]
 function isAdmin(email) {
   return !!email && ADMIN_EMAILS.includes(email)
 }

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react"
 import { t } from "../lib/i18n"
 
-const TO_EMAIL = "mirenmagazine@gmail.com"
+const TO_EMAIL = "contact@mirenmagazine.com"
 
 // Gmail compose (primary)
 function buildGmailLink(subject, body) {

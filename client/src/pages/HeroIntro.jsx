@@ -4,17 +4,15 @@ import { t } from "../lib/i18n"
 import { useNavigate } from "react-router-dom"
 
 const ADMIN_EMAILS = [
-  "icaki06@gmail.com",
-  "icaki2k@gmail.com",
-  "mirenmagazine@gmail.com",
+"icaki@mirenmagazine.com",
 ]
 
 // ⚠️ смени годината ако трябва
-const RELEASE_UTC_YMD = "2026-03-25"
+const RELEASE_UTC_ISO = "2026-03-13T18:00:00Z"
 
-function todayUtcYmd() {
-  return new Date().toISOString().slice(0, 10)
-} 
+function isReleasedNow() {
+  return Date.now() >= new Date(RELEASE_UTC_ISO).getTime()
+}
 
 function isVideoUrl(url) {
   return /\.(mp4|webm|ogg|mov)(\?.*)?$/i.test(String(url || ""))
@@ -64,7 +62,7 @@ export default function HeroIntro() {
   }, [])
 
   const isAdmin = !!me?.email && ADMIN_EMAILS.includes(me.email)
-  const released = todayUtcYmd() >= RELEASE_UTC_YMD
+  const released = isReleasedNow()
 
   const getNavOffset = () => {
     try {
@@ -221,9 +219,9 @@ export default function HeroIntro() {
               onClick={onOrderClick}
               type="button"
               disabled={orderLocked}
-              title={orderLocked ? "Order opens on 25 March" : "Open store"}
+              title={orderLocked ? "Order opens on 13 March at 18:00" : "Open store"}
             >
-              {orderLocked ? "Order on 25 March 🔒" : "Order Now ⚡"}
+              {orderLocked ? "Order on 13 March, 18:00 🔒" : "Order Now ⚡"}
             </button>
 
             {/* optional: show admin badge */}

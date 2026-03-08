@@ -37,6 +37,8 @@ const PORT = process.env.PORT || 8080
 const JWT_SECRET = process.env.JWT_SECRET || "super-secret-key-change-this"
 const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:5173"
 const APP_URL = process.env.APP_URL || "http://localhost:5173"
+const STRIPE_PRICE_MONTHLY = process.env.STRIPE_PRICE_MONTHLY || ""
+const STRIPE_PRICE_YEARLY = process.env.STRIPE_PRICE_YEARLY || ""
 
 // ---------------------------------------------------------------
 // 0) TRUST PROXY (Render)
@@ -216,10 +218,12 @@ app.post(
         // ✅ SUBSCRIPTIONS (existing logic)
         // -----------------------------------------------------------
         if (session.payment_status === "paid" && session.mode === "subscription") {
-          let plan = "free"
-          if (session.amount_total === 499) plan = "monthly"
-          if (session.amount_total === 4999) plan = "yearly"
-
+         let plan = String(session?.metadata?.plan || "").toLowerCase()
+          if (!["monthly", "yearly"].includes(plan)) {
+            plan = "free"
+            if (session.amount_total === 499) plan = "monthly"
+            if (session.amount_total === 4999) plan = "yearly"
+          }
           try {
             await db.query("UPDATE subscriptions SET plan = $1 WHERE email = $2", [
               plan,
@@ -309,6 +313,23 @@ app.post(
 
           } catch (mailErr) {
             console.error("ORDER EMAIL ERROR:", mailErr)
+          }
+        }
+      }
+
+      if (event.type === "customer.subscription.deleted") {
+        const stripeSub = event.data.object
+        const customerId = stripeSub?.customer
+
+        if (customerId) {
+          try {
+            const customer = await stripe.customers.retrieve(customerId)
+            const email = customer?.email || ""
+            if (email) {
+              await db.query("UPDATE subscriptions SET plan = $1 WHERE email = $2", ["free", email])
+            }
+          } catch (subErr) {
+            console.error("SUBSCRIPTION DELETE HANDLER ERROR:", subErr)
           }
         }
       }
@@ -1227,33 +1248,97 @@ app.get("/api/subscriptions", authMiddleware, async (req, res) => {
   res.json(rows)
 })
 
-app.post("/api/create-checkout-session", authMiddleware, async (req, res) => {
-  const { plan } = req.body
-  const userEmail = req.user.email
+app.post("/api/subscriptions/cancel", authMiddleware, async (req, res) => {
+  const userEmail = req.user?.email
+  const immediate = Boolean(req.body?.immediately)
 
-  let priceData
+  if (!userEmail) {
+    return res.status(401).json({ error: "Unauthorized" })
+  }
+
+  try {
+    const customers = await stripe.customers.list({ email: userEmail, limit: 10 })
+    const customerIds = (customers.data || []).map((c) => c.id).filter(Boolean)
+
+    if (customerIds.length === 0) {
+      return res.status(404).json({ error: "No Stripe customer found" })
+    }
+
+    let changed = 0
+    for (const customerId of customerIds) {
+      const subs = await stripe.subscriptions.list({ customer: customerId, status: "all", limit: 100 })
+      for (const s of subs.data || []) {
+        const actionableStatuses = new Set(["active", "trialing", "past_due", "unpaid"])
+        if (!actionableStatuses.has(s.status)) continue
+                if (immediate) {
+          await stripe.subscriptions.cancel(s.id)
+        } else if (!s.cancel_at_period_end) {
+          await stripe.subscriptions.update(s.id, { cancel_at_period_end: true })
+          } else {
+          continue
+        }
+
+        changed += 1
+      }
+    }
+
+    if (changed === 0) {
+      return res.status(404).json({ error: "No cancellable subscriptions found" })
+        }
+
+    return res.json({
+      ok: true,
+      canceled: changed,
+      mode: immediate ? "immediate" : "period_end",
+    })
+  } catch (e) {
+    console.error("SUBSCRIPTION CANCEL ERROR:", e)
+    return res.status(500).json({ error: "Failed to cancel subscription" })
+  }
+})
+
+app.post("/api/create-checkout-session", authMiddleware, async (req, res) => {
+const plan = String(req.body?.plan || "").toLowerCase()
+const userEmail = req.user.email
+
+ if (!["monthly", "yearly"].includes(plan)) {
+    return res.status(400).json({ error: "Invalid plan" })
+  }
+
+  let lineItem
   if (plan === "monthly") {
-    priceData = {
-      product_data: { name: "Monthly" },
-      unit_amount: 499,
-      currency: "eur",
-      recurring: { interval: "month" },
-    }
+    lineItem = STRIPE_PRICE_MONTHLY
+      ? { price: STRIPE_PRICE_MONTHLY, quantity: 1 }
+      : {
+          price_data: {
+            product_data: { name: "Monthly" },
+            unit_amount: 499,
+            currency: "eur",
+            recurring: { interval: "month" },
+          },
+          quantity: 1,
+        }
   } else {
-    priceData = {
-      product_data: { name: "Yearly" },
-      unit_amount: 4999,
-      currency: "eur",
-      recurring: { interval: "year" },
-    }
+    lineItem = STRIPE_PRICE_YEARLY
+      ? { price: STRIPE_PRICE_YEARLY, quantity: 1 }
+      : {
+          price_data: {
+            product_data: { name: "Yearly" },
+            unit_amount: 4999,
+            currency: "eur",
+            recurring: { interval: "year" },
+          },
+          quantity: 1,
+        }
   }
 
   try {
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ["card"],
       mode: "subscription",
-      line_items: [{ price_data: priceData, quantity: 1 }],
+      line_items: [lineItem],
       customer_email: userEmail,
+           metadata: { plan },
       success_url: `${APP_URL}/profile?payment_success=true`,
       cancel_url: `${APP_URL}/subscriptions`,
     })

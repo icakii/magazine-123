@@ -17,6 +17,7 @@ export default function Subscriptions() {
   const [msg, setMsg] = useState("")
   const [current, setCurrent] = useState("free")
   const [loadingPlan, setLoadingPlan] = useState(null)
+  const [cancelLoading, setCancelLoading] = useState(false)
 
   // safe translation with fallback
   const tt = (key, fallback) => {
@@ -65,6 +66,33 @@ export default function Subscriptions() {
     }
   }
 
+  async function cancelSubscription(immediately = false) {
+    if (!(current === "monthly" || current === "yearly")) {
+      setMsg(tt("no_active_paid_sub", "You don't have an active paid subscription."))
+      return
+    }
+
+    const question = immediately
+      ? tt("confirm_cancel_now", "Cancel now? Access may stop immediately.")
+      : tt("confirm_cancel_end", "Cancel at period end? You keep access until billing period ends.")
+
+    if (!window.confirm(question)) return
+
+    setCancelLoading(true)
+    setMsg("")
+    try {
+      await api.post("/subscriptions/cancel", { immediately })
+      setMsg(
+        immediately
+          ? tt("cancel_done_now", "Subscription canceled immediately. It may take a few seconds to sync.")
+          : tt("cancel_done_end", "Subscription will cancel at period end.")
+      )
+    } catch (err) {
+      setMsg(err?.response?.data?.error || tt("cancel_error", "Failed to cancel subscription."))
+    } finally {
+      setCancelLoading(false)
+    }
+  }
   const Benefits = useMemo(() => {
     return (
       <div style={{ marginTop: 18 }}>
@@ -157,17 +185,42 @@ export default function Subscriptions() {
           <button className="btn ghost" disabled style={{ width: "100%" }}>
             {isCurrent ? tt("plan_current", "Current plan") : tt("plan_choose", "Choose plan")}
           </button>
+           ) : isCurrent ? (
+          <div style={{ display: "grid", gap: 8 }}>
+            <button className="btn ghost" disabled style={{ width: "100%" }}>
+              {tt("plan_current", "Current plan")}
+            </button>
+            <button
+              className="btn"
+              onClick={() => cancelSubscription(false)}
+              disabled={cancelLoading}
+              style={{ width: "100%" }}
+            >
+              {cancelLoading
+                ? tt("cancel_loading", "Cancelling...")
+                : tt("cancel_at_period_end", "Cancel at period end")}
+            </button>
+            <button
+              className="btn"
+              onClick={() => cancelSubscription(true)}
+              disabled={cancelLoading}
+              style={{ width: "100%", opacity: 0.88 }}
+            >
+              {cancelLoading
+                ? tt("cancel_loading", "Cancelling...")
+                : tt("cancel_now", "Cancel now")}
+            </button>
+          </div>
         ) : (
           <button
             className="btn primary"
             onClick={() => activate(plan)}
             style={{ width: "100%" }}
-            disabled={loadingPlan === plan || isCurrent}
+            disabled={loadingPlan === plan || cancelLoading}
           >
             {loadingPlan === plan
               ? tt("plan_loading", "Loading...")
-              : isCurrent
-              ? tt("plan_current", "Current plan")
+              
               : tt("plan_choose", "Choose plan")}
           </button>
         )}
@@ -216,6 +269,12 @@ export default function Subscriptions() {
           {msg}
         </p>
       )}
+      
+      {(current === "monthly" || current === "yearly") && (
+        <p className="subhead" style={{ marginTop: 10 }}>
+          {tt("cancel_hint", "Tip: Use Cancel at period end so users keep access until the cycle finishes.")}
+        </p>
+      )}  
     </div>
   )
 }

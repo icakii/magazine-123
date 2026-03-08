@@ -1,5 +1,5 @@
 // client/src/components/MaintenanceGate.jsx
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { useLocation } from "react-router-dom"
 import { useAuth } from "../context/AuthContext"
 import { api } from "../lib/api"
@@ -68,12 +68,19 @@ export default function MaintenanceGate({ children }) {
     }
   }, [locked])
 
-  // ако имаш token и refreshMe още не е минал стабилно — опитай още веднъж
+const triedTokenRefreshRef = useRef(false)
   useEffect(() => {
-    if (locked && !loading) {
-      const hasToken = !!(localStorage.getItem("auth_token") || localStorage.getItem("token"))
-      if (hasToken && !user) refreshMe()
+       if (!locked) {
+      triedTokenRefreshRef.current = false
+      return
     }
+        if (loading || user || triedTokenRefreshRef.current) return
+
+    const hasToken = !!(localStorage.getItem("auth_token") || localStorage.getItem("token"))
+    if (!hasToken) return
+
+    triedTokenRefreshRef.current = true
+    refreshMe()
   }, [locked, loading, user, refreshMe])
 
   function update(e) {

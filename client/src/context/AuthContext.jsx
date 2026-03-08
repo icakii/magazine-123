@@ -18,6 +18,10 @@ function clearToken() {
     localStorage.removeItem("miren_token")
   } catch {}
 }
+function isUnauthorizedError(err) {
+  const status = err?.response?.status
+  return status === 401 || status === 403
+}
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
@@ -29,8 +33,9 @@ export function AuthProvider({ children }) {
       const res = await api.get("/user/me")
       setUser(res.data || null)
       return res.data || null
-    } catch {
-      setUser(null)
+    } catch (err) {
+            setUser(null)
+                  if (isUnauthorizedError(err)) clearToken()
       return null
     } finally {
       setLoading(false)

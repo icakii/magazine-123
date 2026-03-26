@@ -8,7 +8,7 @@ const ADMIN_EMAILS = [
 ]
 
 // ⚠️ смени годината ако трябва
-const RELEASE_UTC_ISO = "2026-03-29T18:00:00+03:00"
+const RELEASE_UTC_ISO = "2026-04-30T18:00:00+03:00"
 
 function isReleasedNow() {
   return Date.now() >= new Date(RELEASE_UTC_ISO).getTime()
@@ -219,10 +219,10 @@ export default function HeroIntro() {
               onClick={onOrderClick}
               type="button"
               disabled={orderLocked}
-              title={orderLocked ? "Order opens on 29 March at 18:00" : "Open store"}
-                          >
- {orderLocked ? "Order on 29 March, 18:00 🔒" : "Order Now ⚡"}
-             </button>
+              title={orderLocked ? "Order opens on 30 April at 18:00" : "Open store"}
+            >
+              {orderLocked ? "Order on 30 April, 18:00 🔒" : "Order Now ⚡"}
+            </button>
 
             {/* optional: show admin badge */}
             {meLoaded && isAdmin && (

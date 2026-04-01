@@ -40,7 +40,7 @@ import "./styles/global.css"
 import "./styles/layout.css"
 import "./styles/animations.css"
 
-const ADMIN_EMAILS = ["icaki@mirenmagazine.com"]
+const ADMIN_EMAILS = ["icaki@mirenmagazine.com", "info@mirenmagazine.com", "info@mirenmagaizne.com"]
 
 function DevLockedRoute({ sectionName, children }) {
   const { user, loading } = useAuth()

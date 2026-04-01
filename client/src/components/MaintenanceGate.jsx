@@ -4,16 +4,18 @@ import { useLocation } from "react-router-dom"
 import { useAuth } from "../context/AuthContext"
 import { api } from "../lib/api"
 
-// София: 1 април 2026, 18:00 (+03:00)
-const TARGET_TS = Date.parse("2026-04-01T18:00:00+03:00")
+// София: 1 април 2026, 19:30 (+03:00)
+const TARGET_TS = Date.parse("2026-04-01T19:30:00+03:00")
 
 const ADMIN_EMAILS = [
   "icaki06@gmail.com",
   "icaki2k@gmail.com",
   "mirenmagazine@gmail.com",
   "icaki@mirenmagazine.com",
+  "info@mirenmagazine.com",
+  "info@mirenmagaizne.com",
 ]
-const MAINTENANCE_GATE_ENABLED = false
+const MAINTENANCE_GATE_ENABLED = true
 
 function pad2(n) {
   return String(Math.max(0, n)).padStart(2, "0")
@@ -190,8 +192,8 @@ const triedTokenRefreshRef = useRef(false)
           <div className="maintenance-badge">MIREN</div>
           <h1 className="maintenance-title">Сайтът е временно заключен</h1>
           <p className="maintenance-subtitle">
-            Работим по плащанията и системите. Отваряме на <strong>1 април</strong> в{" "}<strong>18:00</strong> (София).
-          </p> 
+            Работим по плащанията и системите. Отваряме на <strong>1 април</strong> в{" "}<strong>19:30</strong> (София).
+                      </p> 
         </div>
 
         <div className="maintenance-countdown" aria-label="countdown">

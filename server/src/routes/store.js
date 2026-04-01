@@ -9,6 +9,8 @@ const APP_URL = (process.env.APP_URL || "http://localhost:5173").replace(/\/$/, 
 
 const ADMIN_EMAILS = [
   "icaki@mirenmagazine.com",
+    "info@mirenmagazine.com",
+  "info@mirenmagaizne.com",
 ]
 
 function isAdmin(email) {

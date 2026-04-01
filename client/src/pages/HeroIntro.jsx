@@ -4,7 +4,9 @@ import { t } from "../lib/i18n"
 import { useNavigate } from "react-router-dom"
 
 const ADMIN_EMAILS = [
-"icaki@mirenmagazine.com",
+  "icaki@mirenmagazine.com",
+  "info@mirenmagazine.com",
+  "info@mirenmagaizne.com",
 ]
 
 // ⚠️ смени годината ако трябва

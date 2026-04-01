@@ -6,8 +6,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react"
 import { t, getLang, setLang } from "../lib/i18n"
 import { useAuth } from "../context/AuthContext"
 
-const ADMIN_EMAILS = ["icaki06@gmail.com", "icaki2k@gmail.com", "mirenmagazine@gmail.com"]
-
+const ADMIN_EMAILS = ["icaki06@gmail.com", "icaki2k@gmail.com", "mirenmagazine@gmail.com", "info@mirenmagazine.com", "info@mirenmagaizne.com"]
 function toggleTheme() {
   const html = document.documentElement
   const current = html.getAttribute("data-theme") || "light"

@@ -539,7 +539,7 @@ const [heroVfxUrl, setHeroVfxUrl] = useState("")
       setBusy(true)
       setMsg("")
       const res = await api.post("/newsletter/send", { subject: emailSubject, body: emailBody })
-      setMsg(`✅ Sent to ${res?.data?.count || 0} subscribers.`)
+      setMsg(`✅ Sent to ${res?.data?.count || 0} recipients.`)
     } catch (e) {
       setMsg(e?.response?.data?.error || "Failed to send newsletter.")
     } finally {
@@ -1127,9 +1127,9 @@ const [heroVfxUrl, setHeroVfxUrl] = useState("")
       {activeTab === "newsletter" && (
         <div className="admin-grid">
           <div className="admin-card">
-            <h3 className="headline">Subscribers</h3>
+            <h3 className="headline">Audience</h3>
             {subscribers.length === 0 ? (
-              <p className="text-muted">No subscribers.</p>
+              <p className="text-muted">No newsletter subscribers yet.</p>
             ) : (
               <div className="list">
                 {subscribers.map((s, i) => (
@@ -1146,6 +1146,7 @@ const [heroVfxUrl, setHeroVfxUrl] = useState("")
 
           <div className="admin-card">
             <h3 className="headline">Send Newsletter</h3>
+                        <p className="text-muted">Sends to all registered accounts + newsletter subscribers.</p>
             <label className="field">
               <span>Subject</span>
               <input value={emailSubject} onChange={(e) => setEmailSubject(e.target.value)} />

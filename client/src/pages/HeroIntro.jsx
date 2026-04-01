@@ -236,7 +236,7 @@ export default function HeroIntro() {
             <span className="circle" aria-hidden="true">
               <span className="icon arrow" />
             </span>
-            <span className="button-text">Scroll down</span>
+            <span className="button-text">Scroll down ↓</span>
           </button>
 
           <p className="hero-hint">Scroll up anytime to return here.</p>

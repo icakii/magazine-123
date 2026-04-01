@@ -187,14 +187,7 @@ ReactDOM.createRoot(document.getElementById("root")).render(
                 </AuthGuard>
               }
             />
-            <Route
-              path="/e-magazine"
-              element={
-                <AuthGuard>
-                  <EMagazine />
-                </AuthGuard>
-              }
-            />
+                       <Route path="/e-magazine" element={<EMagazine />} />
 
             {/* Admin */}
             <Route

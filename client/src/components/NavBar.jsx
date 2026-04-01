@@ -159,17 +159,17 @@ export default function NavBar() {
             {t("home")}
           </Link>
 
-          <Link className="drawer-item" to="/e-magazine" onClick={handleProtectedClick}>
+          <Link className="drawer-item" to="/e-magazine" onClick={closeDrawer}>
             {t("emag")}
           </Link>
-          <Link className="drawer-item" to="/news" onClick={handleProtectedClick}>
+          <Link className="drawer-item" to="/news" onClick={closeDrawer}>
             {t("news")}
           </Link>
-          <Link className="drawer-item" to="/events" onClick={handleProtectedClick}>
+          <Link className="drawer-item" to="/events" onClick={closeDrawer}>
             {t("events")}
           </Link>
 
-          <Link className="drawer-item" to="/gallery" onClick={handleProtectedClick}>
+          <Link className="drawer-item" to="/gallery" onClick={closeDrawer}>
             {t("gallery")}
           </Link>
 

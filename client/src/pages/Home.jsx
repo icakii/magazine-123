@@ -2,7 +2,6 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
-import NewsletterManager from "../components/NewsletterManager"
 import { useAuth } from "../hooks/useAuth"
 import { t } from "../lib/i18n"
 import { api } from "../lib/api"
@@ -176,9 +175,6 @@ const normalized = normalizeHomeHeroPayload(res.data || {})
       <HeroIntro />
 
       <div id="home-main-content" className="page anim-fade-up">
-        <div id="home-newsletter">
-          <NewsletterManager user={user} type="static" />
-        </div>
     <div className="home-discord-wrap anim-fade-up anim-delay-1">
           <a
             className="home-discord-card"
@@ -260,8 +256,13 @@ const normalized = normalizeHomeHeroPayload(res.data || {})
 <a className="btn primary work-wide-cta" href="/opportunities">Open Partnerships</a>
               </div>
 
-              <div className="work-card glass-card">
+              <div className="work-card glass-card spotify-card">
                 <h4>Spotify Playlist Request 🎵</h4>
+                                <div className="spotify-card-icon" aria-hidden="true">
+                  <svg viewBox="0 0 168 168" role="img">
+                    <path fill="currentColor" d="M84 0a84 84 0 1 0 0 168 84 84 0 0 0 0-168Zm38.5 121.2a5.3 5.3 0 0 1-7.3 1.8c-20-12.2-45.1-15-74.6-8.4a5.3 5.3 0 1 1-2.3-10.3c32.2-7.2 60-4 82.4 9.5a5.3 5.3 0 0 1 1.8 7.4Zm10.5-23.3a6.6 6.6 0 0 1-9.1 2.2c-22.9-14.1-57.8-18.2-84.9-9.8a6.6 6.6 0 1 1-3.8-12.7c30.9-9.3 69.3-4.8 95.6 11.3a6.6 6.6 0 0 1 2.2 9Zm.9-24.3c-27.4-16.3-72.7-17.8-98.8-9.7a8 8 0 1 1-4.7-15.3c30-9.1 79.9-7.3 111.7 11.5a8 8 0 0 1-8.2 13.5Z"/>
+                  </svg>
+                </div>
  {spotifyPlaylistUrl ? (
                   <a
                     href={spotifyPlaylistUrl}

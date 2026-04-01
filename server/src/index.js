@@ -534,13 +534,26 @@ app.get("/api/newsletter/subscribers", adminMiddleware, async (req, res) => {
 
 app.post("/api/newsletter/send", adminMiddleware, async (req, res) => {
   const { subject, body } = req.body
+    if (!String(subject || "").trim() || !String(body || "").trim()) {
+    return res.status(400).json({ error: "Subject and body are required" })
+  }
+
   try {
-    const { rows } = await db.query("SELECT email FROM newsletter_subscribers")
-    if (rows.length === 0) {
-      return res.status(400).json({ error: "No subscribers found" })
+    const [usersResult, subscribersResult] = await Promise.all([
+      db.query("SELECT email FROM users WHERE email IS NOT NULL"),
+      db.query("SELECT email FROM newsletter_subscribers"),
+    ])
+
+    const emailSet = new Set()
+    for (const row of [...usersResult.rows, ...subscribersResult.rows]) {
+      const normalized = normalizeEmail(row?.email)
+      if (normalized) emailSet.add(normalized)
     }
 
-    const emails = rows.map((r) => r.email)
+        const emails = Array.from(emailSet)
+    if (emails.length === 0) {
+      return res.status(400).json({ error: "No recipients found" })
+    }
 
     await transporters.newsletter.sendMail({
       from: `"${EMAIL_ACCOUNTS.newsletter.label}" <${EMAIL_ACCOUNTS.newsletter.user}>`,

@@ -30,6 +30,7 @@ export default function ResetPassword() {
       setMsg({ type: 'success', text: 'Password reset successfully!' })
       setTimeout(() => navigate('/login'), 2000)
     } catch (err) {
+      console.error("Reset password failed:", err?.response?.status, err?.response?.data || err)
       setMsg({ type: 'error', text: err?.response?.data?.error || 'Error resetting password.' })
     } finally {
       setLoading(false)

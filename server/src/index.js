@@ -1150,11 +1150,16 @@ app.post("/api/auth/reset-password", async (req, res) => {
 
   try {
     const { rows } = await db.query(
-      "SELECT id FROM users WHERE reset_password_token = $1 AND reset_password_expires > NOW()",
-      [cleanToken]
+ "SELECT id, reset_password_expires FROM users WHERE reset_password_token = $1",
+       [cleanToken]
     )
     const user = rows[0]
     if (!user) {
+      return res.status(400).json({ error: "Invalid or expired reset token" })
+    }
+
+        const expiryTs = user.reset_password_expires ? new Date(user.reset_password_expires).getTime() : 0
+    if (!expiryTs || Number.isNaN(expiryTs) || Date.now() > expiryTs) {
       return res.status(400).json({ error: "Invalid or expired reset token" })
     }
 
@@ -1163,8 +1168,7 @@ app.post("/api/auth/reset-password", async (req, res) => {
       `UPDATE users
        SET password_hash = $1,
            reset_password_token = NULL,
-           reset_password_expires = NULL,
-           updated_at = NOW()
+           reset_password_expires = NULL
        WHERE id = $2`,
       [passwordHash, user.id]
     )

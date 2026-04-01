@@ -1135,6 +1135,47 @@ const normalizedEmail = normalizeEmail(email)
   }
 })
 
+app.post("/api/auth/reset-password", async (req, res) => {
+  const { token, newPassword } = req.body || {}
+  const cleanToken = String(token || "").trim()
+  const nextPassword = String(newPassword || "")
+
+  if (!cleanToken || !nextPassword) {
+    return res.status(400).json({ error: "Token and new password are required" })
+  }
+
+  if (nextPassword.length < 6) {
+    return res.status(400).json({ error: "Password must be at least 6 characters" })
+  }
+
+  try {
+    const { rows } = await db.query(
+      "SELECT id FROM users WHERE reset_password_token = $1 AND reset_password_expires > NOW()",
+      [cleanToken]
+    )
+    const user = rows[0]
+    if (!user) {
+      return res.status(400).json({ error: "Invalid or expired reset token" })
+    }
+
+    const passwordHash = await bcrypt.hash(nextPassword, 10)
+    await db.query(
+      `UPDATE users
+       SET password_hash = $1,
+           reset_password_token = NULL,
+           reset_password_expires = NULL,
+           updated_at = NOW()
+       WHERE id = $2`,
+      [passwordHash, user.id]
+    )
+
+    return res.json({ ok: true })
+  } catch (err) {
+    console.error("RESET PASSWORD ERROR:", err)
+    return res.status(500).json({ error: "Error resetting password." })
+  }
+})
+
 // --- 2FA ---
 app.post("/api/auth/send-2fa", async (req, res) => {
   const { email } = req.body

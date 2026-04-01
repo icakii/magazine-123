@@ -257,29 +257,35 @@ const normalized = normalizeHomeHeroPayload(res.data || {})
               </div>
 
               <div className="work-card glass-card spotify-card">
-                <h4>Spotify Playlist Request 🎵</h4>
-                                <div className="spotify-card-icon" aria-hidden="true">
-                  <svg viewBox="0 0 168 168" role="img">
-                    <path fill="currentColor" d="M84 0a84 84 0 1 0 0 168 84 84 0 0 0 0-168Zm38.5 121.2a5.3 5.3 0 0 1-7.3 1.8c-20-12.2-45.1-15-74.6-8.4a5.3 5.3 0 1 1-2.3-10.3c32.2-7.2 60-4 82.4 9.5a5.3 5.3 0 0 1 1.8 7.4Zm10.5-23.3a6.6 6.6 0 0 1-9.1 2.2c-22.9-14.1-57.8-18.2-84.9-9.8a6.6 6.6 0 1 1-3.8-12.7c30.9-9.3 69.3-4.8 95.6 11.3a6.6 6.6 0 0 1 2.2 9Zm.9-24.3c-27.4-16.3-72.7-17.8-98.8-9.7a8 8 0 1 1-4.7-15.3c30-9.1 79.9-7.3 111.7 11.5a8 8 0 0 1-8.2 13.5Z"/>
-                  </svg>
+                <div className="spotify-card-top">
+                  <div className="spotify-card-icon" aria-hidden="true">
+                    <svg viewBox="0 0 168 168" role="img">
+                      <path fill="currentColor" d="M84 0a84 84 0 1 0 0 168 84 84 0 0 0 0-168Zm38.5 121.2a5.3 5.3 0 0 1-7.3 1.8c-20-12.2-45.1-15-74.6-8.4a5.3 5.3 0 1 1-2.3-10.3c32.2-7.2 60-4 82.4 9.5a5.3 5.3 0 0 1 1.8 7.4Zm10.5-23.3a6.6 6.6 0 0 1-9.1 2.2c-22.9-14.1-57.8-18.2-84.9-9.8a6.6 6.6 0 1 1-3.8-12.7c30.9-9.3 69.3-4.8 95.6 11.3a6.6 6.6 0 0 1 2.2 9Zm.9-24.3c-27.4-16.3-72.7-17.8-98.8-9.7a8 8 0 1 1-4.7-15.3c30-9.1 79.9-7.3 111.7 11.5a8 8 0 0 1-8.2 13.5Z" />
+                    </svg>
+                  </div>
+                  <div className="spotify-card-content">
+                    <h4>Spotify Playlist Request 🎵</h4>
+                    {spotifyPlaylistUrl ? (
+                      <a
+                        href={spotifyPlaylistUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="btn outline spotify-open-btn"
+                        title="Open Spotify playlist"
+                      >
+                        Open Spotify Playlist
+                      </a>
+                    ) : (
+                      <p className="text-muted spotify-open-unset">Playlist link is not set yet.</p>
+                    )}
+                  </div>
                 </div>
- {spotifyPlaylistUrl ? (
-                  <a
-                    href={spotifyPlaylistUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="btn outline spotify-open-btn"
-                    title="Open Spotify playlist"
-                  >
-                    Open Spotify Playlist
-                  </a>
-                ) : (
-                  <p className="text-muted">Playlist link is not set yet.</p>
-                )}
-                <p className="text-muted">1 request per day.</p>
-                <input className="input" placeholder="Song" value={song} onChange={(e) => setSong(e.target.value)} />
-                <input className="input" placeholder="Artist" value={artist} onChange={(e) => setArtist(e.target.value)} style={{ marginTop: 8 }} />
-                <button className="btn primary" type="button" style={{ marginTop: 10 }} onClick={sendSpotifyRequest}>Send request</button>
+                <p className="text-muted spotify-limit">1 request per day.</p>
+                <div className="spotify-form-grid">
+                  <input className="input" placeholder="Song" value={song} onChange={(e) => setSong(e.target.value)} />
+                  <input className="input" placeholder="Artist" value={artist} onChange={(e) => setArtist(e.target.value)} />
+                </div>
+                  <button className="btn primary spotify-send-btn" type="button" onClick={sendSpotifyRequest}>Send request</button>
                 {reqMsg && <p className="text-muted" style={{ marginTop: 8 }}>{reqMsg}</p>}
               </div>
 

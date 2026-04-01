@@ -4872,17 +4872,32 @@ html[data-theme="dark"] .maintenance-loading {
 
 .spotify-card{
   position: relative;
+  border-color: rgba(29,185,84,.35);
+  background:
+    radial-gradient(circle at top right, rgba(29,185,84,.18), transparent 50%),
+    linear-gradient(145deg, rgba(234,255,243,.45), rgba(255,255,255,.1));
+}
+.spotify-card-top{
+  display:grid;
+  grid-template-columns: 82px 1fr;
+  gap:14px;
+  align-items:center;
+}
+.spotify-card-content h4{
+  margin:0 0 8px;
+  text-align:left !important;
+  font-size: clamp(1.4rem, 2.2vw, 1.9rem) !important;
 }
 .spotify-card-icon{
   width: 82px;
   height: 82px;
-  margin: 0 auto 12px;
+  margin: 0;
   border-radius: 18px;
   background: #1db954;
-  color: #0c3d1e;
+  color: #064f2a;
   display: grid;
   place-items: center;
-  box-shadow: 0 8px 24px rgba(29,185,84,.35);
+  box-shadow: 0 8px 24px rgba(29,185,84,.28);
   animation: spotifyPulse 2.2s ease-in-out infinite;
 }
 .spotify-card-icon svg{
@@ -4893,11 +4908,27 @@ html[data-theme="dark"] .maintenance-loading {
   0%,100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(29,185,84,.28); }
   50% { transform: scale(1.04); box-shadow: 0 0 0 12px rgba(29,185,84,0); }
 }
-
-
-
 .spotify-open-btn {
-  margin: 4px 0 10px;
+    margin: 0;
+  border-color: rgba(29,185,84,.45);
+  color: #107b3f;
+}
+.spotify-open-unset{
+  margin: 0;
+}
+.spotify-limit{
+  margin: 12px 0 8px;
+}
+.spotify-form-grid{
+  display:grid;
+  grid-template-columns: 1fr 1fr;
+  gap:8px;
+}
+.spotify-send-btn{
+  margin-top: 10px;
+  width: 100%;
+  background: linear-gradient(135deg, #1db954, #17a14a);
+  border-color: rgba(16,114,58,.4);
 }
 
 /* Featured cards typography aligned with home block sizing */
@@ -4916,5 +4947,16 @@ html[data-theme="dark"] .maintenance-loading {
     grid-template-columns: 1fr;
     text-align: center;
     justify-items: center;
+  }
+  .spotify-card-top{
+    grid-template-columns: 1fr;
+    justify-items: center;
+    text-align: center;
+  }
+  .spotify-card-content h4{
+    text-align:center !important;
+  }
+  .spotify-form-grid{
+    grid-template-columns: 1fr;
   }
 }

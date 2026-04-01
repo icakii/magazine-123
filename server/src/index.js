@@ -381,7 +381,7 @@ function authMiddleware(req, res, next) {
 
 function adminMiddleware(req, res, next) {
   authMiddleware(req, res, () => {
-    const adminEmails = ["icaki@mirenmagazine.com"]
+    const adminEmails = ["icaki@mirenmagazine.com", "info@mirenmagazine.com"]
     if (!adminEmails.includes(req.user.email)) {
       return res.status(403).json({ error: "Admin access required" })
     }

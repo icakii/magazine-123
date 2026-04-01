@@ -4700,18 +4700,28 @@ html[data-theme="dark"] .maintenance-loading {
   font-weight:800;
   letter-spacing:.01em;
 }
-.calendar-grid{ display:grid; grid-template-columns: repeat(7,minmax(0,1fr)); gap:10px; margin-top:14px; }
-.cal-head{ text-align:center; font-weight:800; font-size:.92rem; opacity:.86; }
-.cal-cell{ min-height:82px; border:1px solid var(--nav-border); border-radius:12px; padding:8px; position:relative; overflow:hidden; background:rgba(255,255,255,.18); }
-.cal-empty{ opacity:.25; }
-.cal-day{ font-weight:900; font-size:.95rem; }
-.cal-event{ font-size:.86rem; margin-top:7px; opacity:.94; font-weight:700; line-height:1.3; }
-.cal-has-event{
+.weekly-schedule-grid{ display:grid; gap:10px; margin-top:14px; }
+.weekly-row{
+  min-height:64px;
+  border:1px solid var(--nav-border);
+  border-radius:12px;
+  padding:10px 12px;
+  display:grid;
+  grid-template-columns: minmax(120px,180px) 1fr;
+  gap:10px;
+  align-items:center;
+  position:relative;
+  overflow:hidden;
+  background:rgba(255,255,255,.18);
+}
+.weekly-day{ font-weight:900; font-size:.98rem; }
+.weekly-title{ font-size:.94rem; opacity:.95; font-weight:700; line-height:1.35; }
+.weekly-row-has-event{
   border-color: rgba(156,42,42,.58);
   box-shadow: inset 0 0 0 1px rgba(156,42,42,.36), 0 0 0 1px rgba(156,42,42,.22);
   animation:calPulse 2.8s ease-in-out infinite;
 }
-.cal-has-event::after{
+.weekly-row-has-event::after{
   content:"";
   position:absolute;
   inset:-35% -45%;
@@ -4727,6 +4737,11 @@ html[data-theme="dark"] .maintenance-loading {
 .home-work-grid{ grid-template-columns: 1fr; gap:16px; }
   .work-wide,.calendar-card{ grid-column:auto; }
   .glass-card{ padding:20px; border-radius:16px; }
+    .weekly-row{
+    grid-template-columns: 1fr;
+    align-items:start;
+    gap:6px;
+  }
 }
 /* Home blocks: centered titles + spacing under titles */
 .home-work-grid .glass-card > h3,
@@ -4750,6 +4765,84 @@ html[data-theme="dark"] .maintenance-loading {
   margin-top: 8px;
 }
 
+.home-discord-wrap{
+  margin: 18px auto 28px;
+}
+.home-discord-card{
+  position: relative;
+  overflow: hidden;
+  display: grid;
+  grid-template-columns: 90px 1fr;
+  align-items: center;
+  gap: 16px;
+  text-decoration: none;
+  color: inherit;
+  border: 1px solid rgba(88,101,242,.35);
+  border-radius: 18px;
+  padding: 16px 18px;
+  background: linear-gradient(135deg, rgba(88,101,242,.12), rgba(255,255,255,.36) 45%, rgba(88,101,242,.06));
+  box-shadow: 0 12px 28px rgba(20,16,13,.12);
+  transition: transform .25s ease, box-shadow .25s ease, border-color .25s ease;
+}
+.home-discord-card::before{
+  content: "";
+  position: absolute;
+  inset: -40% -25%;
+  background: conic-gradient(from 180deg, rgba(88,101,242,.22), transparent 35%, rgba(88,101,242,.2), transparent 70%);
+  animation: discordSweep 8s linear infinite;
+  pointer-events: none;
+}
+.home-discord-card:hover{
+  transform: translateY(-2px);
+  box-shadow: 0 16px 34px rgba(20,16,13,.18);
+  border-color: rgba(88,101,242,.55);
+}
+.home-discord-icon{
+  width: 78px;
+  height: 78px;
+  border-radius: 20px;
+  background: #5865f2;
+  color: #fff;
+  display: grid;
+  place-items: center;
+  position: relative;
+  z-index: 1;
+  animation: discordPulse 2.2s ease-in-out infinite;
+}
+.home-discord-icon svg{
+  width: 52px;
+  height: 52px;
+}
+.home-discord-content{
+  position: relative;
+  z-index: 1;
+}
+.home-discord-content h3{
+  margin: 0 0 6px;
+  font-size: clamp(1.15rem, 2.2vw, 1.6rem);
+}
+.home-discord-content p{
+  margin: 0;
+  opacity: .85;
+}
+.home-discord-btn{
+  display: inline-block;
+  margin-top: 10px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  font-weight: 700;
+  background: rgba(88,101,242,.15);
+  border: 1px solid rgba(88,101,242,.35);
+}
+@keyframes discordPulse{
+  0%,100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(88,101,242,.28); }
+  50% { transform: scale(1.04); box-shadow: 0 0 0 10px rgba(88,101,242,0); }
+}
+@keyframes discordSweep{
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
 .spotify-open-btn {
   margin: 4px 0 10px;
 }
@@ -4764,4 +4857,11 @@ html[data-theme="dark"] .maintenance-loading {
 .featured-card-excerpt {
   font-size: clamp(1.15rem, 1.9vw, 1.55rem);
   line-height: 1.45;
-} 
+}
+@media (max-width: 700px){
+  .home-discord-card{
+    grid-template-columns: 1fr;
+    text-align: center;
+    justify-items: center;
+  }
+}

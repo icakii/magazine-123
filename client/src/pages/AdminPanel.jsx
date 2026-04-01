@@ -6,7 +6,16 @@ import { useAuth } from "../hooks/useAuth"
 import { api } from "../lib/api"
 
 const ADMIN_EMAILS = ["icaki@mirenmagazine.com", "info@mirenmagazine.com", "info@mirenmagaizne.com"]
-
+const WEEK_DAYS = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
+const WEEK_DAY_LABELS = {
+  monday: "Monday",
+  tuesday: "Tuesday",
+  wednesday: "Wednesday",
+  thursday: "Thursday",
+  friday: "Friday",
+  saturday: "Saturday",
+  sunday: "Sunday",
+}
 const TABS = [
   { key: "hero", label: "Hero" },            // ✅ single hero (no list)
   { key: "magazines", label: "Magazines" },  // ✅ full magazine issues (cover/pages/premium)
@@ -50,7 +59,14 @@ function ymd(ts) {
 function isVideoUrl(url) {
   return /\.(mp4|webm|ogg|mov)(\?.*)?$/i.test(String(url || ""))
 }
-
+function normalizeWeekdayKey(raw) {
+  const value = String(raw || "").trim().toLowerCase()
+  if (WEEK_DAYS.includes(value)) return value
+  const d = new Date(raw)
+  if (Number.isNaN(d.getTime())) return ""
+  const idx = (d.getDay() + 6) % 7
+  return WEEK_DAYS[idx] || ""
+}
 function normalizeHeroPayload(data) {
   const calendarRaw = Array.isArray(data?.calendarEvents)
     ? data.calendarEvents
@@ -78,7 +94,7 @@ function normalizeHeroPayload(data) {
 
   const calendarEvents = calendarRaw
     .map((ev) => ({
-      date: String(ev?.date || "").slice(0, 10),
+      date: normalizeWeekdayKey(ev?.date || ev?.day),
       title: String(ev?.title || "").trim(),
     }))
     .filter((ev) => ev.date && ev.title)
@@ -112,7 +128,7 @@ const [heroVfxUrl, setHeroVfxUrl] = useState("")
   const [heroMediaUrl, setHeroMediaUrl] = useState("")
   const [spotifyPlaylistUrl, setSpotifyPlaylistUrl] = useState("")
   const [calendarJson, setCalendarJson] = useState("[]")
-  const [calendarDraftDate, setCalendarDraftDate] = useState("")
+  const [calendarDraftDay, setCalendarDraftDay] = useState("monday")
   const [calendarDraftTitle, setCalendarDraftTitle] = useState("")
 
   const applyHeroState = (rawData) => {
@@ -121,7 +137,7 @@ const [heroVfxUrl, setHeroVfxUrl] = useState("")
     setHeroMediaUrl(normalized.heroMediaUrl)
     setSpotifyPlaylistUrl(normalized.spotifyPlaylistUrl)
     setCalendarJson(JSON.stringify(normalized.calendarEvents, null, 2))
-    setCalendarDraftDate("")
+    setCalendarDraftDay("monday")
     setCalendarDraftTitle("")
   }
   const loadHero = async () => {
@@ -139,11 +155,11 @@ const [heroVfxUrl, setHeroVfxUrl] = useState("")
       if (!Array.isArray(parsed)) return []
       return parsed
         .map((ev) => ({
-          date: String(ev?.date || "").slice(0, 10),
+          date: normalizeWeekdayKey(ev?.date || ev?.day),
           title: String(ev?.title || "").trim(),
         }))
         .filter((ev) => ev.date && ev.title)
-        .sort((a, b) => a.date.localeCompare(b.date))
+         .sort((a, b) => WEEK_DAYS.indexOf(a.date) - WEEK_DAYS.indexOf(b.date))
     } catch {
       return []
     }
@@ -153,7 +169,7 @@ const [heroVfxUrl, setHeroVfxUrl] = useState("")
     const normalized = Array.isArray(events)
       ? events
           .map((ev) => ({
-            date: String(ev?.date || "").slice(0, 10),
+            date: normalizeWeekdayKey(ev?.date || ev?.day),
             title: String(ev?.title || "").trim(),
           }))
           .filter((ev) => ev.date && ev.title)
@@ -162,10 +178,10 @@ const [heroVfxUrl, setHeroVfxUrl] = useState("")
   }
 
   const addCalendarEvent = () => {
-    const date = calendarDraftDate.trim()
+    const date = calendarDraftDay.trim()  
     const title = calendarDraftTitle.trim()
     if (!date || !title) {
-      setMsg("Date and title are required for calendar event.")
+        setMsg("Day and title are required for schedule item.")
       return
     }
 
@@ -189,7 +205,7 @@ const [heroVfxUrl, setHeroVfxUrl] = useState("")
   }
 
   const editCalendarEvent = (eventItem) => {
-    setCalendarDraftDate(eventItem?.date || "")
+    setCalendarDraftDay(eventItem?.date || "monday")
     setCalendarDraftTitle(eventItem?.title || "")
   }
 
@@ -207,7 +223,7 @@ const [heroVfxUrl, setHeroVfxUrl] = useState("")
         }
         payloadCalendarEvents = parsed
           .map((ev) => ({
-            date: String(ev?.date || "").slice(0, 10),
+            date: normalizeWeekdayKey(ev?.date || ev?.day),
             title: String(ev?.title || "").trim(),
           }))
           .filter((ev) => ev.date && ev.title)
@@ -665,14 +681,16 @@ const [heroVfxUrl, setHeroVfxUrl] = useState("")
             <div className="upload-row" style={{ marginTop: 12 }}>
               <div className="upload-box" style={{ width: "100%" }}>
                 <div className="upload-title">Home calendar manager</div>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr auto", gap: 8, alignItems: "end", marginBottom: 12 }}>
+                                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 8, alignItems: "end", marginBottom: 12 }}>
                   <label className="field" style={{ margin: 0 }}>
-                    <span>Date</span>
-                    <input
-                      type="date"
-                      value={calendarDraftDate}
-                      onChange={(e) => setCalendarDraftDate(e.target.value)}
-                    />
+                                       <span>Day</span>
+                    <select value={calendarDraftDay} onChange={(e) => setCalendarDraftDay(e.target.value)}>
+                      {WEEK_DAYS.map((day) => (
+                        <option key={day} value={day}>
+                          {WEEK_DAY_LABELS[day]}
+                        </option>
+                      ))}
+                    </select>
                   </label>
                   <label className="field" style={{ margin: 0 }}>
                     <span>Title</span>
@@ -697,12 +715,12 @@ const [heroVfxUrl, setHeroVfxUrl] = useState("")
                           key={ev.date}
                           style={{
                             display: "grid",
-                            gridTemplateColumns: "120px 1fr auto auto",
+                            gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))",
                             gap: 8,
                             alignItems: "center",
                           }}
                         >
-                          <code>{ev.date}</code>
+                          <code>{WEEK_DAY_LABELS[ev.date] || ev.date}</code>
                           <span>{ev.title}</span>
                           <button className="btn ghost" type="button" onClick={() => editCalendarEvent(ev)}>
                             Edit
@@ -719,8 +737,8 @@ const [heroVfxUrl, setHeroVfxUrl] = useState("")
                 <details style={{ marginTop: 10 }}>
                   <summary>Advanced: edit raw JSON</summary>
                   <div className="upload-title" style={{ marginTop: 8 }}>
-                    {'Home calendar JSON (e.g. [{"date":"2026-03-05","title":"Launch"}])'}
-                  </div>
+ {'Weekly schedule JSON (e.g. [{"day":"monday","title":"Launch"}])'}
+                   </div>
                   <textarea rows={8} style={{ width: "100%" }} value={calendarJson} onChange={(e) => setCalendarJson(e.target.value)} />
                 </details>
               </div>

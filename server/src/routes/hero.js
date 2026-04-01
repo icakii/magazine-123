@@ -8,6 +8,16 @@ const ADMIN_EMAILS = ["icaki@mirenmagazine.com", "info@mirenmagazine.com", "info
 function isAdmin(email) {
   return !!email && ADMIN_EMAILS.includes(email)
 }
+const WEEK_DAYS = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
+
+function normalizeWeekdayKey(raw) {
+  const v = String(raw || "").trim().toLowerCase()
+  if (WEEK_DAYS.includes(v)) return v
+  const d = new Date(raw)
+  if (Number.isNaN(d.getTime())) return ""
+  const idx = (d.getDay() + 6) % 7
+  return WEEK_DAYS[idx] || ""
+}
 
 let heroSchemaReady = false
 async function ensureHeroSchema() {
@@ -47,7 +57,7 @@ function normalizeCalendarEvents(raw) {
 
   return arr
     .map((ev) => ({
-      date: String(ev?.date || "").slice(0, 10),
+            date: normalizeWeekdayKey(ev?.date || ev?.day),
       title: String(ev?.title || "").trim(),
     }))
     .filter((ev) => ev.date && ev.title)

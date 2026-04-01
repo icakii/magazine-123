@@ -9,18 +9,24 @@ import { api } from "../lib/api"
 import HeroIntro from "./HeroIntro"
 import { clearCart } from "../lib/cart"
 
-function monthMatrix(year, monthIndex0) {
-  const first = new Date(year, monthIndex0, 1)
-  const last = new Date(year, monthIndex0 + 1, 0)
-  const startDay = (first.getDay() + 6) % 7
-  const total = last.getDate()
-  const cells = []
-  for (let i = 0; i < startDay; i++) cells.push(null)
-  for (let d = 1; d <= total; d++) cells.push(d)
-  while (cells.length % 7 !== 0) cells.push(null)
-  return cells
+const WEEK_DAYS = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
+const WEEK_DAY_LABELS = {
+  monday: "Monday",
+  tuesday: "Tuesday",
+  wednesday: "Wednesday",
+  thursday: "Thursday",
+  friday: "Friday",
+  saturday: "Saturday",
+  sunday: "Sunday",
 }
-
+function normalizeWeekdayKey(raw) {
+  const value = String(raw || "").trim().toLowerCase()
+  if (WEEK_DAYS.includes(value)) return value
+  const d = new Date(raw)
+  if (Number.isNaN(d.getTime())) return ""
+  const idx = (d.getDay() + 6) % 7
+  return WEEK_DAYS[idx] || ""
+}
 
 function normalizeHomeHeroPayload(data) {
     const calendarRaw = Array.isArray(data?.calendarEvents)
@@ -48,7 +54,12 @@ function normalizeHomeHeroPayload(data) {
     : []
   return {
     spotifyPlaylistUrl: String(data?.spotifyPlaylistUrl || data?.spotify_playlist_url || "").trim(),
-    calendarEvents: calendarRaw,                                                                            
+        calendarEvents: calendarRaw
+      .map((ev) => ({
+        day: normalizeWeekdayKey(ev?.date || ev?.day),
+        title: String(ev?.title || "").trim(),
+      }))
+      .filter((ev) => ev.day && ev.title),                                                                           
   }
 }
 
@@ -66,10 +77,6 @@ const [spotifyPlaylistUrl, setSpotifyPlaylistUrl] = useState("")
   const [reqMsg, setReqMsg] = useState("")
 
   const [selectedGame, setSelectedGame] = useState("wordle")
-
-  const now = new Date()
-  const calendarDays = useMemo(() => monthMatrix(now.getFullYear(), now.getMonth()), [now])
-  const monthLabel = now.toLocaleDateString("en-US", { month: "long", year: "numeric" })
 
   useEffect(() => {
     const url = new URL(window.location.href)
@@ -124,15 +131,19 @@ const normalized = normalizeHomeHeroPayload(res.data || {})
     return arr.slice(0, 6)
   }, [articles])
 
-   const eventMap = useMemo(() => {
+  const eventMap = useMemo(() => {
     const m = new Map()
     for (const e of calendarEvents) {
-      const key = String(e?.date || "")
+       const key = normalizeWeekdayKey(e?.day || e?.date)
       if (!key) continue
       m.set(key, String(e?.title || ""))
     }
     return m
   }, [calendarEvents])
+  const weeklySchedule = useMemo(
+    () => WEEK_DAYS.map((day) => ({ day, title: eventMap.get(day) || "—" })),
+    [eventMap]
+  )
 
   const sendSpotifyRequest = async () => {
     const today = new Date().toISOString().slice(0, 10)
@@ -168,7 +179,33 @@ const normalized = normalizeHomeHeroPayload(res.data || {})
         <div id="home-newsletter">
           <NewsletterManager user={user} type="static" />
         </div>
-
+    <div className="home-discord-wrap anim-fade-up anim-delay-1">
+          <a
+            className="home-discord-card"
+            href="https://discord.gg/Gpdmt8ztcA"
+            target="_blank"
+            rel="noreferrer"
+            aria-label="Join Miren Magazine Discord server"
+          >
+            <div className="home-discord-icon" aria-hidden="true">
+              <svg viewBox="0 0 245 240" role="img">
+                <path
+                  fill="currentColor"
+                  d="M104.4 104.8c-5.7 0-10.2 5-10.2 11.1 0 6.2 4.6 11.2 10.2 11.2 5.7 0 10.3-5 10.2-11.2 0-6.1-4.5-11.1-10.2-11.1Zm36.2 0c-5.7 0-10.2 5-10.2 11.1 0 6.2 4.6 11.2 10.2 11.2 5.7 0 10.3-5 10.2-11.2 0-6.1-4.5-11.1-10.2-11.1Z"
+                />
+                <path
+                  fill="currentColor"
+                  d="M189.5 20h-134C24.8 20 0 44.8 0 75.5v89C0 195.2 24.8 220 55.5 220h113.2l-5.3-18.4 12.8 11.8 12.1 11.2L210 244V75.5C210 44.8 185.2 20 154.5 20Zm-39.1 145s-3.7-4.4-6.8-8.4c13.6-3.9 18.8-12.5 18.8-12.5-4.3 2.8-8.3 4.8-11.9 6.2-5.1 2.1-9.9 3.5-14.7 4.3-9.8 1.8-18.9 1.3-26.8-.2-6-1.1-11.1-2.8-15.2-4.4-2.3-.9-4.8-2-7.3-3.3-.3-.1-.5-.2-.8-.4-.2-.1-.3-.2-.5-.3-2.2-1.2-3.4-2-3.4-2s5 8.4 18.1 12.4c-3.1 4-6.9 8.7-6.9 8.7-22.8-.7-31.5-15.7-31.5-15.7 0-33.3 14.9-60.3 14.9-60.3 14.9-11.2 29-10.9 29-10.9l1 1.2c-18.6 5.4-27.2 13.5-27.2 13.5s2.3-1.3 6.1-3.1c11-4.8 19.8-6.1 23.4-6.4.6-.1 1.1-.1 1.7-.2 6.1-.8 13.1-1 20.3-.2 9.5 1.1 19.7 3.8 30 9.3 0 0-8.2-7.7-25.9-13.1l1.4-1.6s14.2-.3 29 10.9c0 0 14.9 27 14.9 60.3 0 0-8.8 15-31.6 15.7Z"
+                />
+              </svg>
+            </div>
+            <div className="home-discord-content">
+              <h3>Join our Discord server</h3>
+              <p>Get magazine updates, events, games and community drops in real time.</p>
+              <span className="home-discord-btn">Join Discord</span>
+            </div>
+          </a>
+        </div>
                 <div className="hero-bg anim-zoom-in anim-delay-1" style={{ padding: "40px 20px", textAlign: "center", marginBottom: 40 }}>
           <h1 className="headline" style={{ fontSize: "3rem" }}>
             {user ? `${t("welcome")}, ${user.displayName}!` : t("home_title")}
@@ -211,7 +248,12 @@ const normalized = normalizeHomeHeroPayload(res.data || {})
                 )
               })}
             </div>
-              <section className="home-work-grid">
+                        </div>
+        ) : (
+          <p className="subhead">No featured articles yet.</p>
+        )}
+
+        <section className="home-work-grid">
               <div className="work-wide glass-card">
                 <h3>Work with us ✨</h3>
                 <p>Partnerships, sponsorships and custom brand campaigns with MIREN MAG. Let’s build something bold together.</p>
@@ -254,27 +296,17 @@ const normalized = normalizeHomeHeroPayload(res.data || {})
               </div>
 
               <div className="calendar-card glass-card">
-                <h4>{monthLabel} Calendar</h4>
-                <div className="calendar-grid">
-                  {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((d) => <div key={d} className="cal-head">{d}</div>)}
-                  {calendarDays.map((d, idx) => {
-                    if (!d) return <div key={`e_${idx}`} className="cal-cell cal-empty" />
-                    const key = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`
-                    const ev = eventMap.get(key)
-                    return (
-                      <div key={key} className={`cal-cell ${ev ? "cal-has-event" : ""}`} title={ev || ""}>
-                        <div className="cal-day">{d}</div>
-                        {ev && <div className="cal-event">{ev}</div>}
-                      </div>
-                    )
-                  })}
+                                <h4>Weekly Schedule</h4>
+                <div className="weekly-schedule-grid">
+                  {weeklySchedule.map((item) => (
+                    <div key={item.day} className={`weekly-row ${item.title !== "—" ? "weekly-row-has-event" : ""}`}>
+                      <div className="weekly-day">{WEEK_DAY_LABELS[item.day]}</div>
+                      <div className="weekly-title">{item.title}</div>
+                    </div>
+                  ))}
                 </div>
               </div>
             </section>
-          </div>
-        ) : (
-          <p className="subhead">No featured articles yet.</p>
-        )}
 
         {selectedArticle && (
           <div className="modal-backdrop" onClick={() => setSelectedArticle(null)}>

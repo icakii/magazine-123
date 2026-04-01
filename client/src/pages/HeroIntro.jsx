@@ -232,9 +232,11 @@ export default function HeroIntro() {
             )}
           </div>
 
-          <button className="hero-scroll" onClick={scrollToTarget} type="button">
-            <span className="hero-scroll-icon">↓</span>
-            <span className="hero-scroll-label">{t("hero_swipe")}</span>
+          <button className="hero-scroll learn-more" onClick={scrollToTarget} type="button">
+            <span className="circle" aria-hidden="true">
+              <span className="icon arrow" />
+            </span>
+            <span className="button-text">Scroll down</span>
           </button>
 
           <p className="hero-hint">Scroll up anytime to return here.</p>

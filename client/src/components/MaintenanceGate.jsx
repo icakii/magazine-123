@@ -11,7 +11,9 @@ const ADMIN_EMAILS = [
   "icaki06@gmail.com",
   "icaki2k@gmail.com",
   "mirenmagazine@gmail.com",
+  "icaki@mirenmagazine.com",
 ]
+const MAINTENANCE_GATE_ENABLED = false
 
 function pad2(n) {
   return String(Math.max(0, n)).padStart(2, "0")
@@ -31,6 +33,8 @@ export default function MaintenanceGate({ children }) {
     const location = useLocation()
   const isAdmin = !!(user && ADMIN_EMAILS.includes(user.email))
 
+    if (!MAINTENANCE_GATE_ENABLED) return children
+
   const [now, setNow] = useState(Date.now())
   const [panelOpen, setPanelOpen] = useState(false)
   const [step, setStep] = useState("login") // 'login' | '2fa'
@@ -42,9 +46,6 @@ export default function MaintenanceGate({ children }) {
   const remaining = useMemo(() => splitMs(TARGET_TS - now), [now])
   const locked = useMemo(() => now < TARGET_TS && !isAdmin, [now, isAdmin])
   const bypassForAdminRoute = location.pathname.startsWith("/admin")
-  const bypassForAuthRecovery =
-    location.pathname.startsWith("/login") ||
-    location.pathname.startsWith("/reset-password")
 
   // Countdown tick
   useEffect(() => {
@@ -176,7 +177,7 @@ const triedTokenRefreshRef = useRef(false)
     }
   }
 
-  if (bypassForAdminRoute || bypassForAuthRecovery || !locked) return children
+   if (bypassForAdminRoute || !locked) return children
   
   return (
     <div

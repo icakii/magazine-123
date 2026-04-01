@@ -4719,18 +4719,9 @@ html[data-theme="dark"] .maintenance-loading {
 .weekly-row-has-event{
   border-color: rgba(156,42,42,.58);
   box-shadow: inset 0 0 0 1px rgba(156,42,42,.36), 0 0 0 1px rgba(156,42,42,.22);
-  animation:calPulse 2.8s ease-in-out infinite;
+  background: linear-gradient(135deg, rgba(177,53,53,.08), rgba(255,255,255,.2));
 }
-.weekly-row-has-event::after{
-  content:"";
-  position:absolute;
-  inset:-35% -45%;
-  background:conic-gradient(from 90deg, transparent 0 35%, rgba(177,53,53,.32) 48%, transparent 62% 100%);
-  animation:crimsonSweep 5.5s linear infinite;
-  pointer-events:none;
-}
-@keyframes crimsonSweep{ from{ transform:rotate(0deg);} to{ transform:rotate(360deg);} }
-@keyframes calPulse{ 0%,100%{ box-shadow: inset 0 0 0 1px rgba(156,42,42,.34), 0 0 0 1px rgba(156,42,42,.16);} 50%{ box-shadow: inset 0 0 0 1px rgba(179,59,59,.52), 0 0 0 1px rgba(179,59,59,.34), 0 0 18px rgba(156,42,42,.2);} }
+
 @keyframes floatIn{ from{ opacity:0; transform: translateY(18px) scale(.98);} to{ opacity:1; transform: translateY(0) scale(1);} }
 
 @media (max-width: 860px){
@@ -4785,12 +4776,7 @@ html[data-theme="dark"] .maintenance-loading {
   transition: transform .25s ease, box-shadow .25s ease, border-color .25s ease;
 }
 .home-discord-card::before{
-  content: "";
-  position: absolute;
-  inset: -40% -25%;
-  background: conic-gradient(from 180deg, rgba(88,101,242,.22), transparent 35%, rgba(88,101,242,.2), transparent 70%);
-  animation: discordSweep 8s linear infinite;
-  pointer-events: none;
+   content:none;
 }
 .home-discord-card:hover{
   transform: translateY(-2px);
@@ -4798,9 +4784,9 @@ html[data-theme="dark"] .maintenance-loading {
   border-color: rgba(88,101,242,.55);
 }
 .home-discord-icon{
-  width: 78px;
-  height: 78px;
-  border-radius: 20px;
+ width: 82px;
+  height: 82px;
+  border-radius: 18px;
   background: #5865f2;
   color: #fff;
   display: grid;
@@ -4808,10 +4794,11 @@ html[data-theme="dark"] .maintenance-loading {
   position: relative;
   z-index: 1;
   animation: discordPulse 2.2s ease-in-out infinite;
+    margin-left: 2px;
 }
 .home-discord-icon svg{
-  width: 52px;
-  height: 52px;
+  width: 56px;
+  height: 56px;
 }
 .home-discord-content{
   position: relative;

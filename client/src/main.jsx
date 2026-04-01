@@ -33,12 +33,42 @@ import AuthGuard from "./components/AuthGuard"
 import MaintenanceGate from "./components/MaintenanceGate"
 
 // Auth provider
-import { AuthProvider } from "./context/AuthContext"
+import { AuthProvider, useAuth } from "./context/AuthContext"
 
 // Стилове
 import "./styles/global.css"
 import "./styles/layout.css"
 import "./styles/animations.css"
+
+const ADMIN_EMAILS = ["icaki@mirenmagazine.com"]
+
+function DevLockedRoute({ sectionName, children }) {
+  const { user, loading } = useAuth()
+  const isAdmin = !!user?.email && ADMIN_EMAILS.includes(user.email)
+
+  if (loading) {
+    return (
+      <div className="page">
+        <p className="subhead">Loading...</p>
+      </div>
+    )
+  }
+
+  if (!isAdmin) {
+    return (
+      <div className="page">
+        <div className="card" style={{ maxWidth: 720, margin: "0 auto", textAlign: "center" }}>
+          <h2 className="headline">{sectionName} is under development</h2>
+          <p className="subhead">
+            This section is currently unavailable. Only admins can access it until it is ready.
+          </p>
+        </div>
+      </div>
+    )
+  }
+
+  return children
+} 
 
 function ThemeBootstrap() {
   useEffect(() => {
@@ -87,11 +117,25 @@ ReactDOM.createRoot(document.getElementById("root")).render(
             <Route path="/news" element={<News />} />
             <Route path="/events" element={<Events />} />
             <Route path="/leaderboards" element={<Leaderboards />} />
-            <Route path="/about" element={<About />} />
+                        <Route
+              path="/about"
+              element={
+                <DevLockedRoute sectionName="About us">
+                  <About />
+                </DevLockedRoute>
+              }
+            />
             <Route path="/gallery" element={<Gallery />} />
             <Route path="/contact" element={<Contact />} />
             <Route path="/help" element={<Help />} />
-             <Route path="/store" element={<Store />} />
+            <Route
+              path="/store"
+              element={
+                <DevLockedRoute sectionName="Store">
+                  <Store />
+                </DevLockedRoute>
+              }
+            />
             <Route path="/opportunities" element={<Opportunities />} />
             <Route path="/partnership" element={<Navigate to="/opportunities" replace />} />
             <Route path="/partnerships" element={<Navigate to="/opportunities" replace />} />
@@ -122,9 +166,9 @@ ReactDOM.createRoot(document.getElementById("root")).render(
             <Route
               path="/subscriptions"
               element={
-                <AuthGuard>
+                <DevLockedRoute sectionName="Subscriptions">
                   <Subscriptions />
-                </AuthGuard>
+                </DevLockedRoute>
               }
             />
             <Route

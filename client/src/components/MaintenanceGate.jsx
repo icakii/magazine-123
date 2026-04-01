@@ -42,6 +42,9 @@ export default function MaintenanceGate({ children }) {
   const remaining = useMemo(() => splitMs(TARGET_TS - now), [now])
   const locked = useMemo(() => now < TARGET_TS && !isAdmin, [now, isAdmin])
   const bypassForAdminRoute = location.pathname.startsWith("/admin")
+  const bypassForAuthRecovery =
+    location.pathname.startsWith("/login") ||
+    location.pathname.startsWith("/reset-password")
 
   // Countdown tick
   useEffect(() => {
@@ -173,7 +176,7 @@ const triedTokenRefreshRef = useRef(false)
     }
   }
 
-  if (bypassForAdminRoute || !locked) return children
+  if (bypassForAdminRoute || bypassForAuthRecovery || !locked) return children
   
   return (
     <div

@@ -5,7 +5,7 @@ import { api } from "../lib/api"
 import { useAuth } from "../hooks/useAuth"
 import { useNavigate } from "react-router-dom"
 
-const CATEGORIES = ["All", "Sports", "E-Sports", "Photography", "Lifestyle", "Art", "Music", "Movies & Series", "Business", "Science", "Culture", "Health & Fitness", "Travel"]
+const CATEGORIES = ["All", "Sports", "E-Sports", "Photography", "Lifestyle", "Fashion", "Art", "Music", "Movies & Series", "Business", "Science", "Culture", "Health & Fitness", "Travel"]
 
 export default function News() {
   const { user, hasSubscription } = useAuth() // Assume user has hasSubscription boolean

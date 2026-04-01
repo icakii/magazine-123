@@ -28,6 +28,22 @@ const TABS = [
   { key: "newsletter", label: "Newsletter" },
 ]
 
+const NEWS_ARTICLE_CATEGORIES = [
+  "Sports",
+  "E-Sports",
+  "Photography",
+  "Lifestyle",
+  "Fashion",
+  "Art",
+  "Music",
+  "Movies & Series",
+  "Business",
+  "Science",
+  "Culture",
+  "Health & Fitness",
+  "Travel",
+]
+
 function isAdminEmail(email) {
   return !!email && ADMIN_EMAILS.includes(email)
 }
@@ -914,11 +930,17 @@ const [heroVfxUrl, setHeroVfxUrl] = useState("")
               {currentCategory === "news" && (
                 <label className="field">
                   <span>News Category (optional)</span>
-                  <input
+                  <select
                     value={articleForm.articleCategory}
                     onChange={(e) => setArticleForm((p) => ({ ...p, articleCategory: e.target.value }))}
-                    placeholder="e.g. World / Tech / Culture"
-                  />
+                  >
+                    <option value="">Select a category</option>
+                    {NEWS_ARTICLE_CATEGORIES.map((categoryOption) => (
+                      <option key={categoryOption} value={categoryOption}>
+                        {categoryOption}
+                      </option>
+                    ))}
+                  </select>
                 </label>
               )}
 

@@ -4933,14 +4933,24 @@ html[data-theme="dark"] .maintenance-loading {
 
 /* Featured cards typography aligned with home block sizing */
 .featured-card-title {
-  font-size: clamp(2.1rem, 4vw, 3rem);
-  line-height: 1.2;
+  font-size: clamp(1.2rem, 1.9vw, 1.55rem);
+  line-height: 1.28;
   font-weight: 900;
+    display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  min-height: calc(1.28em * 2);
 }
 
 .featured-card-excerpt {
-  font-size: clamp(1.15rem, 1.9vw, 1.55rem);
-  line-height: 1.45;
+  font-size: clamp(.94rem, 1.2vw, 1.02rem);
+  line-height: 1.5;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  min-height: calc(1.5em * 3);
 }
 @media (max-width: 700px){
   .home-discord-card{

@@ -468,12 +468,13 @@ const [heroVfxUrl, setHeroVfxUrl] = useState("")
 
   const saveArticle = async () => {
     if (!articleForm.title.trim()) return setMsg("Title is required.")
-    if (!articleForm.category) return setMsg("Category is required.")
+    const targetCategory = currentCategory || articleForm.category || "home"
+    if (!targetCategory) return setMsg("Category is required.")
 
     try {
       setBusy(true)
       setMsg("")
-      const payload = { ...articleForm }
+      const payload = { ...articleForm, category: targetCategory }
 
       if (editingArticleId) {
         await api.put(`/articles/${editingArticleId}`, payload)

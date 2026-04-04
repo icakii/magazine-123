@@ -191,7 +191,11 @@ export default function HeroIntro() {
       <div className="hero-inner">
         <div className="hero-media">
           {heroVfxUrl ? (
-            <video className="hero-vfx" src={heroVfxUrl} autoPlay muted loop playsInline />
+            isVideoUrl(heroVfxUrl) ? (
+              <video className="hero-vfx" src={heroVfxUrl} autoPlay muted loop playsInline />
+            ) : (
+              <img src={heroVfxUrl} alt="MIREN hero" className="hero-cover" loading="lazy" />
+            )
           ) : heroMediaUrl ? (
             isVideoUrl(heroMediaUrl) ? (
               <video className="hero-vfx" src={heroMediaUrl} autoPlay muted loop playsInline controls />

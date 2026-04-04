@@ -263,13 +263,13 @@ const [heroVfxUrl, setHeroVfxUrl] = useState("")
     if (!file) return
     try {
       setBusy(true)
-      setMsg("Uploading hero video...")
+ setMsg("Uploading hero media...")
       const out = await uploadToCloudinary(file)
       setHeroVfxUrl(out?.url || "")
       setMsg("✅ Uploaded. Now click Save.")
     } catch (e) {
-      setMsg(e?.response?.data?.details || e?.response?.data?.error || "Video upload failed.")
-    } finally {
+      setMsg(e?.response?.data?.details || e?.response?.data?.error || "Hero media upload failed.")
+      } finally {
       setBusy(false)
     }
   }
@@ -655,15 +655,19 @@ const [heroVfxUrl, setHeroVfxUrl] = useState("")
    <p className="text-muted">Hero is separate from the latest magazine cover. Configure VFX, fallback media and home widgets here.</p>
             <div className="upload-row">
               <div className="upload-box" style={{ width: "100%" }}>
-                <div className="upload-title">Hero VFX Video</div>
-
+ <div className="upload-title">Hero main media (image, GIF, or video)</div>
                 {heroVfxUrl ? (
-                  <video className="preview-video" src={heroVfxUrl} controls />
+isVideoUrl(heroVfxUrl) ? (
+                    <video className="preview-video" src={heroVfxUrl} controls />
+                  ) : (
+                    <img className="preview-img" src={heroVfxUrl} alt="Hero main media" />
+                  )
+                
                 ) : (
-                  <div className="preview-ph">No video</div>
+                  <div className="preview-ph">No main media</div>
                 )}
 
-                <input type="file" accept="video/*" onChange={(e) => onPickHeroVfx(e.target.files?.[0])} disabled={busy} />
+                <input type="file" accept="image/*,video/*" onChange={(e) => onPickHeroVfx(e.target.files?.[0])} disabled={busy} />
               </div>
             </div>
 

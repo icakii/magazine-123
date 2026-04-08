@@ -5065,3 +5065,35 @@ html[data-theme="dark"] .maintenance-loading {
   0%,100% { box-shadow: 0 14px 34px rgba(20,16,13,.16), 0 0 0 0 rgba(249,115,22,.2); }
   50% { box-shadow: 0 18px 40px rgba(20,16,13,.2), 0 0 0 10px rgba(249,115,22,0); }
 }
+/* --- Hotfix: hero scroll label clipping + home welcome visibility --- */
+.hero-scroll {
+  width: 16rem !important;
+  min-height: 3rem;
+}
+
+.hero-scroll .button-text {
+  left: 3.35rem !important;
+  right: 0 !important;
+  margin: 0 !important;
+  padding: 0.72rem 0.35rem !important;
+  text-align: left !important;
+  color: var(--primary) !important;
+  opacity: 1 !important;
+  transform: none !important;
+}
+
+.hero-scroll:hover .button-text {
+  opacity: 1 !important;
+  transform: none !important;
+  color: var(--nav-text) !important;
+}
+
+#home-main-content.anim-fade-up {
+  opacity: 1 !important;
+  transform: none !important;
+}
+
+.home-welcome-card {
+  visibility: visible !important;
+  opacity: 1 !important;
+}

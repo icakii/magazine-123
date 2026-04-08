@@ -225,9 +225,8 @@ export default function HeroIntro() {
               onClick={onOrderClick}
               type="button"
               disabled={orderLocked}
-              title={orderLocked ? "Order opens on 30 April at 18:00" : "Open store"}
-            >
-              {orderLocked ? "Order on 30 April, 18:00 🔒" : "Order Now ⚡"}
+              title={orderLocked ? t("hero_order_locked_title") : t("hero_order_open_title")}            >
+              {orderLocked ? t("hero_order_locked") : t("hero_order_now")}
             </button>
 
             {/* optional: show admin badge */}
@@ -240,10 +239,9 @@ export default function HeroIntro() {
             <span className="circle" aria-hidden="true">
               <span className="icon arrow" />
             </span>
-            <span className="button-text">Scroll down ↓</span>
+            <span className="button-text">{t("hero_scroll_down")}</span>
           </button>
-
-          <p className="hero-hint">Scroll up anytime to return here.</p>
+          <p className="hero-hint">{t("hero_hint")}</p>
         </div>
       </div>
     </section>

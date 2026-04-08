@@ -183,11 +183,13 @@ export default function NavBar() {
             {t("help")}
           </Link>
 
-             <button className="drawer-item drawer-item-btn" onClick={toggleTheme} type="button">
+          <div className="drawer-sep" />
+
+          <button className="drawer-item drawer-item-btn drawer-item-control" onClick={toggleTheme} type="button">
             {t("theme")}
           </button>
 
-          <button className="drawer-item drawer-item-btn" onClick={changeLang} type="button">
+          <button className="drawer-item drawer-item-btn drawer-item-control" onClick={changeLang} type="button">
             {t("language")}: {lang.toUpperCase()}
           </button>
 
@@ -198,8 +200,7 @@ export default function NavBar() {
               {t("profile")}
             </Link>
           ) : (
-            <button className="drawer-item drawer-item-btn" onClick={handleLogout} type="button">
-              {t("logout")}
+            <button className="drawer-item drawer-item-btn drawer-item--logout" onClick={handleLogout} type="button">              {t("logout")}
             </button>
           )}
 

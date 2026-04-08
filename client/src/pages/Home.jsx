@@ -203,8 +203,8 @@ const normalized = normalizeHomeHeroPayload(res.data || {})
             </div>
           </a>
         </div>
-                <div className="hero-bg anim-zoom-in anim-delay-1" style={{ padding: "40px 20px", textAlign: "center", marginBottom: 40 }}>
-          <h1 className="headline" style={{ fontSize: "3rem" }}>
+                <div className="hero-bg home-welcome-card anim-zoom-in anim-delay-1" style={{ padding: "40px 20px", textAlign: "center", marginBottom: 40 }}>
+              <h1 className="headline" style={{ fontSize: "3rem" }}>
             {user ? `${t("welcome")}, ${user.displayName}!` : t("home_title")}
           </h1>
 
@@ -265,43 +265,43 @@ const normalized = normalizeHomeHeroPayload(res.data || {})
                     </svg>
                   </div>
                   <div className="spotify-card-content">
-                    <h4>Spotify Playlist Request 🎵</h4>
-                    {spotifyPlaylistUrl ? (
+                    <h4>{t("home_spotify_title")}</h4>
+                      {spotifyPlaylistUrl ? (
                       <a
                         href={spotifyPlaylistUrl}
                         target="_blank"
                         rel="noreferrer"
                         className="btn outline spotify-open-btn"
-                        title="Open Spotify playlist"
-                      >
-                        Open Spotify Playlist
-                      </a>
+                        title={t("home_spotify_open")}                     
+                     >
+                        {t("home_spotify_open")}
+                                              </a>
                     ) : (
-                      <p className="text-muted spotify-open-unset">Playlist link is not set yet.</p>
+<p className="text-muted spotify-open-unset">{t("home_spotify_not_set")}</p>
                     )}
                   </div>
                 </div>
-                <p className="text-muted spotify-limit">1 request per day.</p>
-                <div className="spotify-form-grid">
-                  <input className="input" placeholder="Song" value={song} onChange={(e) => setSong(e.target.value)} />
-                  <input className="input" placeholder="Artist" value={artist} onChange={(e) => setArtist(e.target.value)} />
+                <p className="text-muted spotify-limit">{t("home_spotify_limit")}</p>
+                  <div className="spotify-form-grid">
+                   <input className="input" placeholder={t("home_spotify_song")} value={song} onChange={(e) => setSong(e.target.value)} />
+                  <input className="input" placeholder={t("home_spotify_artist")} value={artist} onChange={(e) => setArtist(e.target.value)} />
                 </div>
-                  <button className="btn primary spotify-send-btn" type="button" onClick={sendSpotifyRequest}>Send request</button>
-                {reqMsg && <p className="text-muted" style={{ marginTop: 8 }}>{reqMsg}</p>}
+                  <button className="btn primary spotify-send-btn" type="button" onClick={sendSpotifyRequest}>{t("home_spotify_send")}</button>
+                  {reqMsg && <p className="text-muted" style={{ marginTop: 8 }}>{reqMsg}</p>}
               </div>
 
-              <div className="work-card glass-card">
-                <h4>Games Hub 🎮</h4>
-                <label className="text-muted">Game</label>
+              <div className="work-card glass-card games-card">
+                <h4>{t("home_games_title")}</h4>
+                <label className="text-muted">{t("home_games_label")}</label>
                 <select className="input" value={selectedGame} onChange={(e) => setSelectedGame(e.target.value)}>
-                  <option value="wordle">Word Game</option>
-                </select>
+                  <option value="wordle">{t("home_games_word")}</option>
+                                  </select>
                 <div className="btn-group" style={{ marginTop: 10 }}>
-                  <a className="btn primary" href="/games">Play</a>
-                  <a className="btn ghost" href="/leaderboards">Leaderboard</a>
+                  <a className="btn primary" href="/games">{t("home_games_play")}</a>
+                  <a className="btn ghost" href="/leaderboards">{t("home_games_board")}</a>
                 </div>
-                <p className="text-muted" style={{ marginTop: 8 }}>Ready for multi-game support later.</p>
-              </div>
+                <p className="text-muted" style={{ marginTop: 8 }}>{t("home_games_note")}</p>
+                              </div>
 
               <div className="calendar-card glass-card">
                                 <h4>{t("home_weekly_schedule")}</h4>

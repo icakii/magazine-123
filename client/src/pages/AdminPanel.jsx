@@ -29,19 +29,11 @@ const TABS = [
 ]
 
 const NEWS_ARTICLE_CATEGORIES = [
-  "Sports",
-  "E-Sports",
-  "Photography",
-  "Lifestyle",
   "Fashion",
   "Art",
   "Music",
-  "Movies & Series",
-  "Business",
-  "Science",
-  "Culture",
-  "Health & Fitness",
-  "Travel",
+  "Photography",
+  "Other",
 ]
 
 function isAdminEmail(email) {

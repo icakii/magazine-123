@@ -119,33 +119,17 @@ export default function NavBar() {
           <div className="nav-right nav-right-wrap">
             <div className="nav-actions">
               {!loading && !user && (
-                <>
-                  <Link to="/register" className="btn ghost nav-btn" onClick={closeDrawer}>
-                    {t("register")}
-                  </Link>
-                  <Link to="/login" className="btn primary nav-btn" onClick={closeDrawer}>
-                    {t("login")}
-                  </Link>
-                </>
+                <Link to="/profile" className="btn outline nav-btn" onClick={closeDrawer}>
+                  {t("profile")}
+                </Link>
               )}
 
               {user && (
                 <form onSubmit={handleLogout} style={{ display: "inline" }}>
-                  <button className="btn secondary nav-btn logout-btn" type="submit">
-                    {t("logout")}
+                  <button className="btn outline nav-btn logout-btn" type="submit">                    {t("logout")}
                   </button>
                 </form>
               )}
-            </div>
-
-            <div className="nav-toggles">
-              <button className="theme-toggle" onClick={toggleTheme} type="button">
-                {t("theme")}
-              </button>
-
-              <button className="lang-toggle" onClick={changeLang} type="button">
-                {lang.toUpperCase()}
-              </button>
             </div>
           </div>
         </div>
@@ -199,11 +183,25 @@ export default function NavBar() {
             {t("help")}
           </Link>
 
+             <button className="drawer-item drawer-item-btn" onClick={toggleTheme} type="button">
+            {t("theme")}
+          </button>
+
+          <button className="drawer-item drawer-item-btn" onClick={changeLang} type="button">
+            {t("language")}: {lang.toUpperCase()}
+          </button>
+
           <div className="drawer-sep" />
 
-          <Link className="drawer-item" to="/profile" onClick={closeDrawer}>
-            {t("profile")}
-          </Link>
+          {!user ? (
+            <Link className="drawer-item" to="/profile" onClick={closeDrawer}>
+              {t("profile")}
+            </Link>
+          ) : (
+            <button className="drawer-item drawer-item-btn" onClick={handleLogout} type="button">
+              {t("logout")}
+            </button>
+          )}
 
           {isAdmin && (
             <Link className="drawer-item drawer-item--admin" to="/admin" onClick={closeDrawer}>

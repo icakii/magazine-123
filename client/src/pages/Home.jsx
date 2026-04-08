@@ -2,6 +2,7 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
+import { createPortal } from "react-dom"
 import { useAuth } from "../hooks/useAuth"
 import { t } from "../lib/i18n"
 import { api } from "../lib/api"
@@ -196,9 +197,9 @@ const normalized = normalizeHomeHeroPayload(res.data || {})
               </svg>
             </div>
             <div className="home-discord-content">
-              <h3>Join our Discord server</h3>
-              <p>Get magazine updates, events, games and community drops in real time.</p>
-              <span className="home-discord-btn">Join Discord</span>
+              <h3>{t("home_discord_title")}</h3>
+              <p>{t("home_discord_text")}</p>
+              <span className="home-discord-btn">{t("home_discord_btn")}</span>
             </div>
           </a>
         </div>
@@ -220,7 +221,7 @@ const normalized = normalizeHomeHeroPayload(res.data || {})
         </div>
 
         {loading ? (
-          <p className="subhead">Loading…</p>
+          <p className="subhead">{t("loading")}</p>
         ) : featured.length > 0 ? (
           <div className="stack anim-fade-up anim-delay-2">
             <h3 className="headline">{t("featured")}</h3>
@@ -246,14 +247,14 @@ const normalized = normalizeHomeHeroPayload(res.data || {})
             </div>
                         </div>
         ) : (
-          <p className="subhead">No featured articles yet.</p>
+          <p className="subhead">{t("home_no_featured")}</p>
         )}
 
         <section className="home-work-grid">
               <div className="work-wide glass-card">
-                <h3>Work with us ✨</h3>
-                <p>Partnerships, sponsorships and custom brand campaigns with MIREN MAG. Let’s build something bold together.</p>
-<a className="btn primary work-wide-cta" href="/opportunities">Open Partnerships</a>
+                               <h3>{t("home_work_title")}</h3>
+                <p>{t("home_work_text")}</p>
+<a className="btn primary work-wide-cta" href="/opportunities">{t("home_work_cta")}</a>
               </div>
 
               <div className="work-card glass-card spotify-card">
@@ -303,7 +304,7 @@ const normalized = normalizeHomeHeroPayload(res.data || {})
               </div>
 
               <div className="calendar-card glass-card">
-                                <h4>Weekly Schedule</h4>
+                                <h4>{t("home_weekly_schedule")}</h4>
                 <div className="weekly-schedule-grid">
                   {weeklySchedule.map((item) => (
                     <div key={item.day} className={`weekly-row ${item.title !== "—" ? "weekly-row-has-event" : ""}`}>
@@ -315,7 +316,7 @@ const normalized = normalizeHomeHeroPayload(res.data || {})
               </div>
             </section>
 
-        {selectedArticle && (
+        {selectedArticle && createPortal(
           <div className="modal-backdrop" onClick={() => setSelectedArticle(null)}>
             <div className="modal-content" onClick={(e) => e.stopPropagation()}>
                <button className="modal-close" onClick={() => setSelectedArticle(null)} type="button">×</button>
@@ -324,7 +325,8 @@ const normalized = normalizeHomeHeroPayload(res.data || {})
 
               <div className="modal-text">{selectedArticle.text}</div>
             </div>
-          </div>
+                    </div>,
+          document.body
         )}
       </div>
     </div>

@@ -203,8 +203,7 @@ const normalized = normalizeHomeHeroPayload(res.data || {})
             </div>
           </a>
         </div>
-                <div className="hero-bg home-welcome-card anim-zoom-in anim-delay-1" style={{ padding: "40px 20px", textAlign: "center", marginBottom: 40 }}>
-              <h1 className="headline" style={{ fontSize: "3rem" }}>
+                <div className="hero-bg home-welcome-card" style={{ padding: "40px 20px", textAlign: "center", marginBottom: 40 }}>              <h1 className="headline" style={{ fontSize: "3rem" }}>
             {user ? `${t("welcome")}, ${user.displayName}!` : t("home_title")}
           </h1>
 
@@ -223,7 +222,7 @@ const normalized = normalizeHomeHeroPayload(res.data || {})
         {loading ? (
           <p className="subhead">{t("loading")}</p>
         ) : featured.length > 0 ? (
-          <div className="stack anim-fade-up anim-delay-2">
+          <div className="stack">
             <h3 className="headline">{t("featured")}</h3>
 
             <div className="grid">
@@ -231,8 +230,8 @@ const normalized = normalizeHomeHeroPayload(res.data || {})
                 const isLocked = !!f.isPremium && !hasSubscription
 
                 return (
-                  <div key={f.id} className="col-6 anim-fade-up anim-delay-1">
-                    <div className="card" style={{ position: "relative", textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", height: "100%" }}>
+                  <div key={f.id} className="col-6">
+                      <div className="card" style={{ position: "relative", textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", height: "100%" }}>
                       {f.isPremium && <div style={{ position: "absolute", top: 10, right: 10, background: "#e63946", color: "white", padding: "2px 8px", borderRadius: 4, fontWeight: "bold", zIndex: 2 }}>🔒 Premium</div>}
                       {isLocked && <div style={{ position: "absolute", inset: 0, background: "rgba(255,255,255,0.7)", backdropFilter: "blur(5px)", zIndex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", borderRadius: 8 }}><span style={{ fontSize: "3rem" }}>🔒</span><p style={{ marginTop: 8, marginBottom: 12 }}>{t("premium_content")}</p><a href="/subscriptions" className="btn primary">{t("subscribe_unlock")}</a></div>}
                       {f.imageUrl && <img src={f.imageUrl} style={{ width: "100%", height: 200, objectFit: "cover", borderRadius: 8, marginBottom: 15 }} alt={f.title} loading="lazy" />}

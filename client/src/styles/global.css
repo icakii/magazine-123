@@ -573,7 +573,7 @@ html[data-theme="dark"] .lang-toggle {
   text-align: left;
   background: transparent;
   border: 0;
-  cursor: pointer;
+  cursor: pointer;  
 }
 
 .drawer-sep {
@@ -4535,6 +4535,24 @@ html[data-theme="dark"] .maintenance-loading {
   visibility: visible !important;
   opacity: 1 !important;
   white-space: nowrap !important;
+}
+
+/* Ensure Profile action is always readable on dark/red nav backgrounds */
+.nav .nav-actions .nav-btn.btn.outline {
+  color: var(--ivory) !important;
+  border-color: var(--ivory) !important;
+  background: transparent !important;
+}
+
+.nav .nav-actions .nav-btn.btn.outline:hover {
+  background: rgba(255, 244, 230, 0.14) !important;
+}
+
+/* Logout is outlined in JSX, but should stay high-contrast filled on nav */
+.nav .nav-actions .logout-btn.btn.outline {
+  background: var(--oxide-red) !important;
+  color: var(--ivory) !important;
+  border-color: var(--ivory) !important;
 }
 
 @media (max-width: 520px) {

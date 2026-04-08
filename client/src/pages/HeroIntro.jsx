@@ -37,8 +37,6 @@ export default function HeroIntro() {
   const [meLoaded, setMeLoaded] = useState(false)
 
   const heroRef = useRef(null)
-  const lockRef = useRef(false)
-  const touchStartY = useRef(0)
 
   useEffect(() => {
     api
@@ -77,103 +75,26 @@ export default function HeroIntro() {
   }
 
   const scrollToTarget = () => {
-    const hero = heroRef.current
     const navOffset = getNavOffset()
-    const extraPad = 18
+          const target = document.getElementById("home-main-content")
+    if (target) {
+      const rect = target.getBoundingClientRect()
+      const targetTop = Math.max(0, window.scrollY + rect.top - navOffset + 8)
+      window.scrollTo({ top: targetTop, behavior: "smooth" })
+      return
+    }
+
+    const hero = heroRef.current
 
     if (hero) {
       const rect = hero.getBoundingClientRect()
       const heroBottomAbs = window.scrollY + rect.bottom
-      const targetTop = Math.max(0, heroBottomAbs - navOffset + extraPad)
-      window.scrollTo({ top: targetTop, behavior: "smooth" })
-      return
-    }
-    window.scrollTo({ top: window.innerHeight, behavior: "smooth" })
-  }
-
-  const scrollToHero = () => {
-    const hero = heroRef.current
-    const extraPad = 6
-
-    if (hero) {
-      const rect = hero.getBoundingClientRect()
-      const heroTopAbs = window.scrollY + rect.top
-      const targetTop = Math.max(0, heroTopAbs - extraPad)
-      window.scrollTo({ top: targetTop, behavior: "smooth" })
-      return
-    }
-    window.scrollTo({ top: 0, behavior: "smooth" })
+      window.scrollTo({ top: Math.max(0, heroBottomAbs - navOffset + 8), behavior: "smooth" })
+    } 
   }
 
   useEffect(() => {
-    const el = heroRef.current
-    if (!el) return
 
-    const isHeroVisible = () => {
-      const r = el.getBoundingClientRect()
-      const vh = window.innerHeight || 800
-      return r.top < vh * 0.35 && r.bottom > vh * 0.45
-    }
-
-    const isAtTopOfMain = () => {
-      const r = el.getBoundingClientRect()
-      const navOffset = getNavOffset()
-      const threshold = 120
-      return r.bottom <= navOffset + threshold && r.bottom >= navOffset - 6
-    }
-
-    const lock = () => {
-      lockRef.current = true
-      setTimeout(() => (lockRef.current = false), 700)
-    }
-
-    const onWheel = (e) => {
-      if (lockRef.current) return
-      const dy = e.deltaY
-
-      if (isHeroVisible() && dy > 12) {
-        e.preventDefault()
-        lock()
-        scrollToTarget()
-        return
-      }
-
-      if (!isHeroVisible() && dy < -12 && isAtTopOfMain()) {
-        e.preventDefault()
-        lock()
-        scrollToHero()
-      }
-    }
-
-    const onTouchStart = (e) => {
-      touchStartY.current = e.touches?.[0]?.clientY ?? 0
-    }
-
-    const onTouchEnd = (e) => {
-      if (lockRef.current) return
-      const endY = e.changedTouches?.[0]?.clientY ?? 0
-      const diff = touchStartY.current - endY
-
-      if (isHeroVisible() && diff > 18) {
-        lock()
-        scrollToTarget()
-      }
-
-      if (!isHeroVisible() && diff < -18 && isAtTopOfMain()) {
-        lock()
-        scrollToHero()
-      }
-    }
-
-    window.addEventListener("wheel", onWheel, { passive: false })
-    window.addEventListener("touchstart", onTouchStart, { passive: true })
-    window.addEventListener("touchend", onTouchEnd, { passive: true })
-
-    return () => {
-      window.removeEventListener("wheel", onWheel)
-      window.removeEventListener("touchstart", onTouchStart)
-      window.removeEventListener("touchend", onTouchEnd)
-    }
   }, [])
 
   const onOrderClick = () => {

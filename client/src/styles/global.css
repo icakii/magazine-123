@@ -5089,8 +5089,8 @@ html[data-theme="dark"] .maintenance-loading {
 }
 
 #home-main-content.anim-fade-up {
-  opacity: 1 !important;
-  transform: none !important;
+  opacity: 0 !important;
+  transform: translateX(8px) !important;
 }
 
 .home-welcome-card {

@@ -5086,13 +5086,11 @@ html[data-theme="dark"] .maintenance-loading {
   opacity: 1 !important;
   transform: none !important;
   color: var(--nav-text) !important;
-    display: none !important;
 }
 
 #home-main-content.anim-fade-up {
-  opacity: 0 !important;
-  transform: translateX(8px) !important;
-  
+  opacity: 1 !important;
+  transform: none !important;
 }
 
 .home-welcome-card {

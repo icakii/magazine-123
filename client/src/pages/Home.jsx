@@ -79,6 +79,13 @@ const [spotifyPlaylistUrl, setSpotifyPlaylistUrl] = useState("")
   const [selectedGame, setSelectedGame] = useState("wordle")
 
   useEffect(() => {
+        const navEntries = performance.getEntriesByType("navigation")
+    const navType = navEntries[0] && "type" in navEntries[0] ? navEntries[0].type : ""
+
+    if (navType === "reload") {
+      window.scrollTo({ top: 0, left: 0, behavior: "auto" })
+    }
+    
     const url = new URL(window.location.href)
     const ok = url.searchParams.get("order_success") === "true"
     if (ok) {

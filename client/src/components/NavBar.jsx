@@ -200,8 +200,9 @@ export default function NavBar() {
               {t("profile")}
             </Link>
           ) : (
-            <button className="drawer-item drawer-item-btn drawer-item--logout" onClick={handleLogout} type="button">              {t("logout")}
-            </button>
+                        <Link className="drawer-item" to="/profile" onClick={closeDrawer}>
+              {t("profile")}
+            </Link>
           )}
 
           {isAdmin && (

@@ -40,52 +40,17 @@ export default function HeroIntro() {
   const swipeTriggeredRef = useRef(false)
 
   useEffect(() => {
-    const canSwipeScroll = () => {
-      const hero = heroRef.current
-      if (!hero) return false
-      if (window.scrollY > 24) return false
-     const rect = hero.getBoundingClientRect()
-      return rect.top < window.innerHeight * 0.4 && rect.bottom > window.innerHeight * 0.35
-    }
-
-    const triggerSwipeScroll = () => {
-      if (swipeTriggeredRef.current || !canSwipeScroll()) return
-      swipeTriggeredRef.current = true
-      scrollToTarget()
-      window.setTimeout(() => {
-        swipeTriggeredRef.current = false
-      }, 900)
-    }
-
-    const onWheel = (event) => {
-      if (event.deltaY > 20) triggerSwipeScroll()
-    }
-
-    let touchStartY = null
-
-    const onTouchStart = (event) => {
-      touchStartY = event.touches?.[0]?.clientY ?? null
-    }
-
-    const onTouchMove = (event) => {
-      if (touchStartY == null) return
-      const currentY = event.touches?.[0]?.clientY
-      if (typeof currentY !== "number") return
-      if (touchStartY - currentY > 24) {
-        triggerSwipeScroll()
-        touchStartY = null
-      }
-    }
-
-    window.addEventListener("wheel", onWheel, { passive: true })
-    window.addEventListener("touchstart", onTouchStart, { passive: true })
-    window.addEventListener("touchmove", onTouchMove, { passive: true })
-
-    return () => {
-      window.removeEventListener("wheel", onWheel)
-      window.removeEventListener("touchstart", onTouchStart)
-      window.removeEventListener("touchmove", onTouchMove)
-    }
+    api
+      .get("/hero", { params: { t: Date.now() } })
+      .then((res) => {
+ const normalized = normalizeHeroPayload(res.data || {})
+        setHeroVfxUrl(normalized.heroVfxUrl || null)
+        setHeroMediaUrl(normalized.heroMediaUrl || null)
+      })
+      .catch(() => {
+        setHeroVfxUrl(null)
+        setHeroMediaUrl(null)
+      })
   }, [])
 
   // get current user (optional)
@@ -130,7 +95,59 @@ export default function HeroIntro() {
   }
 
   useEffect(() => {
+    const canSwipeScroll = () => {
+      const hero = heroRef.current
+      if (!hero) return false
+      if (window.scrollY > 120) return false
 
+      const rect = hero.getBoundingClientRect()
+      return rect.top < window.innerHeight * 0.65 && rect.bottom > window.innerHeight * 0.25
+    }
+
+    const triggerSwipeScroll = () => {
+      if (swipeTriggeredRef.current || !canSwipeScroll()) return
+      swipeTriggeredRef.current = true
+      scrollToTarget()
+      window.setTimeout(() => {
+        swipeTriggeredRef.current = false
+      }, 900)
+    }
+
+    const onWheel = (event) => {
+      if (event.deltaY > 8) triggerSwipeScroll()
+    }
+
+    let touchStartY = null
+
+    const onTouchStart = (event) => {
+      touchStartY = event.touches?.[0]?.clientY ?? null
+    }
+
+    const onTouchMove = (event) => {
+      if (touchStartY == null) return
+      const currentY = event.touches?.[0]?.clientY
+      if (typeof currentY !== "number") return
+      if (touchStartY - currentY > 24) {
+        triggerSwipeScroll()
+        touchStartY = null
+      }
+    }
+
+    const onScroll = () => {
+      if (window.scrollY > 10) triggerSwipeScroll()
+    }
+
+    window.addEventListener("wheel", onWheel, { passive: true })
+    window.addEventListener("touchstart", onTouchStart, { passive: true })
+    window.addEventListener("touchmove", onTouchMove, { passive: true })
+    window.addEventListener("scroll", onScroll, { passive: true })
+
+    return () => {
+      window.removeEventListener("wheel", onWheel)
+      window.removeEventListener("touchstart", onTouchStart)
+      window.removeEventListener("touchmove", onTouchMove)
+      window.removeEventListener("scroll", onScroll)
+    }
   }, [])
 
   const onOrderClick = () => {
@@ -204,4 +221,3 @@ export default function HeroIntro() {
     </section>
   )
 }
-  

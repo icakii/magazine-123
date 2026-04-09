@@ -37,19 +37,55 @@ export default function HeroIntro() {
   const [meLoaded, setMeLoaded] = useState(false)
 
   const heroRef = useRef(null)
+  const swipeTriggeredRef = useRef(false)
 
   useEffect(() => {
-    api
-      .get("/hero", { params: { t: Date.now() } })
-      .then((res) => {
- const normalized = normalizeHeroPayload(res.data || {})
-        setHeroVfxUrl(normalized.heroVfxUrl || null)
-        setHeroMediaUrl(normalized.heroMediaUrl || null)
-      })
-      .catch(() => {
-        setHeroVfxUrl(null)
-        setHeroMediaUrl(null)
-      })
+    const canSwipeScroll = () => {
+      const hero = heroRef.current
+      if (!hero) return false
+      if (window.scrollY > 24) return false
+     const rect = hero.getBoundingClientRect()
+      return rect.top < window.innerHeight * 0.4 && rect.bottom > window.innerHeight * 0.35
+    }
+
+    const triggerSwipeScroll = () => {
+      if (swipeTriggeredRef.current || !canSwipeScroll()) return
+      swipeTriggeredRef.current = true
+      scrollToTarget()
+      window.setTimeout(() => {
+        swipeTriggeredRef.current = false
+      }, 900)
+    }
+
+    const onWheel = (event) => {
+      if (event.deltaY > 20) triggerSwipeScroll()
+    }
+
+    let touchStartY = null
+
+    const onTouchStart = (event) => {
+      touchStartY = event.touches?.[0]?.clientY ?? null
+    }
+
+    const onTouchMove = (event) => {
+      if (touchStartY == null) return
+      const currentY = event.touches?.[0]?.clientY
+      if (typeof currentY !== "number") return
+      if (touchStartY - currentY > 24) {
+        triggerSwipeScroll()
+        touchStartY = null
+      }
+    }
+
+    window.addEventListener("wheel", onWheel, { passive: true })
+    window.addEventListener("touchstart", onTouchStart, { passive: true })
+    window.addEventListener("touchmove", onTouchMove, { passive: true })
+
+    return () => {
+      window.removeEventListener("wheel", onWheel)
+      window.removeEventListener("touchstart", onTouchStart)
+      window.removeEventListener("touchmove", onTouchMove)
+    }
   }, [])
 
   // get current user (optional)

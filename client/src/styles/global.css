@@ -5086,3 +5086,71 @@ html[data-theme="dark"] .maintenance-loading {
   visibility: visible !important;
   opacity: 1 !important;
 }
+
+/* === Mobile nav hotfix: compact width + stable controls === */
+@media (max-width: 560px) {
+  .nav {
+    min-height: 64px !important;
+    height: auto !important;
+    padding: 8px 10px !important;
+  }
+
+  .nav .nav-inner {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) auto !important;
+    align-items: center !important;
+    gap: 8px !important;
+  }
+
+  .nav .nav-top {
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    min-width: 0 !important;
+  }
+
+  .nav .nav-center {
+    min-width: 0 !important;
+    justify-content: center !important;
+  }
+
+  .nav .brand {
+    transform: none !important;
+    width: auto !important;
+    margin: 0 auto !important;
+    text-align: center !important;
+    font-size: clamp(1.25rem, 5.4vw, 1.6rem) !important;
+    max-width: 100% !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+  }
+
+  .nav .nav-right,
+  .nav .nav-right-wrap {
+    width: auto !important;
+    min-width: 0 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-end !important;
+    gap: 6px !important;
+  }
+
+  .nav .nav-actions {
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    justify-content: flex-end !important;
+    align-items: center !important;
+    gap: 6px !important;
+    width: auto !important;
+    overflow: hidden !important;
+  }
+
+  .nav .nav-btn,
+  .nav .logout-btn {
+    flex: 0 0 auto !important;
+    padding: 5px 9px !important;
+    font-size: 0.74rem !important;
+    line-height: 1.1 !important;
+  }
+}

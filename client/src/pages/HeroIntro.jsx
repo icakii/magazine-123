@@ -38,6 +38,7 @@ export default function HeroIntro() {
 
   const heroRef = useRef(null)
   const swipeTriggeredRef = useRef(false)
+  const touchStartRef = useRef({ x: 0, y: 0 })
 
   useEffect(() => {
     api
@@ -138,35 +139,40 @@ export default function HeroIntro() {
       if (event.deltaY > 8) triggerSwipeScroll("down")
       if (event.deltaY < -8) triggerSwipeScroll("up")
     }
-
-    let touchStartY = null
-
+    
     const onTouchStart = (event) => {
-      touchStartY = event.touches?.[0]?.clientY ?? null
+      const point = event.touches?.[0]
+      if (!point) return
+      touchStartRef.current = { x: point.clientX, y: point.clientY }
     }
+      const onTouchEnd = (event) => {
+      const point = event.changedTouches?.[0]
+      if (!point) return
 
-    const onTouchMove = (event) => {
-      if (touchStartY == null) return
-      const currentY = event.touches?.[0]?.clientY
-      if (typeof currentY !== "number") return
-      if (touchStartY - currentY > 24) {
+      const deltaX = point.clientX - touchStartRef.current.x
+      const deltaY = point.clientY - touchStartRef.current.y
+      const absX = Math.abs(deltaX)
+      const absY = Math.abs(deltaY)
+
+      // Avoid accidental triggers on diagonal / micro-swipes.
+      if (absY < 42 || absY < absX * 1.2) return
+
+      if (deltaY < 0) {
         triggerSwipeScroll("down")
-        touchStartY = null
-      } else if (touchStartY - currentY < -24) {
-        triggerSwipeScroll("up")
-        touchStartY = null
+             } else {
+                triggerSwipeScroll("up")
       }
     }
 
     window.addEventListener("wheel", onWheel, { passive: true })
     window.addEventListener("touchstart", onTouchStart, { passive: true })
-    window.addEventListener("touchmove", onTouchMove, { passive: true })
+    window.addEventListener("touchend", onTouchEnd, { passive: true })
 
     return () => {
       window.removeEventListener("wheel", onWheel)
       window.removeEventListener("touchstart", onTouchStart)
-      window.removeEventListener("touchmove", onTouchMove)
-    }
+      window.removeEventListener("touchend", onTouchEnd)
+        }
   }, [])
 
   const onOrderClick = () => {

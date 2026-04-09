@@ -94,8 +94,17 @@ export default function HeroIntro() {
     } 
   }
 
+  const scrollToHeroTop = () => {
+    const hero = heroRef.current
+    if (!hero) return
+    const navOffset = getNavOffset()
+    const rect = hero.getBoundingClientRect()
+    const heroTop = Math.max(0, window.scrollY + rect.top - navOffset + 2)
+    window.scrollTo({ top: heroTop, behavior: "smooth" })
+  }
+
   useEffect(() => {
-    const canSwipeScroll = () => {
+    const canSwipeDown = () => {
       const hero = heroRef.current
       if (!hero) return false
       if (window.scrollY > 120) return false
@@ -104,17 +113,30 @@ export default function HeroIntro() {
       return rect.top < window.innerHeight * 0.65 && rect.bottom > window.innerHeight * 0.25
     }
 
-    const triggerSwipeScroll = () => {
-      if (swipeTriggeredRef.current || !canSwipeScroll()) return
+    const canSwipeUp = () => {
+      if (window.scrollY < 40) return false
+      return window.scrollY < window.innerHeight * 1.35
+    }
+
+    const triggerSwipeScroll = (direction) => {
+      if (swipeTriggeredRef.current) return
+      if (direction === "down" && !canSwipeDown()) return
+      if (direction === "up" && !canSwipeUp()) return
+
       swipeTriggeredRef.current = true
-      scrollToTarget()
+      if (direction === "down") {
+        scrollToTarget()
+      } else {
+        scrollToHeroTop()
+      }
       window.setTimeout(() => {
         swipeTriggeredRef.current = false
       }, 900)
     }
 
     const onWheel = (event) => {
-      if (event.deltaY > 8) triggerSwipeScroll()
+      if (event.deltaY > 8) triggerSwipeScroll("down")
+      if (event.deltaY < -8) triggerSwipeScroll("up")
     }
 
     let touchStartY = null
@@ -128,25 +150,22 @@ export default function HeroIntro() {
       const currentY = event.touches?.[0]?.clientY
       if (typeof currentY !== "number") return
       if (touchStartY - currentY > 24) {
-        triggerSwipeScroll()
+        triggerSwipeScroll("down")
+        touchStartY = null
+      } else if (touchStartY - currentY < -24) {
+        triggerSwipeScroll("up")
         touchStartY = null
       }
-    }
-
-    const onScroll = () => {
-      if (window.scrollY > 10) triggerSwipeScroll()
     }
 
     window.addEventListener("wheel", onWheel, { passive: true })
     window.addEventListener("touchstart", onTouchStart, { passive: true })
     window.addEventListener("touchmove", onTouchMove, { passive: true })
-    window.addEventListener("scroll", onScroll, { passive: true })
 
     return () => {
       window.removeEventListener("wheel", onWheel)
       window.removeEventListener("touchstart", onTouchStart)
       window.removeEventListener("touchmove", onTouchMove)
-      window.removeEventListener("scroll", onScroll)
     }
   }, [])
 

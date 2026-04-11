@@ -4942,6 +4942,27 @@ html[data-theme="dark"] .maintenance-loading {
   background: rgba(255,110,64,.16);
   border-color: rgba(255,110,64,.4);
 }
+.home-art-head{
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.home-art-lang-btn{
+  min-width: 48px;
+  padding: 6px 10px;
+  border-radius: 999px;
+}
+.home-art-open-at{
+  margin-top: 10px;
+}
+.home-art-actions{
+  margin-top: 12px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
 @keyframes discordPulse{
   0%,100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(88,101,242,.28); }
   50% { transform: scale(1.04); box-shadow: 0 0 0 10px rgba(88,101,242,0); }
@@ -4989,6 +5010,15 @@ html[data-theme="dark"] .maintenance-loading {
   font-weight: 700;
 }
 
+@media (max-width: 700px){
+  .home-art-head{
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .home-art-actions{
+    justify-content: center;
+  }
+}
 
 .work-card:hover .btn,
 .calendar-card:hover .btn{

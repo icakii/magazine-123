@@ -11,6 +11,25 @@ import HeroIntro from "./HeroIntro"
 import { clearCart } from "../lib/cart"
 
 const WEEK_DAYS = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
+const MIREN_ART_OPEN_AT = "2026-04-13T19:00:00+03:00" // Europe/Sofia
+const ART_TEXT = {
+  bg: {
+    title: "MIR'EN ART",
+    subtitle: "Нова арт зона за визуални проекти, колаборации и творчески формати.",
+    cta: "Отвори MIR'EN ART",
+    registerOpen: "Регистрация",
+    registerLocked: "Регистрацията отваря на 13-ти в 19:00",
+    openAt: "🔒 Отваря на {date} (Europe/Sofia)",
+  },
+  en: {
+    title: "MIR'EN ART",
+    subtitle: "A new art zone for visual projects, collaborations, and creative formats.",
+    cta: "Open MIR'EN ART",
+    registerOpen: "Register",
+    registerLocked: "Registration opens on the 13th at 19:00",
+    openAt: "🔒 Opens on {date} (Europe/Sofia)",
+  },
+}
 const WEEK_DAY_LABELS = {
   monday: "Monday",
   tuesday: "Tuesday",
@@ -79,7 +98,21 @@ const [spotifyPlaylistUrl, setSpotifyPlaylistUrl] = useState("")
   const [reqMsg, setReqMsg] = useState("")
 
   const [selectedGame, setSelectedGame] = useState("wordle")
+    const [artLang, setArtLang] = useState("bg")
 
+  const artOpenDateText = useMemo(() => {
+    return new Intl.DateTimeFormat(artLang === "bg" ? "bg-BG" : "en-GB", {
+      timeZone: "Europe/Sofia",
+      day: "2-digit",
+      month: "long",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    }).format(new Date(MIREN_ART_OPEN_AT))
+  }, [artLang])
+
+  const isArtOpen = Date.now() >= new Date(MIREN_ART_OPEN_AT).getTime()
+  const artCopy = ART_TEXT[artLang] || ART_TEXT.bg
   useEffect(() => {
         const navEntries = performance.getEntriesByType("navigation")
     const navType = navEntries[0] && "type" in navEntries[0] ? navEntries[0].type : ""
@@ -192,16 +225,32 @@ const normalized = normalizeHomeHeroPayload(res.data || {})
       <div id="home-main-content" className="page anim-fade-up">
     <div className="home-discord-wrap anim-fade-up anim-delay-1">
               <div className="home-discord-wrap home-art-wrap anim-fade-up">
-          <a className="home-discord-card home-art-card" href="/miren-art" aria-label="Open MIRÉN ART">
-            <div className="home-discord-icon home-art-icon" aria-hidden="true">
+          <div className="home-discord-card home-art-card" aria-label="Open MIR'EN ART">
+              <div className="home-discord-icon home-art-icon" aria-hidden="true">
               <span>🎨</span>
             </div>
             <div className="home-discord-content home-art-content">
-              <h3>MIRÉN ART</h3>
-              <p>A new creative block for paintings, visuals, and mixed media projects.</p>
-              <span className="home-discord-btn home-art-btn">Open MIRÉN ART</span>
+                            <div className="home-art-head">
+                <h3>{artCopy.title}</h3>
+                <button className="btn ghost home-art-lang-btn" type="button" onClick={() => setArtLang((x) => (x === "bg" ? "en" : "bg"))}>
+                  {artLang === "bg" ? "EN" : "BG"}
+                </button>
+              </div>
+              <p>{artCopy.subtitle}</p>
+              <p className="text-muted home-art-open-at">{artCopy.openAt.replace("{date}", artOpenDateText)}</p>
+              <div className="home-art-actions">
+                <a className="home-discord-btn home-art-btn" href="/miren-art">{artCopy.cta}</a>
+                <button
+                  className={`btn ${isArtOpen ? "primary" : "ghost"}`}
+                  type="button"
+                  disabled={!isArtOpen}
+                  onClick={() => navigate("/register")}
+                >
+                  {isArtOpen ? artCopy.registerOpen : artCopy.registerLocked}
+                </button>
+              </div>
             </div>
-          </a>
+          </div>
         </div>
 
           <a

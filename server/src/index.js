@@ -1411,15 +1411,26 @@ const userEmail = req.user.email
 // 📩 CONTACT FORM
 // ---------------------------------------------------------------
 app.post("/api/contact", async (req, res) => {
-  const { email, message } = req.body
-  await transporters.contact.sendMail({
-    from: `"${EMAIL_ACCOUNTS.contact.label}" <${EMAIL_ACCOUNTS.contact.user}>`,
-    replyTo: email,
-    to: EMAIL_ACCOUNTS.contact.user,
-    subject: "Contact",
-    text: message,
-  })
-  res.json({ ok: true })
+  const email = String(req.body?.email || "").trim()
+  const message = String(req.body?.message || "").trim()
+
+  if (!email || !message) {
+    return res.status(400).json({ error: "Email and message are required." })
+  }
+
+  try {
+    await transporters.contact.sendMail({
+      from: `"${EMAIL_ACCOUNTS.contact.label}" <${EMAIL_ACCOUNTS.contact.user}>`,
+      replyTo: email,
+      to: EMAIL_ACCOUNTS.contact.user,
+      subject: `Contact from ${email}`,
+      text: `From: ${email}\n\n${message}`,
+    })
+    return res.json({ ok: true, to: EMAIL_ACCOUNTS.contact.user })
+  } catch (error) {
+    console.error("CONTACT EMAIL ERROR:", error)
+    return res.status(500).json({ error: "Could not send message right now." })
+  }
 })
 
 // ---------------------------------------------------------------

@@ -3,6 +3,7 @@
 
 import { useEffect, useMemo, useState } from "react"
 import { createPortal } from "react-dom"
+import { useNavigate } from "react-router-dom"
 import { useAuth } from "../hooks/useAuth"
 import { t } from "../lib/i18n"
 import { api } from "../lib/api"
@@ -65,6 +66,7 @@ function normalizeHomeHeroPayload(data) {
 
 export default function Home() {
   const { user, hasSubscription } = useAuth()
+  const navigate = useNavigate()
 
   const [articles, setArticles] = useState([])
   const [loading, setLoading] = useState(true)
@@ -85,7 +87,7 @@ const [spotifyPlaylistUrl, setSpotifyPlaylistUrl] = useState("")
     if (navType === "reload") {
       window.scrollTo({ top: 0, left: 0, behavior: "auto" })
     }
-    
+
     const url = new URL(window.location.href)
     const ok = url.searchParams.get("order_success") === "true"
     if (ok) {
@@ -153,8 +155,13 @@ const normalized = normalizeHomeHeroPayload(res.data || {})
   )
 
   const sendSpotifyRequest = async () => {
+        if (!user) {
+      setReqMsg("Please register or log in before sending a Spotify request.")
+      navigate("/register")
+      return
+    }
     const today = new Date().toISOString().slice(0, 10)
-    const key = `spotify_req_${today}_${user?.email || "guest"}`
+    const key = `spotify_req_${today}_${user.email}`
     if (localStorage.getItem(key)) {
       setReqMsg("⚠️ You can send one request per day.")
       return
@@ -166,8 +173,8 @@ const normalized = normalizeHomeHeroPayload(res.data || {})
 
     try {
       await api.post("/contact", {
-        email: user?.email || "spotify@miren.local",
-        message: `Spotify request\nSong: ${song}\nArtist: ${artist}\nUser: ${user?.displayName || "Guest"}`,
+                email: user.email,
+        message: `Spotify request\nSong: ${song}\nArtist: ${artist}\nUser: ${user.displayName || "Unknown"}`,
       })
       localStorage.setItem(key, "1")
       setReqMsg("✅ Request sent.")

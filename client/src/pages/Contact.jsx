@@ -5,6 +5,7 @@ import { api } from "../lib/api"
 import { t } from "../lib/i18n"
 
 export default function Contact() {
+   const contactEmail = "contact@mirenmagazine.com"
   const [form, setForm] = useState({ email: "", message: "" })
   const [msg, setMsg] = useState("")
   const [loading, setLoading] = useState(false)
@@ -33,6 +34,9 @@ export default function Contact() {
     <div className="page">
       <h2 className="headline">{t("contact")}</h2>
       <p className="subhead">Get in touch with the MIREN team</p>
+            <p className="text-muted" style={{ marginTop: "-6px" }}>
+        Messages are delivered to: <strong>{contactEmail}</strong>
+      </p>
 
       <div className="form-container">
         <form onSubmit={submit} className="form">

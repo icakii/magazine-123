@@ -26,6 +26,7 @@ import WordGameArchive from "./pages/WGArchive"
 import ResetPassword from "./pages/ResetPassword"
 import Store from "./pages/Store"
 import Opportunities from "./pages/Opportunities"
+import MirenArt from "./pages/MirenArt"
 // Компоненти
 import NavBar from "./components/NavBar"
 import Footer from "./components/Footer"
@@ -137,6 +138,7 @@ ReactDOM.createRoot(document.getElementById("root")).render(
               }
             />
             <Route path="/opportunities" element={<Opportunities />} />
+                        <Route path="/miren-art" element={<MirenArt />} />
             <Route path="/partnership" element={<Navigate to="/opportunities" replace />} />
             <Route path="/partnerships" element={<Navigate to="/opportunities" replace />} />
             {/* Auth */}

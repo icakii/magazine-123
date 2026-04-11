@@ -191,6 +191,19 @@ const normalized = normalizeHomeHeroPayload(res.data || {})
 
       <div id="home-main-content" className="page anim-fade-up">
     <div className="home-discord-wrap anim-fade-up anim-delay-1">
+              <div className="home-discord-wrap home-art-wrap anim-fade-up">
+          <a className="home-discord-card home-art-card" href="/miren-art" aria-label="Open MIRÉN ART">
+            <div className="home-discord-icon home-art-icon" aria-hidden="true">
+              <span>🎨</span>
+            </div>
+            <div className="home-discord-content home-art-content">
+              <h3>MIRÉN ART</h3>
+              <p>A new creative block for paintings, visuals, and mixed media projects.</p>
+              <span className="home-discord-btn home-art-btn">Open MIRÉN ART</span>
+            </div>
+          </a>
+        </div>
+
           <a
             className="home-discord-card"
             href="https://discord.gg/Gpdmt8ztcA"

@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState } from "react"
 import { createPortal } from "react-dom"
 import { useNavigate } from "react-router-dom"
 import { useAuth } from "../hooks/useAuth"
-import { t } from "../lib/i18n"
+import { getLang, t } from "../lib/i18n"
 import { api } from "../lib/api"
 import HeroIntro from "./HeroIntro"
 import { clearCart } from "../lib/cart"
@@ -28,6 +28,10 @@ const ART_TEXT = {
     openAt: "🔒 Opens on {date} (Europe/Sofia)",
   },
 }
+const ADMIN_EMAILS = [
+  "icaki@mirenmagazine.com",
+  "info@mirenmagazine.com",
+]
 const WEEK_DAY_LABELS = {
   monday: "Monday",
   tuesday: "Tuesday",
@@ -96,7 +100,7 @@ const [spotifyPlaylistUrl, setSpotifyPlaylistUrl] = useState("")
   const [reqMsg, setReqMsg] = useState("")
 
   const [selectedGame, setSelectedGame] = useState("wordle")
-    const [artLang, setArtLang] = useState("bg")
+  const [artLang, setArtLang] = useState(() => getLang())
 
   const artOpenDateText = useMemo(() => {
     return new Intl.DateTimeFormat(artLang === "bg" ? "bg-BG" : "en-GB", {
@@ -109,7 +113,9 @@ const [spotifyPlaylistUrl, setSpotifyPlaylistUrl] = useState("")
     }).format(new Date(MIREN_ART_OPEN_AT))
   }, [artLang])
 
+    const isAdmin = !!user?.email && ADMIN_EMAILS.includes(user.email)
   const isArtOpen = Date.now() >= new Date(MIREN_ART_OPEN_AT).getTime()
+    const canAccessArt = isArtOpen || isAdmin
   const artCopy = ART_TEXT[artLang] || ART_TEXT.bg
   useEffect(() => {
         const navEntries = performance.getEntriesByType("navigation")
@@ -127,6 +133,12 @@ const [spotifyPlaylistUrl, setSpotifyPlaylistUrl] = useState("")
       url.searchParams.delete("order_success")
       window.history.replaceState({}, "", url.pathname + url.search)
     }
+  }, [])
+
+    useEffect(() => {
+    const onLangChange = (e) => setArtLang(e?.detail?.lang || getLang())
+    window.addEventListener("lang:change", onLangChange)
+    return () => window.removeEventListener("lang:change", onLangChange)
   }, [])
 
   useEffect(() => {
@@ -230,9 +242,6 @@ const normalized = normalizeHomeHeroPayload(res.data || {})
             <div className="home-discord-content home-art-content">
                             <div className="home-art-head">
                 <h3>{artCopy.title}</h3>
-                <button className="lang-toggle home-art-lang-btn" type="button" onClick={() => setArtLang((x) => (x === "bg" ? "en" : "bg"))}>
-                {artLang === "bg" ? "EN" : "BG"}
-                </button>
               </div>
               <p>{artCopy.subtitle}</p>
               <p className="text-muted home-art-open-at">{artCopy.openAt.replace("{date}", artOpenDateText)}</p>
@@ -240,12 +249,9 @@ const normalized = normalizeHomeHeroPayload(res.data || {})
                 <button
                   className={`btn ${isArtOpen ? "primary" : "ghost"}`}
                   type="button"
-                  disabled={!isArtOpen && !!user}
+                  disabled={!canAccessArt}
                   onClick={() => {
-                    if (!isArtOpen) {
-                      if (!user) navigate("/register")
-                      return
-                    }
+                    if (!canAccessArt) return
                     if (!user) {
                       navigate("/register")
                       return

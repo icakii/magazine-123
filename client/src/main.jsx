@@ -32,6 +32,7 @@ import NavBar from "./components/NavBar"
 import Footer from "./components/Footer"
 import AuthGuard from "./components/AuthGuard"
 import MaintenanceGate from "./components/MaintenanceGate"
+import ScrollReveal from "./components/ScrollReveal"
 
 // Auth provider
 import { AuthProvider, useAuth } from "./context/AuthContext"
@@ -106,6 +107,7 @@ ReactDOM.createRoot(document.getElementById("root")).render(
   <AuthProvider>
     <BrowserRouter>
       <ThemeBootstrap />
+      <ScrollReveal />
 
       <MaintenanceGate>
         <NavBar />

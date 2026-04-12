@@ -202,12 +202,47 @@ body {
   line-height: 1.6;
   transition: background 280ms var(--ease-in-out), color 220ms var(--ease-in-out);
   min-height: 100vh;
+  position: relative;
 
   /* IMPORTANT: prevent horizontal jiggle */
   overflow-x: hidden;
 
   /* IMPORTANT: remove any “double scroll” behavior */
   overflow-y: auto;
+}
+
+/* Slow ambient wash — uses palette (oxide / clay / olive), stays subtle */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  opacity: 0.55;
+  background:
+    radial-gradient(ellipse 85% 55% at 50% -15%, rgba(196, 106, 74, 0.11), transparent 55%),
+    radial-gradient(ellipse 50% 45% at 100% 35%, rgba(156, 42, 42, 0.07), transparent 50%),
+    radial-gradient(ellipse 55% 40% at 0% 85%, rgba(107, 123, 78, 0.09), transparent 52%);
+  animation: ambientWash 22s ease-in-out infinite alternate;
+}
+
+@keyframes ambientWash {
+  0% {
+    transform: translate3d(0, 0, 0) scale(1);
+    filter: hue-rotate(0deg);
+  }
+  100% {
+    transform: translate3d(-1.2%, 0.8%, 0) scale(1.02);
+    filter: hue-rotate(4deg);
+  }
+}
+
+html[data-theme="dark"] body::before {
+  opacity: 0.42;
+  background:
+    radial-gradient(ellipse 80% 50% at 40% -10%, rgba(196, 106, 74, 0.14), transparent 55%),
+    radial-gradient(ellipse 45% 40% at 95% 40%, rgba(156, 42, 42, 0.1), transparent 48%),
+    radial-gradient(ellipse 50% 38% at 5% 90%, rgba(107, 123, 78, 0.08), transparent 50%);
 }
 
 #root {
@@ -255,8 +290,16 @@ body {
 }
 
 @keyframes pageFade {
-  from { opacity: 0; transform: translateY(10px) scale(0.992); }
-  to   { opacity: 1; transform: translateY(0)  scale(1); }
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.991);
+    box-shadow: 0 8px 24px rgba(30, 30, 30, 0.06);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    box-shadow: var(--shadow-md);
+  }
 }
 
 /* Utility spacing */
@@ -1653,8 +1696,7 @@ html[data-theme="dark"] .footer {
 .anim-fade-up {
   opacity: 0;
   transform: translateY(18px);
-  animation: fadeUpIn 600ms var(--ease) forwards;
-  animation: fadeUpIn 800ms var(--ease) forwards;
+  animation: fadeUpIn 780ms var(--ease) forwards;
 }
 .anim-fade-in {
   opacity: 0;
@@ -1682,6 +1724,37 @@ html[data-theme="dark"] .footer {
   0% { opacity: 0; transform: scale(0.96); }
   60% { opacity: 1; transform: scale(1.02); }
   100% { opacity: 1; transform: scale(1); }
+}
+
+/* Scroll-driven blocks (hero excluded in JS). Re-animates when leaving / re-entering viewport. */
+.scroll-reveal-target {
+  --sr-delay: calc(min(var(--sr-i, 0), 12) * 55ms);
+  opacity: 0;
+  transform: translate3d(0, 22px, 0) scale(0.992);
+  filter: blur(5px);
+  transition:
+    opacity 0.72s var(--ease) var(--sr-delay),
+    transform 0.78s var(--ease) var(--sr-delay),
+    filter 0.55s var(--ease) var(--sr-delay);
+  will-change: opacity, transform, filter;
+}
+
+.scroll-reveal-target.scroll-reveal-visible {
+  opacity: 1;
+  transform: translate3d(0, 0, 0) scale(1);
+  filter: blur(0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body::before {
+    animation: none !important;
+  }
+  .scroll-reveal-target {
+    opacity: 1 !important;
+    transform: none !important;
+    filter: none !important;
+    transition: none !important;
+  }
 }
 
 /* =========================
@@ -5185,10 +5258,11 @@ html[data-theme="dark"] .maintenance-loading {
 
 .work-wide {
   min-height: 190px;
-  border-color: rgba(168, 85, 247, 0.34);
+  border-color: rgba(156, 42, 42, 0.32);
   background:
-    radial-gradient(circle at top right, rgba(168, 85, 247, 0.2), transparent 52%),
-    linear-gradient(145deg, rgba(255,255,255,.22), rgba(255,255,255,.08));
+    radial-gradient(circle at top right, rgba(196, 106, 74, 0.22), transparent 52%),
+    radial-gradient(circle at 20% 80%, rgba(107, 123, 78, 0.12), transparent 45%),
+    linear-gradient(145deg, rgba(255, 255, 255, 0.22), rgba(255, 255, 255, 0.08));
 }
 
 .work-wide > h3 {
@@ -5205,16 +5279,22 @@ html[data-theme="dark"] .maintenance-loading {
 }
 
 .games-card {
-  border-color: rgba(249, 115, 22, 0.34);
+  border-color: rgba(196, 106, 74, 0.38);
   background:
-    radial-gradient(circle at 85% 10%, rgba(249, 115, 22, 0.2), transparent 50%),
-    linear-gradient(145deg, rgba(255,255,255,.2), rgba(255,255,255,.08));
+    radial-gradient(circle at 85% 10%, rgba(196, 106, 74, 0.22), transparent 50%),
+    radial-gradient(circle at 10% 90%, rgba(156, 42, 42, 0.1), transparent 48%),
+    linear-gradient(145deg, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.08));
   animation: gamesGlow 5.6s ease-in-out infinite;
 }
 
 @keyframes gamesGlow {
-  0%,100% { box-shadow: 0 14px 34px rgba(20,16,13,.16), 0 0 0 0 rgba(249,115,22,.2); }
-  50% { box-shadow: 0 18px 40px rgba(20,16,13,.2), 0 0 0 10px rgba(249,115,22,0); }
+  0%,
+  100% {
+    box-shadow: 0 14px 34px rgba(20, 16, 13, 0.16), 0 0 0 0 rgba(196, 106, 74, 0.18);
+  }
+  50% {
+    box-shadow: 0 18px 40px rgba(20, 16, 13, 0.2), 0 0 0 10px rgba(196, 106, 74, 0);
+  }
 }
 /* --- Home hero alignment fixes --- */
 .app-main > .home-shell {
@@ -5226,16 +5306,6 @@ html[data-theme="dark"] .maintenance-loading {
   .app-main > .home-shell {
     margin-top: -16px;
   } 
-}
-
-#home-main-content.anim-fade-up {
-  opacity: 1 !important;
-  transform: none !important;
-}
-
-.home-welcome-card {
-  visibility: visible !important;
-  opacity: 1 !important;
 }
 
 /* === Mobile nav hotfix: compact width + stable controls === */

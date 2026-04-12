@@ -22,6 +22,7 @@ router.get("/leaderboards", async (req, res) => {
       FROM users u
       LEFT JOIN subscriptions s ON s.email = u.email
       WHERE u.is_confirmed = true
+        AND u.wordle_last_win_date IS NOT NULL
         AND CASE
           WHEN u.wordle_last_win_date IS NULL THEN 0
           WHEN (SELECT d FROM today) - u.wordle_last_win_date > 1 THEN 0

@@ -123,6 +123,21 @@ return res.json({
         })
       }
 
+      // Win blocked: already played today and lost (reset cleared last win date)
+      if (type === "win" && prevLastPlay === today && !prevLastWin) {
+        await client.query("ROLLBACK")
+        return res.status(409).json({
+          ok: false,
+          lockedAfterLoss: true,
+          streak: 0,
+          effectiveStreak: 0,
+          lastWinDate: null,
+          lastPlayDate: prevLastPlay,
+          today,
+          error: "Today's game already finished without a win.",
+        })
+      }
+
       // type === "win"
       // idempotent per UTC day
       if (prevLastWin) {

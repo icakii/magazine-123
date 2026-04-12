@@ -203,11 +203,16 @@ export default function Games() {
               setStreak(next)
               localStorage.setItem(getStorageKey("_streak"), String(next))
             })
-                        .catch((err) => {
+            .catch((err) => {
               if (err?.response?.status === 409) {
                 setStreak(0)
                 localStorage.setItem(getStorageKey("_streak"), "0")
-                setMessage("Solved, but today's streak is locked after an earlier failed run.")
+                const lockedLoss = err?.response?.data?.lockedAfterLoss
+                setMessage(
+                  lockedLoss
+                    ? "Today's result is already recorded (loss). Streak stays at 0."
+                    : "Solved, but today's streak is locked after an earlier failed run."
+                )
               }
             })
         }

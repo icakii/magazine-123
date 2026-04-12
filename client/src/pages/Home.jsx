@@ -315,11 +315,11 @@ const normalized = normalizeHomeHeroPayload(res.data || {})
             <h3 className="headline">{t("featured")}</h3>
 
             <div className="grid">
-              {featured.map((f) => {
+              {featured.map((f, idx) => {
                 const isLocked = !!f.isPremium && !hasSubscription
 
                 return (
-                  <div key={f.id} className="col-6">
+                  <div key={f.id} className={`col-6 anim-fade-up anim-delay-${(idx % 3) + 1}`}>
                       <div className="card" style={{ position: "relative", textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", height: "100%" }}>
                       {f.isPremium && <div style={{ position: "absolute", top: 10, right: 10, background: "#e63946", color: "white", padding: "2px 8px", borderRadius: 4, fontWeight: "bold", zIndex: 2 }}>🔒 Premium</div>}
                       {isLocked && <div style={{ position: "absolute", inset: 0, background: "rgba(255,255,255,0.7)", backdropFilter: "blur(5px)", zIndex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", borderRadius: 8 }}><span style={{ fontSize: "3rem" }}>🔒</span><p style={{ marginTop: 8, marginBottom: 12 }}>{t("premium_content")}</p><a href="/subscriptions" className="btn primary">{t("subscribe_unlock")}</a></div>}

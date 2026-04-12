@@ -1211,7 +1211,7 @@ html[data-theme="dark"] .textarea {
 
 /* arrow restored (no weird wrap) */
 .hero-scroll .circle .icon {
-  transition: all 0.45s cubic-bezier(0.65, 0, 0.076, 1);
+  transition: all 0.5s var(--ease);
   position: absolute;
   left: 0;
   right: 0;
@@ -1222,7 +1222,7 @@ html[data-theme="dark"] .textarea {
 .hero-scroll .circle .icon.arrow {
   width: 0.125rem;
   height: 1.125rem;
-  background: #fff;
+  background: var(--oxide-red); /* High contrast arrow */
 }
 
 .hero-scroll .circle .icon.arrow::before {
@@ -1232,20 +1232,20 @@ html[data-theme="dark"] .textarea {
   bottom: -0.02rem;
   width: 0.625rem;
   height: 0.625rem;
-  border-right: 0.125rem solid #fff;
-  border-bottom: 0.125rem solid #fff;
+  border-right: 0.125rem solid var(--oxide-red);
+  border-bottom: 0.125rem solid var(--oxide-red);
   transform: rotate(45deg);
 }
 .hero-scroll .button-text {
-  transition: all 0.45s cubic-bezier(0.65, 0, 0.076, 1);
+  transition: all 0.5s var(--ease);
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  padding: 0.75rem 0.2rem 0.75rem 3.1rem;
-  margin: 0 0 0 1.85rem;
-color: var(--nav-bg);
+  padding: 0.75rem 0.2rem 0.75rem 3.4rem; /* Precise gap from circle */
+  margin: 0; /* Removed the wide gap */
+  color: var(--ink); /* Made text readable against ivory background */
   font-weight: 700;
   line-height: 1.6;
   text-align: left;
@@ -1257,14 +1257,20 @@ color: var(--nav-bg);
 
  .hero-scroll:hover .circle {
   width: 100%;
+  background: var(--oxide-red);
 }
 
 .hero-scroll:hover .circle .icon.arrow {
   transform: translateY(0.18rem);
+  background: #fff;
+}
+
+.hero-scroll:hover .circle .icon.arrow::before {
+  border-color: #fff;
 }
 
 .hero-scroll:hover .button-text {
-    color: var(--nav-text);
+  color: var(--ivory);
   opacity: 0;
   transform: translateX(8px);
 }

@@ -33,6 +33,7 @@ import Footer from "./components/Footer"
 import AuthGuard from "./components/AuthGuard"
 import MaintenanceGate from "./components/MaintenanceGate"
 import ScrollReveal from "./components/ScrollReveal"
+import ScrollParallaxDecor from "./components/ScrollParallaxDecor"
 
 // Auth provider
 import { AuthProvider, useAuth } from "./context/AuthContext"
@@ -111,6 +112,7 @@ ReactDOM.createRoot(document.getElementById("root")).render(
 
       <MaintenanceGate>
         <NavBar />
+        <ScrollParallaxDecor />
         <main className="app-main">
           <Routes>
             <Route path="/" element={<Navigate to="/home" replace />} />

@@ -288,6 +288,117 @@ html[data-theme="dark"] body::after {
   flex-direction: column;
 }
 
+/* Scroll-linked parallax (between nav & footer; behind content) — vars set in ScrollParallaxDecor.jsx */
+.scroll-parallax {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+  contain: strict;
+}
+
+.scroll-parallax__wash {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(72px);
+  opacity: 0.42;
+  will-change: transform;
+}
+
+.scroll-parallax__wash--1 {
+  width: min(72vw, 620px);
+  height: min(72vw, 620px);
+  top: 8%;
+  left: -12%;
+  background: radial-gradient(circle at 40% 40%, rgba(196, 106, 74, 0.45), transparent 68%);
+  transform: translate3d(0, var(--px-a, 0px), 0);
+}
+
+.scroll-parallax__wash--2 {
+  width: min(58vw, 480px);
+  height: min(58vw, 480px);
+  bottom: 6%;
+  right: -10%;
+  background: radial-gradient(circle at 55% 45%, rgba(156, 42, 42, 0.38), transparent 70%);
+  transform: translate3d(0, var(--px-b, 0px), 0);
+}
+
+.scroll-parallax__wash--3 {
+  width: min(48vw, 420px);
+  height: min(48vw, 420px);
+  top: 42%;
+  left: 38%;
+  background: radial-gradient(circle at 50% 50%, rgba(107, 123, 78, 0.32), transparent 72%);
+  transform: translate3d(0, var(--px-c, 0px), 0);
+  opacity: 0.35;
+}
+
+.scroll-parallax__lines {
+  position: absolute;
+  inset: -15%;
+  opacity: 0.055;
+  background: repeating-linear-gradient(
+    118deg,
+    rgba(156, 42, 42, 0.55) 0,
+    rgba(156, 42, 42, 0.55) 1px,
+    transparent 1px,
+    transparent 72px
+  );
+  transform: translate3d(0, var(--px-d, 0px), 0) rotate(var(--px-e, 0deg));
+  transform-origin: center center;
+}
+
+.scroll-parallax__mesh {
+  position: absolute;
+  inset: 0;
+  opacity: 0.035;
+  background-image: radial-gradient(rgba(30, 30, 30, 0.45) 0.45px, transparent 0.5px);
+  background-size: 18px 18px;
+  transform: translate3d(0, var(--px-c, 0px), 0);
+  mix-blend-mode: multiply;
+}
+
+html[data-theme="dark"] .scroll-parallax__wash {
+  opacity: 0.5;
+  filter: blur(88px);
+}
+
+html[data-theme="dark"] .scroll-parallax__wash--1 {
+  background: radial-gradient(circle at 40% 40%, rgba(196, 106, 74, 0.35), transparent 68%);
+}
+
+html[data-theme="dark"] .scroll-parallax__wash--2 {
+  background: radial-gradient(circle at 55% 45%, rgba(156, 42, 42, 0.28), transparent 70%);
+}
+
+html[data-theme="dark"] .scroll-parallax__wash--3 {
+  background: radial-gradient(circle at 50% 50%, rgba(107, 123, 78, 0.26), transparent 72%);
+}
+
+html[data-theme="dark"] .scroll-parallax__lines {
+  opacity: 0.07;
+  background: repeating-linear-gradient(
+    118deg,
+    rgba(196, 106, 74, 0.4) 0,
+    rgba(196, 106, 74, 0.4) 1px,
+    transparent 1px,
+    transparent 72px
+  );
+}
+
+html[data-theme="dark"] .scroll-parallax__mesh {
+  opacity: 0.06;
+  background-image: radial-gradient(rgba(255, 255, 255, 0.12) 0.4px, transparent 0.45px);
+  mix-blend-mode: screen;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scroll-parallax {
+    display: none !important;
+  }
+}
+
 /* =========================
    4) LAYOUT
 ========================= */
@@ -306,6 +417,8 @@ html[data-theme="dark"] body::after {
   align-items: flex-start;
   padding: 28px 20px 36px;
   gap: 20px;
+  position: relative;
+  z-index: 1;
 
   /* IMPORTANT: remove inner scroll that you said you don’t want */
   overflow: visible;
@@ -1646,6 +1759,8 @@ html[data-theme="dark"] .newsletter-input::placeholder {
   width: 100%;
   padding: 22px 0 26px;
   text-align: center;
+  position: relative;
+  z-index: 1;
 
   background: var(--bg-elev);
   border-top: 1px solid var(--nav-border);

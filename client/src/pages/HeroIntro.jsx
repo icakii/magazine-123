@@ -115,8 +115,18 @@ export default function HeroIntro() {
     }
 
     const canSwipeUp = () => {
-      if (window.scrollY < 40) return false
-      return window.scrollY < window.innerHeight * 1.35
+      const hero = heroRef.current
+      if (!hero) return false
+      if (window.scrollY < 72) return false
+
+      const rect = hero.getBoundingClientRect()
+      const vh = window.innerHeight
+      // Само когато hero още се вижда (връщаш се към него), не навсякъде в първия екран
+      const heroPeeks = rect.bottom > 48 && rect.top < vh * 0.92
+      if (!heroPeeks) return false
+
+      const maxY = Math.min(vh * 0.72, 640)
+      return window.scrollY <= maxY
     }
 
     const triggerSwipeScroll = (direction) => {
@@ -132,12 +142,14 @@ export default function HeroIntro() {
       }
       window.setTimeout(() => {
         swipeTriggeredRef.current = false
-      }, 900)
+      }, direction === "up" ? 1100 : 900)
     }
 
     const onWheel = (event) => {
-      if (event.deltaY > 8) triggerSwipeScroll("down")
-      if (event.deltaY < -8) triggerSwipeScroll("up")
+      const dy = event.deltaY
+      // По-големи прагове — по-малко „фалшиви“ скокове към hero при лек скрол
+      if (dy > 28) triggerSwipeScroll("down")
+      if (dy < -42) triggerSwipeScroll("up")
     }
     
     const onTouchStart = (event) => {
@@ -155,12 +167,12 @@ export default function HeroIntro() {
       const absY = Math.abs(deltaY)
 
       // Avoid accidental triggers on diagonal / micro-swipes.
-      if (absY < 42 || absY < absX * 1.2) return
+      if (absY < 64 || absY < absX * 1.35) return
 
       if (deltaY < 0) {
         triggerSwipeScroll("down")
-             } else {
-                triggerSwipeScroll("up")
+      } else {
+        triggerSwipeScroll("up")
       }
     }
 

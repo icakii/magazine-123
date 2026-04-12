@@ -35,8 +35,6 @@ function collectRevealElements() {
     })
   }
 
-  document.querySelectorAll("footer.footer").forEach((f) => list.push(f))
-
   return [...new Set(list)]
 }
 

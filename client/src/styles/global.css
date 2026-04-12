@@ -317,7 +317,7 @@ html[data-theme="dark"] body::after {
   max-width: 900px;
   margin: 0 auto;
   padding: 28px 20px;
-  will-change: transform, opacity;
+  /* do NOT set will-change: transform here — it breaks position:fixed (cart) inside .page */
   background: var(--bg-elev);
   border-radius: 16px;
   border: 1px solid var(--nav-border);
@@ -2623,12 +2623,11 @@ right: 16px;
 body.cart-open .cart-backdrop{
   opacity: 1;
   pointer-events: auto;
-  transform: translateX(0);
 }
 body.cart-open .cart-drawer{
   transform: translateX(0);
-  animation: cartPop 360ms var(--ease-bounce);
 }
+/* cartPop removed — conflicted with mobile translateY sheet */
 @keyframes cartPop{
   0%{ transform: translateX(105%) scale(.98); opacity: .9; }
   60%{ transform: translateX(-1%) scale(1.02); opacity: 1; }
@@ -3487,10 +3486,22 @@ body.cart-open{
 .drawer{ z-index: 3000 !important; }
 .drawer-backdrop{ z-index: 2900 !important; }
 
-@media (max-width: 520px){
+@media (max-width: 640px){
   .cart-drawer{
-    right: 10px !important;
-    width: calc(100vw - 20px) !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    top: auto !important;
+    width: 100% !important;
+    max-height: min(88vh, 640px) !important;
+    border-radius: 22px 22px 0 0 !important;
+    padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px)) !important;
+    transform: translateY(110%) !important;
+    transition: transform 260ms var(--ease) !important;
+    animation: none !important;
+  }
+  body.cart-open .cart-drawer{
+    transform: translateY(0) !important;
   }
 }
 /* ===============================

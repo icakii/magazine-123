@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react"
+import { createPortal } from "react-dom"
 import { api } from "../lib/api"
 import {
   addToCart,
@@ -44,6 +45,24 @@ export default function Store() {
 
   const location = useLocation()
   const navigate = useNavigate()
+
+  const openCart = () => document.body.classList.add("cart-open")
+  const closeCart = () => document.body.classList.remove("cart-open")
+  const toggleCart = () => document.body.classList.toggle("cart-open")
+
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.key === "Escape") closeCart()
+    }
+    document.addEventListener("keydown", onKey)
+    return () => document.removeEventListener("keydown", onKey)
+  }, [])
+
+  useEffect(() => {
+    return () => {
+      document.body.classList.remove("cart-open")
+    }
+  }, [])
 
   useEffect(() => {
     const params = new URLSearchParams(location.search)
@@ -101,10 +120,6 @@ export default function Store() {
   )
 
   const totalCents = useMemo(() => cartTotal(cart), [cart])
-
-  const openCart = () => document.body.classList.add("cart-open")
-  const closeCart = () => document.body.classList.remove("cart-open")
-  const toggleCart = () => document.body.classList.toggle("cart-open")
 
   const addItem = (it) => {
     if (!it?.priceId) return alert("Missing Stripe priceId for this item.")
@@ -205,96 +220,107 @@ export default function Store() {
         </div>
       )}
 
-      {/* CART DRAWER */}
-      <div className="cart-drawer" role="dialog" aria-modal="true">
-        <div className="cart-top">
-          <div className="cart-title">Your Cart</div>
-          <button className="cart-close" onClick={closeCart} type="button">✕</button>
-        </div>
-
-        {cart.length === 0 ? (
-          <p className="text-muted">Cart is empty.</p>
-        ) : (
-          <>
-            <div className="cart-items">
-              {cart.map((c) => (
-                <div key={c.priceId} className="cart-row">
-                  <div className="cart-left">
-                    {c.imageUrl ? (
-                      <img className="cart-thumb" src={c.imageUrl} alt={c.title || "Item"} />
-                    ) : (
-                      <div className="cart-thumb cart-thumb--ph">M</div>
-                    )}
-
-                    <div className="cart-meta">
-                      <div className="cart-name">{c.title || "Item"}</div>
-
-                      {/* ✅ remove the priceId text line, show price instead */}
-                      {typeof c.unitAmount === "number" && (
-                        <div className="cart-sub text-muted">
-                          {formatMoneyCents(c.unitAmount, c.currency || "EUR")}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="cart-right">
-                    <div className="qty">
-                      <button
-                        type="button"
-                        className="qty-btn"
-                        onClick={() => setCartState(decQty(c.priceId))}
-                      >
-                        −
-                      </button>
-                      <div className="qty-val">{Number(c.qty) || 1}</div>
-                      <button
-                        type="button"
-                        className="qty-btn"
-                        onClick={() => setCartState(incQty(c.priceId))}
-                      >
-                        +
-                      </button>
-                    </div>
-
-                    <button
-                      className="cart-remove"
-                      onClick={() => setCartState(removeFromCart(c.priceId))}
-                      type="button"
-                    >
-                      remove
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            <div className="cart-footer">
-              <div className="cart-total">
-                <span className="text-muted">Total</span>
-                <b>{totalCents ? formatMoneyCents(totalCents, "EUR") : "—"}</b>
+      {createPortal(
+        <>
+          <div
+            className="cart-backdrop"
+            onClick={closeCart}
+            onKeyDown={(e) => e.key === "Escape" && closeCart()}
+            role="presentation"
+          />
+          <div className="cart-drawer" role="dialog" aria-modal="true" aria-labelledby="cart-drawer-title">
+            <div className="cart-top">
+              <div className="cart-title" id="cart-drawer-title">
+                Your Cart
               </div>
-
-              <button className="btn primary cart-checkout" onClick={startCheckout} type="button">
-                Checkout with Stripe ⚡
-              </button>
-
-              <button
-                className="btn ghost"
-                onClick={() => {
-                  clearCart()
-                  setCartState([])
-                }}
-                type="button"
-              >
-                Clear cart
+              <button className="cart-close" onClick={closeCart} type="button" aria-label="Close cart">
+                ✕
               </button>
             </div>
-          </>
-        )}
-      </div>
 
-      <div className="cart-backdrop" onClick={closeCart} />
+            {cart.length === 0 ? (
+              <p className="text-muted">Cart is empty.</p>
+            ) : (
+              <>
+                <div className="cart-items">
+                  {cart.map((c) => (
+                    <div key={c.priceId} className="cart-row">
+                      <div className="cart-left">
+                        {c.imageUrl ? (
+                          <img className="cart-thumb" src={c.imageUrl} alt={c.title || "Item"} />
+                        ) : (
+                          <div className="cart-thumb cart-thumb--ph">M</div>
+                        )}
+
+                        <div className="cart-meta">
+                          <div className="cart-name">{c.title || "Item"}</div>
+
+                          {typeof c.unitAmount === "number" && (
+                            <div className="cart-sub text-muted">
+                              {formatMoneyCents(c.unitAmount, c.currency || "EUR")}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="cart-right">
+                        <div className="qty">
+                          <button
+                            type="button"
+                            className="qty-btn"
+                            onClick={() => setCartState(decQty(c.priceId))}
+                          >
+                            −
+                          </button>
+                          <div className="qty-val">{Number(c.qty) || 1}</div>
+                          <button
+                            type="button"
+                            className="qty-btn"
+                            onClick={() => setCartState(incQty(c.priceId))}
+                          >
+                            +
+                          </button>
+                        </div>
+
+                        <button
+                          className="cart-remove"
+                          onClick={() => setCartState(removeFromCart(c.priceId))}
+                          type="button"
+                        >
+                          remove
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="cart-footer">
+                  <div className="cart-total">
+                    <span className="text-muted">Total</span>
+                    <b>{totalCents ? formatMoneyCents(totalCents, "EUR") : "—"}</b>
+                  </div>
+
+                  <button className="btn primary cart-checkout" onClick={startCheckout} type="button">
+                    Checkout with Stripe ⚡
+                  </button>
+
+                  <button
+                    className="btn ghost"
+                    onClick={() => {
+                      clearCart()
+                      setCartState([])
+                    }}
+                    type="button"
+                  >
+                    Clear cart
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </>,
+        document.body
+      )}
     </div>
   )
 }

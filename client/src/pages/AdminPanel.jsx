@@ -18,6 +18,7 @@ const WEEK_DAY_LABELS = {
 }
 const TABS = [
   { key: "hero", label: "Hero" },            // ✅ single hero (no list)
+  { key: "miren-art", label: "MIREN ART" },
   { key: "magazines", label: "Magazines" },  // ✅ full magazine issues (cover/pages/premium)
   { key: "home", label: "Home" },
   { key: "news", label: "News" },
@@ -525,6 +526,27 @@ const [heroVfxUrl, setHeroVfxUrl] = useState("")
   const [subscribers, setSubscribers] = useState([])
   const [emailSubject, setEmailSubject] = useState("")
   const [emailBody, setEmailBody] = useState("")
+  const [mirenArtCodes, setMirenArtCodes] = useState([])
+
+  const resetMirenArtCodes = async () => {
+    const ok = window.confirm(
+      "Are you sure? This will invalidate ALL existing MIREN ART codes. Users will need to generate new codes."
+    )
+    if (!ok) return
+
+    try {
+      setBusy(true)
+      setMsg("")
+      const res = await api.post("/admin/miren-art/reset-codes")
+      const invalidated = Number(res?.data?.invalidated || 0)
+      setMirenArtCodes([])
+      setMsg(`✅ Reset complete. Invalidated ${invalidated} code(s).`)
+    } catch (e) {
+      setMsg(e?.response?.data?.error || "Failed to reset MIREN ART codes.")
+    } finally {
+      setBusy(false)
+    }
+  }
 
   const sendNewsletter = async () => {
     if (!emailSubject.trim() || !emailBody.trim()) return setMsg("Subject and body are required.")
@@ -556,6 +578,12 @@ const [heroVfxUrl, setHeroVfxUrl] = useState("")
         if (activeTab === "magazines") {
           const res = await api.get("/magazines")
           setIssues(Array.isArray(res.data) ? res.data : [])
+          return
+        }
+
+        if (activeTab === "miren-art") {
+          const res = await api.get("/admin/miren-art/codes")
+          setMirenArtCodes(Array.isArray(res.data) ? res.data : [])
           return
         }
 
@@ -762,6 +790,42 @@ isVideoUrl(heroVfxUrl) ? (
                 Save Hero
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {activeTab === "miren-art" && (
+        <div className="admin-grid">
+          <div className="admin-card">
+            <h3 className="headline">MIREN ART Codes</h3>
+            <p className="text-muted">
+              View all generated entry codes. Reset will invalidate all current codes and allow users to generate new ones.
+            </p>
+            <div className="btn-row">
+              <button className="btn secondary" type="button" onClick={resetMirenArtCodes} disabled={busy}>
+                Reset all codes
+              </button>
+            </div>
+          </div>
+
+          <div className="admin-card">
+            <h3 className="headline">Generated Codes</h3>
+            {mirenArtCodes.length === 0 ? (
+              <p className="text-muted">No codes generated yet.</p>
+            ) : (
+              <div className="list">
+                {mirenArtCodes.map((row, idx) => (
+                  <div key={`${row.email}-${row.entry_code}-${idx}`} className="list-row">
+                    <div className="list-main">
+                      <div className="list-title">{row.entry_code}</div>
+                      <div className="list-sub text-muted">
+                        {row.email} • {row.generated_at ? new Date(row.generated_at).toLocaleString() : "—"}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       )}

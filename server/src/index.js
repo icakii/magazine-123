@@ -411,6 +411,28 @@ function normalizeEmail(email = "") {
   return String(email).trim().toLowerCase()
 }
 
+function makeMirenArtCode() {
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
+  let out = ""
+  for (let i = 0; i < 5; i += 1) {
+    out += chars[Math.floor(Math.random() * chars.length)]
+  }
+  return `MIREN-${out}`
+}
+
+let mirenArtSchemaEnsured = false
+async function ensureMirenArtSchema() {
+  if (mirenArtSchemaEnsured) return
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS miren_art_entries (
+      email TEXT PRIMARY KEY,
+      entry_code TEXT UNIQUE NOT NULL,
+      generated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+  `)
+  mirenArtSchemaEnsured = true
+}
+
 
 
 // ---------------------------------------------------------------
@@ -565,6 +587,114 @@ app.post("/api/newsletter/send", adminMiddleware, async (req, res) => {
     res.json({ ok: true, count: emails.length })
   } catch (err) {
     res.status(500).json({ error: "Failed to send emails" })
+  }
+})
+
+// ---------------------------------------------------------------
+// 🎨 MIREN ART CODES
+// ---------------------------------------------------------------
+app.get("/api/miren-art/code", authMiddleware, async (req, res) => {
+  try {
+    await ensureMirenArtSchema()
+    const email = normalizeEmail(req.user?.email || "")
+    if (!email) return res.status(401).json({ error: "Unauthorized" })
+
+    const { rows } = await db.query(
+      "SELECT email, entry_code, generated_at FROM miren_art_entries WHERE email=$1 LIMIT 1",
+      [email]
+    )
+    const row = rows[0]
+    if (!row) return res.json({ ok: true, code: null })
+
+    return res.json({
+      ok: true,
+      code: row.entry_code,
+      generatedAt: row.generated_at,
+    })
+  } catch (e) {
+    console.error("GET /api/miren-art/code error:", e)
+    return res.status(500).json({ error: "Failed to load entry code" })
+  }
+})
+
+app.post("/api/miren-art/code", authMiddleware, async (req, res) => {
+  try {
+    await ensureMirenArtSchema()
+    const email = normalizeEmail(req.user?.email || "")
+    if (!email) return res.status(401).json({ error: "Unauthorized" })
+
+    const existing = await db.query(
+      "SELECT entry_code, generated_at FROM miren_art_entries WHERE email=$1 LIMIT 1",
+      [email]
+    )
+    if (existing.rows[0]) {
+      return res.json({
+        ok: true,
+        existing: true,
+        code: existing.rows[0].entry_code,
+        generatedAt: existing.rows[0].generated_at,
+      })
+    }
+
+    let created = null
+    for (let i = 0; i < 8; i += 1) {
+      const candidate = makeMirenArtCode()
+      try {
+        const ins = await db.query(
+          `INSERT INTO miren_art_entries (email, entry_code)
+           VALUES ($1, $2)
+           RETURNING entry_code, generated_at`,
+          [email, candidate]
+        )
+        created = ins.rows[0]
+        break
+      } catch (err) {
+        if (err?.code !== "23505") throw err
+      }
+    }
+
+    if (!created) {
+      return res.status(500).json({ error: "Could not generate unique code" })
+    }
+
+    return res.json({
+      ok: true,
+      existing: false,
+      code: created.entry_code,
+      generatedAt: created.generated_at,
+    })
+  } catch (e) {
+    console.error("POST /api/miren-art/code error:", e)
+    return res.status(500).json({ error: "Failed to generate entry code" })
+  }
+})
+
+app.get("/api/admin/miren-art/codes", adminMiddleware, async (req, res) => {
+  try {
+    await ensureMirenArtSchema()
+    const { rows } = await db.query(
+      `SELECT email, entry_code, generated_at
+       FROM miren_art_entries
+       ORDER BY generated_at DESC
+       LIMIT 1000`
+    )
+    return res.json(rows)
+  } catch (e) {
+    console.error("GET /api/admin/miren-art/codes error:", e)
+    return res.status(500).json({ error: "Failed to load codes" })
+  }
+})
+
+app.post("/api/admin/miren-art/reset-codes", adminMiddleware, async (req, res) => {
+  try {
+    await ensureMirenArtSchema()
+    const countResult = await db.query("SELECT COUNT(*)::int AS total FROM miren_art_entries")
+    const total = Number(countResult.rows?.[0]?.total || 0)
+    await db.query("TRUNCATE TABLE miren_art_entries")
+    return res.json({ ok: true, invalidated: total })
+  } catch (e) {
+    console.error("POST /api/admin/miren-art/reset-codes error:", e)
+    return res.status(500).json({ error: "Failed to reset codes" })
   }
 })
 

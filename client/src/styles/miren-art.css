@@ -269,7 +269,8 @@ html[data-theme="light"] .miren-art {
   min-height: 100%;
   display: grid;
   align-content: center;
-  justify-items: start;
+  justify-items: center;
+  text-align: center;
   gap: 14px;
 }
 
@@ -302,7 +303,7 @@ html[data-theme="light"] .miren-art {
   width: fit-content;
   min-height: 46px;
   min-width: 220px;
-  align-self: start;
+  align-self: center;
   padding-inline: 20px;
 }
 

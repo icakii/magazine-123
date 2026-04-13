@@ -324,12 +324,14 @@ export default function MirenArt() {
       </motion.section>
 
       <motion.section className="miren-section submit-panel" {...reveal}>
-        <h2>{t.discordTitle}</h2>
-        <div className="submit-grid">
-          <a className="btn primary" href={DISCORD_URL} target="_blank" rel="noreferrer">
-            {t.joinDiscord}
-          </a>
-          <div className="email-card">
+        <div className="submit-shell">
+          <div className="submit-left">
+            <h2>{t.discordTitle}</h2>
+            <a className="btn primary" href={DISCORD_URL} target="_blank" rel="noreferrer">
+              {t.joinDiscord}
+            </a>
+          </div>
+          <div className="email-card submit-right">
             <p>{t.mailText}</p>
             <a className="btn outline" href={mailtoHref}>
               {t.mail}

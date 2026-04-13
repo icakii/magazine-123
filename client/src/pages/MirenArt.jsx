@@ -119,6 +119,7 @@ export default function MirenArt() {
       ? `Име: <твоето име>\nEntry code: ${code || "<entry code>"}\nTitle: <заглавие на творбата>\n\nЛинк към творбата / описание:\n<добави линк или текст>`
       : `Name: <your name>\nEntry code: ${code || "<entry code>"}\nTitle: <artwork title>\n\nArtwork link / description:\n<add link or text>`
   const mailtoHref = `mailto:${CONTACT_EMAIL}?subject=${encodeURIComponent(mailSubject)}&body=${encodeURIComponent(mailBody)}`
+  const gmailComposeHref = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(CONTACT_EMAIL)}&su=${encodeURIComponent(mailSubject)}&body=${encodeURIComponent(mailBody)}`
 
   const generateEntryCode = async () => {
     if (!user) {
@@ -333,11 +334,15 @@ export default function MirenArt() {
           </div>
           <div className="email-card submit-right">
             <p>{t.mailText}</p>
-            <a className="btn outline" href={mailtoHref}>
+            <a className="btn outline" href={gmailComposeHref} target="_blank" rel="noreferrer">
               {t.mail}
             </a>
             <small>{CONTACT_EMAIL}</small>
             <small>{lang === "bg" ? "Template: име + код + title (MIREN ART)." : "Template: name + code + title (MIREN ART)."}</small>
+            <small>
+              {lang === "bg" ? "Ако Gmail не се отвори, използвай fallback:" : "If Gmail does not open, use fallback:"}{" "}
+              <a href={mailtoHref}>{lang === "bg" ? "mailto линк" : "mailto link"}</a>
+            </small>
           </div>
         </div>
       </motion.section>

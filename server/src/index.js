@@ -154,6 +154,27 @@ Object.entries(transporters).forEach(([key, transporter]) => {
   })
 })
 
+async function sendWithFallback({ primary = "fallback", backups = [], buildMessage }) {
+  const order = [primary, ...backups].filter((key, idx, arr) => key && arr.indexOf(key) === idx)
+  let lastError = null
+
+  for (const key of order) {
+    const transporter = transporters[key]
+    const account = EMAIL_ACCOUNTS[key]
+    if (!transporter || !account) continue
+
+    try {
+      const info = await transporter.sendMail(buildMessage(account))
+      return { info, transporterKey: key }
+    } catch (err) {
+      lastError = err
+      console.error(`❌ EMAIL SEND FAILED (${key}):`, err?.message || err)
+    }
+  }
+
+  throw lastError || new Error("No mail transporters available")
+}
+
 async function sendGameStreakEndedEmail({ to, gameKey, streak }) {
   const safeGame = String(gameKey || "game").toUpperCase()
 
@@ -1100,11 +1121,15 @@ app.post("/api/auth/register", async (req, res) => {
       try {
         console.log("📧 CONFIRM EMAIL TO =", email)
 
-        const info = await transporters.login.sendMail({
-  from: `"${EMAIL_ACCOUNTS.login.label}" <${EMAIL_ACCOUNTS.login.user}>`,
-  to: normalizedEmail,
-  subject: "Welcome to MIREN — Confirm your email",
-  html: `
+        const { info, transporterKey } = await sendWithFallback({
+          primary: "login",
+          backups: ["fallback"],
+          buildMessage: (account) => ({
+            from: `"${account.label}" <${account.user}>`,
+            to: normalizedEmail,
+            subject: "Welcome to MIREN — Confirm your email",
+            text: `Welcome to MIREN!\n\nConfirm your email by opening this link:\n${confirmationUrl}\n\nIf you didn't create this account, ignore this email.`,
+            html: `
     <div style="font-family: Arial, Helvetica, sans-serif; line-height:1.6; color:#111;">
       <h2 style="margin:0 0 10px;">Welcome to MIREN</h2>
       <p style="margin:0 0 14px;">
@@ -1131,10 +1156,11 @@ app.post("/api/auth/register", async (req, res) => {
       </p>
     </div>
   `,
-})
+         }),
+        })
 
-        console.log("✅ CONFIRM EMAIL SENT:", info.messageId, info.response)
-      } catch (err) {
+        console.log("✅ CONFIRM EMAIL SENT:", transporterKey, info.messageId, info.response)
+            } catch (err) {
         console.error("❌ CONFIRM EMAIL SEND ERROR:", err)
       }
     })

@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react"
 import { api } from "../lib/api"
 import { useAuth } from "../hooks/useAuth"
+import Loader from "../components/Loader"
 
 function isoTodayUTC() {
   const d = new Date()
@@ -282,8 +283,7 @@ export default function Games() {
     return (
       <div className="page" style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "50vh" }}>
         <div style={{ textAlign: "center" }}>
-          <div className="loading-spinner"></div>
-          <p style={{ marginTop: "10px" }}>Loading dictionary...</p>
+          <Loader />
         </div>
       </div>
     )

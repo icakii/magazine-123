@@ -1844,6 +1844,34 @@ html[data-theme="dark"] .footer {
 .fade-in { animation: fadeIn 420ms var(--ease); }
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
+/* Global animated loader */
+.loader {
+  width: fit-content;
+  margin: 4px auto;
+  font-weight: 900;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size: clamp(24px, 2.8vw, 30px);
+  color: #0000;
+  background: linear-gradient(
+      90deg,
+      var(--heading) calc(50% - 0.5ch),
+      var(--clay) 0 calc(50% + 0.5ch),
+      var(--heading) 0
+    )
+    right / calc(200% + 1ch) 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  animation: mirenLoader 2s infinite steps(7);
+}
+.loader::before {
+  content: "MIREN";
+}
+@keyframes mirenLoader {
+  to {
+    background-position: left;
+  }
+}
+
 .anim-fade-up {
   opacity: 0;
   transform: translateY(18px);

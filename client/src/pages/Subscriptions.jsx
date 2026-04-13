@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react"
 import { api } from "../lib/api"
 import { useAuth } from "../hooks/useAuth"
 import { t } from "../lib/i18n"
+import Loader from "../components/Loader"
 
 function looksLikeI18nKey(s) {
   if (!s) return true
@@ -112,7 +113,7 @@ export default function Subscriptions() {
   if (loading) {
     return (
       <div className="page">
-        <p className="text-muted">{tt("loading", "Loading...")}</p>
+        <Loader />
       </div>
     )
   }

@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom"
 import { api } from "../lib/api"
 import { t } from "../lib/i18n"
 import { useAuth } from "../context/AuthContext"
+import Loader from "../components/Loader"
 
 export default function TwoFASetup() {
   const { user, loading, refreshMe } = useAuth()
@@ -56,7 +57,7 @@ export default function TwoFASetup() {
     }
   }
 
-  if (loading) return <div className="page"><p className="text-muted">{t("loading")}</p></div>
+  if (loading) return <div className="page"><Loader /></div>
 
   if (!user) {
     return (

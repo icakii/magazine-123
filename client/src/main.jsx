@@ -34,6 +34,7 @@ import AuthGuard from "./components/AuthGuard"
 import MaintenanceGate from "./components/MaintenanceGate"
 import ScrollReveal from "./components/ScrollReveal"
 import ScrollParallaxDecor from "./components/ScrollParallaxDecor"
+import Loader from "./components/Loader"
 
 // Auth provider
 import { AuthProvider, useAuth } from "./context/AuthContext"
@@ -52,7 +53,7 @@ function DevLockedRoute({ sectionName, children }) {
   if (loading) {
     return (
       <div className="page">
-        <p className="subhead">Loading...</p>
+        <Loader />
       </div>
     )
   }

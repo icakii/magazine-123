@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react"
 import { createPortal } from "react-dom"
 import { api } from "../lib/api"
+import Loader from "../components/Loader"
 import {
   addToCart,
   getCart,
@@ -190,7 +191,7 @@ export default function Store() {
       </div>
 
       {loading ? (
-        <p className="subhead">Loading…</p>
+        <Loader />
       ) : (
         <div className="store-grid">
           {items.map((it) => (

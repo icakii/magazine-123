@@ -9,6 +9,7 @@ import { getLang, t } from "../lib/i18n"
 import { api } from "../lib/api"
 import HeroIntro from "./HeroIntro"
 import { clearCart } from "../lib/cart"
+import Loader from "../components/Loader"
 
 const WEEK_DAYS = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
 const MIREN_ART_OPEN_AT = "2026-04-13T19:00:00+03:00" // Europe/Sofia
@@ -309,7 +310,7 @@ const normalized = normalizeHomeHeroPayload(res.data || {})
         </div>
 
         {loading ? (
-          <p className="subhead">{t("loading")}</p>
+          <Loader />
         ) : featured.length > 0 ? (
           <div className="stack">
             <h3 className="headline">{t("featured")}</h3>

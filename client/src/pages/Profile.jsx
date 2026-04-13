@@ -4,6 +4,7 @@ import { Link } from "react-router-dom"
 import { useAuth } from "../hooks/useAuth"
 import { api } from "../lib/api"
 import { t } from "../lib/i18n"
+import Loader from "../components/Loader"
 
 const COOLDOWN_DAYS = 14
 
@@ -165,7 +166,7 @@ export default function Profile() {
     }
   }
 
-  if (loading) return <div className="page"><p className="text-muted">{t("loading")}</p></div>
+  if (loading) return <div className="page"><Loader /></div>
   if (!user) return <div className="page"><p>{t("not_logged_in")}</p></div>
 
   return (

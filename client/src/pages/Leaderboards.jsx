@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react"
 import { api } from "../lib/api"
+import Loader from "../components/Loader"
 
 function planPillStyle(plan) {
   const p = String(plan || "free").toLowerCase()
@@ -75,7 +76,7 @@ export default function Leaderboards() {
     return (
       <div className="page">
         {header}
-        <p className="subhead">Loading…</p>
+        <Loader />
       </div>
     )
   }

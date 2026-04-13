@@ -4,6 +4,7 @@
 import { useEffect, useMemo, useState } from "react"
 import { useAuth } from "../hooks/useAuth"
 import { api } from "../lib/api"
+import Loader from "../components/Loader"
 
 const ADMIN_EMAILS = ["icaki@mirenmagazine.com", "info@mirenmagazine.com", "info@mirenmagaizne.com"]
 const WEEK_DAYS = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
@@ -619,7 +620,7 @@ const [heroVfxUrl, setHeroVfxUrl] = useState("")
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab, canAccess, currentCategory])
 
-  if (loading) return <div className="page"><p>Loading…</p></div>
+  if (loading) return <div className="page"><Loader /></div>
 
   if (!canAccess) {
     return (

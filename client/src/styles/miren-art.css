@@ -1,12 +1,32 @@
 .miren-art {
-  color: #f5f7fa;
+  --ma-bg: #0c1018;
+  --ma-surface: rgba(255, 255, 255, 0.05);
+  --ma-border: rgba(255, 255, 255, 0.14);
+  --ma-text: #f4f7ff;
+  --ma-muted: rgba(226, 232, 248, 0.84);
+  --ma-kicker: rgba(221, 228, 248, 0.8);
+  font-family: var(--font-body);
+  color: var(--ma-text);
   background:
-    radial-gradient(1000px 420px at 10% -10%, rgba(123, 78, 255, 0.18), transparent 60%),
-    radial-gradient(900px 360px at 90% 0%, rgba(76, 132, 255, 0.16), transparent 58%),
-    linear-gradient(180deg, #0b0c11 0%, #0d1017 40%, #0b0c12 100%);
+    radial-gradient(1100px 430px at 10% -10%, rgba(115, 79, 255, 0.18), transparent 58%),
+    radial-gradient(980px 390px at 90% -6%, rgba(76, 132, 255, 0.17), transparent 60%),
+    linear-gradient(180deg, #090d14 0%, #0d111a 45%, #0b1018 100%);
   border-radius: 22px;
   overflow: clip;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--ma-border);
+}
+
+html[data-theme="light"] .miren-art {
+  --ma-bg: #f6efe7;
+  --ma-surface: rgba(255, 255, 255, 0.74);
+  --ma-border: rgba(30, 30, 30, 0.16);
+  --ma-text: #1c1e24;
+  --ma-muted: rgba(30, 30, 30, 0.76);
+  --ma-kicker: rgba(30, 30, 30, 0.66);
+  background:
+    radial-gradient(980px 420px at 12% -10%, rgba(164, 107, 255, 0.18), transparent 60%),
+    radial-gradient(920px 390px at 90% 0%, rgba(92, 140, 255, 0.17), transparent 58%),
+    linear-gradient(180deg, #fffaf4 0%, #f7f1e8 48%, #f4ede3 100%);
 }
 
 .miren-art-hero-v2 {
@@ -22,7 +42,7 @@
 .miren-art-noise {
   position: absolute;
   inset: 0;
-  opacity: 0.18;
+  opacity: 0.12;
   pointer-events: none;
   background-image: radial-gradient(rgba(255, 255, 255, 0.14) 0.45px, transparent 0.5px);
   background-size: 16px 16px;
@@ -68,9 +88,9 @@
 }
 
 .lang-btn {
-  border: 1px solid rgba(255, 255, 255, 0.24);
-  background: rgba(255, 255, 255, 0.06);
-  color: #f7f8fb;
+  border: 1px solid var(--ma-border);
+  background: var(--ma-surface);
+  color: var(--ma-text);
   border-radius: 999px;
   min-width: 58px;
   padding: 8px 14px;
@@ -79,38 +99,46 @@
 }
 
 .lang-btn.active {
-  background: linear-gradient(135deg, #ffffff, #dfe6ff);
-  color: #0f121a;
+  background: linear-gradient(135deg, var(--oxide-red), var(--clay));
+  color: #fff;
 }
 
 .miren-art-hero-content {
-  max-width: 850px;
+  max-width: 1100px;
   position: relative;
   z-index: 2;
+}
+
+.miren-hero-grid {
+  display: grid;
+  grid-template-columns: 1.3fr 0.95fr;
+  gap: 18px;
+  align-items: start;
 }
 
 .miren-art-kicker {
   letter-spacing: 0.16em;
   font-size: 0.76rem;
   text-transform: uppercase;
-  color: rgba(225, 232, 255, 0.82);
+  color: var(--ma-kicker);
   margin-bottom: 12px;
 }
 
 .miren-art-hero-content h1 {
-  font-size: clamp(2.4rem, 8vw, 5.8rem);
+  font-family: var(--font-display);
+  font-size: clamp(2.35rem, 7vw, 5rem);
   line-height: 0.94;
   letter-spacing: 0.02em;
   margin: 0 0 14px;
-  color: #fbfcff;
+  color: var(--ma-text);
   text-wrap: balance;
 }
 
 .miren-art-lead {
-  color: rgba(226, 232, 255, 0.88);
+  color: var(--ma-muted);
   max-width: 74ch;
-  font-size: clamp(1rem, 1.6vw, 1.16rem);
-  line-height: 1.7;
+  font-size: clamp(1rem, 1.2vw, 1.08rem);
+  line-height: 1.65;
   margin-bottom: 24px;
 }
 
@@ -122,18 +150,19 @@
 
 .miren-section {
   padding: clamp(30px, 7vw, 86px) clamp(16px, 4vw, 56px);
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  border-top: 1px solid var(--ma-border);
 }
 
 .miren-section h2 {
   margin: 0 0 14px;
-  font-size: clamp(1.35rem, 3vw, 2.2rem);
+  font-family: var(--font-display);
+  font-size: clamp(1.35rem, 2.8vw, 2rem);
   line-height: 1.15;
 }
 
 .miren-section p {
-  color: rgba(229, 233, 246, 0.84);
-  line-height: 1.75;
+  color: var(--ma-muted);
+  line-height: 1.68;
 }
 
 .miren-grid {
@@ -143,8 +172,8 @@
 }
 
 .miren-card {
-  border: 1px solid rgba(255, 255, 255, 0.13);
-  background: linear-gradient(160deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.02));
+  border: 1px solid var(--ma-border);
+  background: linear-gradient(160deg, var(--ma-surface), rgba(255, 255, 255, 0.02));
   border-radius: 16px;
   padding: 18px;
   backdrop-filter: blur(8px);
@@ -167,8 +196,8 @@
   gap: 12px;
   padding: 16px;
   border-radius: 14px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--ma-border);
+  background: var(--ma-surface);
 }
 
 .timeline-item span {
@@ -182,10 +211,19 @@
   background: rgba(255, 255, 255, 0.11);
 }
 
-.code-wrap {
+.miren-code-card {
+  border: 1px solid var(--ma-border);
+  background: linear-gradient(180deg, var(--ma-surface), rgba(255, 255, 255, 0.02));
+  border-radius: 16px;
+  padding: 16px;
   display: grid;
-  gap: 12px;
-  max-width: 700px;
+  gap: 10px;
+}
+
+.miren-code-card h3 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.08rem;
 }
 
 .code-pill {
@@ -194,8 +232,8 @@
   justify-content: space-between;
   gap: 10px;
   border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  background: rgba(16, 20, 31, 0.75);
+  border: 1px solid var(--ma-border);
+  background: color-mix(in srgb, var(--ma-bg) 76%, transparent);
   padding: 12px;
 }
 
@@ -205,11 +243,12 @@
 }
 
 .muted {
-  color: rgba(232, 236, 249, 0.74);
+  color: var(--ma-muted);
+  font-size: 0.94rem;
 }
 
 .submit-panel {
-  background: linear-gradient(180deg, rgba(101, 124, 255, 0.1), rgba(255, 255, 255, 0.02));
+  background: linear-gradient(180deg, rgba(101, 124, 255, 0.08), transparent 50%);
 }
 
 .submit-grid {
@@ -221,15 +260,22 @@
 .email-card {
   border-radius: 16px;
   padding: 16px;
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--ma-border);
+  background: var(--ma-surface);
   display: grid;
   gap: 12px;
 }
 
 .email-card small {
-  color: rgba(231, 236, 255, 0.72);
-  letter-spacing: 0.06em;
+  color: var(--ma-muted);
+  letter-spacing: 0.03em;
+}
+
+.submit-grid > .btn {
+  width: fit-content;
+  min-height: 42px;
+  align-self: start;
+  padding-inline: 18px;
 }
 
 .split {
@@ -239,9 +285,9 @@
 }
 
 .price {
-  font-size: clamp(1.6rem, 4vw, 2.6rem);
+  font-size: clamp(1.5rem, 3.5vw, 2.2rem);
   font-weight: 800;
-  color: #f2f6ff;
+  color: var(--ma-text);
   margin: 6px 0 8px;
 }
 
@@ -249,38 +295,23 @@
   text-align: left;
 }
 
-.miren-footer-cta {
-  padding: clamp(30px, 7vw, 80px) clamp(16px, 4vw, 56px);
-  text-align: center;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
-}
-
-.miren-footer-cta h2 {
-  margin: 0 auto 20px;
-  max-width: 680px;
-  font-size: clamp(1.5rem, 3.7vw, 2.8rem);
-}
-
-.miren-footer-cta .miren-art-hero-actions {
-  justify-content: center;
-}
-
 .rules-backdrop {
   position: fixed;
   inset: 0;
   z-index: 6000;
-  background: rgba(2, 3, 8, 0.76);
+  background: rgba(2, 3, 8, 0.62);
   display: grid;
-  place-items: center;
-  padding: 16px;
+  align-items: start;
+  justify-items: center;
+  padding: calc(var(--nav-offset, 72px) + 12px) 14px 16px;
 }
 
 .rules-modal {
   width: min(860px, 100%);
-  max-height: min(88vh, 880px);
+  max-height: calc(100vh - var(--nav-offset, 72px) - 28px);
   border-radius: 16px;
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  background: #0d111b;
+  border: 1px solid var(--ma-border);
+  background: var(--ma-bg);
   display: grid;
   grid-template-rows: auto 1fr;
   overflow: hidden;
@@ -288,7 +319,7 @@
 
 .rules-head {
   padding: 14px 16px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.11);
+  border-bottom: 1px solid var(--ma-border);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -307,7 +338,7 @@
 
 .rules-body p {
   margin: 0;
-  color: rgba(230, 236, 252, 0.86);
+  color: var(--ma-muted);
   line-height: 1.65;
 }
 
@@ -325,6 +356,9 @@
 }
 
 @media (max-width: 980px) {
+  .miren-hero-grid {
+    grid-template-columns: 1fr;
+  }
   .miren-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -340,8 +374,11 @@
     border-radius: 16px;
   }
   .miren-art-hero-v2 {
-    min-height: 76vh;
+    min-height: auto;
     padding-bottom: 28px;
+  }
+  .submit-grid > .btn {
+    width: 100%;
   }
   .code-pill {
     flex-direction: column;

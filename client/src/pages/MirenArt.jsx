@@ -207,16 +207,53 @@ export default function MirenArt() {
         </div>
 
         <motion.div className="miren-art-hero-content" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.9 }}>
-          <p className="miren-art-kicker">{t.heroSubtitle}</p>
-          <h1>MIREN ART</h1>
-          <p className="miren-art-lead">{t.heroText}</p>
-          <div className="miren-art-hero-actions">
-            <button className="btn primary" onClick={generateEntryCode} disabled={codeBusy} type="button">
-              {t.generateCode}
-            </button>
-            <button className="btn outline" onClick={() => setOpenRules(true)} type="button">
-              {t.readRules}
-            </button>
+          <div className="miren-hero-grid">
+            <div>
+              <p className="miren-art-kicker">{t.heroSubtitle}</p>
+              <h1>MIREN ART</h1>
+              <p className="miren-art-lead">{t.heroText}</p>
+              <div className="miren-art-hero-actions">
+                <button className="btn outline" onClick={() => setOpenRules(true)} type="button">
+                  {t.readRules}
+                </button>
+              </div>
+            </div>
+
+            <aside className="miren-code-card">
+              <h3>{t.generateCode}</h3>
+              <button className="btn primary" onClick={generateEntryCode} disabled={codeBusy} type="button">
+                {t.generateCode}
+              </button>
+              <AnimatePresence mode="wait">
+                {code && (
+                  <motion.div
+                    key={code}
+                    className="code-pill"
+                    initial={{ opacity: 0, y: 10, scale: 0.98 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: -6 }}
+                    transition={{ duration: 0.35 }}
+                  >
+                    <strong>{code}</strong>
+                    <button
+                      type="button"
+                      className="btn ghost"
+                      onClick={async () => {
+                        try {
+                          await navigator.clipboard.writeText(code)
+                          setCopied(true)
+                          setTimeout(() => setCopied(false), 1200)
+                        } catch {}
+                      }}
+                    >
+                      {copied ? t.copied : t.copy}
+                    </button>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+              {codeMsg && <p className="muted">{codeMsg}</p>}
+              <p className="muted">{t.helper}</p>
+            </aside>
           </div>
         </motion.div>
       </section>
@@ -249,44 +286,6 @@ export default function MirenArt() {
         </div>
       </motion.section>
 
-      <motion.section className="miren-section miren-code" {...reveal}>
-        <h2>{t.generateCode}</h2>
-        <div className="code-wrap">
-          <button className="btn primary" onClick={generateEntryCode} disabled={codeBusy} type="button">
-            {t.generateCode}
-          </button>
-          <AnimatePresence mode="wait">
-            {code && (
-              <motion.div
-                key={code}
-                className="code-pill"
-                initial={{ opacity: 0, y: 10, scale: 0.98 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: -6 }}
-                transition={{ duration: 0.35 }}
-              >
-                <strong>{code}</strong>
-                <button
-                  type="button"
-                  className="btn ghost"
-                  onClick={async () => {
-                    try {
-                      await navigator.clipboard.writeText(code)
-                      setCopied(true)
-                      setTimeout(() => setCopied(false), 1200)
-                    } catch {}
-                  }}
-                >
-                  {copied ? t.copied : t.copy}
-                </button>
-              </motion.div>
-            )}
-          </AnimatePresence>
-          {codeMsg && <p className="muted">{codeMsg}</p>}
-          <p className="muted">{t.helper}</p>
-        </div>
-      </motion.section>
-
       <motion.section className="miren-section submit-panel" {...reveal}>
         <h2>{t.discordTitle}</h2>
         <div className="submit-grid">
@@ -307,7 +306,7 @@ export default function MirenArt() {
       <motion.section className="miren-section split" {...reveal}>
         <article className="miren-card">
           <h2>{t.prizeTitle}</h2>
-          <p className="price">{lang === "bg" ? "55,56 евро" : "€55.56"}</p>
+          <p className="price">{lang === "bg" ? "50 евро" : "€50"}</p>
           <p>{t.prizeText}</p>
         </article>
         <article className="miren-card">
@@ -320,18 +319,6 @@ export default function MirenArt() {
         <h2>{t.rightsTitle}</h2>
         <p>{t.rightsText}</p>
       </motion.section>
-
-      <section className="miren-footer-cta">
-        <h2>{t.footerCTA}</h2>
-        <div className="miren-art-hero-actions">
-          <button className="btn primary" onClick={generateEntryCode} disabled={codeBusy} type="button">
-            {t.generateCode}
-          </button>
-          <button className="btn outline" onClick={() => setOpenRules(true)} type="button">
-            {t.readRules}
-          </button>
-        </div>
-      </section>
 
       <AnimatePresence>
         {openRules && (

@@ -209,7 +209,15 @@ export default function MirenArt() {
           ],
     [lang]
   )
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "auto" })
+    document.body.classList.add("miren-art-route")
 
+    return () => {
+      document.body.classList.remove("miren-art-route")
+    }
+  }, [])
+  
   useEffect(() => {
     if (!user) return
     let alive = true

@@ -46,6 +46,11 @@ export default function Register() {
           const el = document.querySelector(".input.is-error") || msgRef.current
           if (el) el.scrollIntoView({ behavior: "smooth", block: "center" })
         }, 50)
+      return
+      }
+
+      if (field === "email" && res.data?.emailExists === false) {
+        setErrors((prev) => ({ ...prev, email: "Email not found" }))
       }
     } catch {
       // ignore (endpoint може да не съществува)
@@ -81,6 +86,13 @@ export default function Register() {
         if (lower.includes("email")) setErrors((p) => ({ ...p, email: "Имейлът вече е регистриран" }))
         else if (lower.includes("display")) setErrors((p) => ({ ...p, displayName: "Потребителското име е заето" }))
 
+                setTimeout(() => {
+          const el = document.querySelector(".input.is-error") || msgRef.current
+          if (el) el.scrollIntoView({ behavior: "smooth", block: "center" })
+        }, 50)
+      } else if (status === 400 && String(error).toLowerCase().includes("email not found")) {
+        setErrors((p) => ({ ...p, email: "Email not found" }))
+        setMsg("Провери имейла - домейнът не съществува.")
         setTimeout(() => {
           const el = document.querySelector(".input.is-error") || msgRef.current
           if (el) el.scrollIntoView({ behavior: "smooth", block: "center" })

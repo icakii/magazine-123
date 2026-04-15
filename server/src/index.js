@@ -11,6 +11,7 @@ const jwt = require("jsonwebtoken")
 const bcrypt = require("bcrypt")
 const nodemailer = require("nodemailer")
 const crypto = require("crypto")
+const dns = require("node:dns").promises
 const db = require("./db")
 const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY)
 const helmet = require("helmet")
@@ -430,6 +431,30 @@ function setAuthCookie(res, token) {
 
 function normalizeEmail(email = "") {
   return String(email).trim().toLowerCase()
+}
+
+async function emailDomainExists(email = "") {
+  const normalized = normalizeEmail(email)
+  const domain = normalized.split("@")[1] || ""
+  if (!domain) return false
+
+  try {
+    const mx = await dns.resolveMx(domain)
+    if (Array.isArray(mx) && mx.length > 0) return true
+  } catch (err) {
+    if (!["ENODATA", "ENOTFOUND", "ENOTIMP", "ENOTSUP", "SERVFAIL", "REFUSED"].includes(err?.code)) {
+      throw err
+    }
+  }
+
+  try {
+    const [a, aaaa] = await Promise.allSettled([dns.resolve4(domain), dns.resolve6(domain)])
+    const hasA = a.status === "fulfilled" && Array.isArray(a.value) && a.value.length > 0
+    const hasAAAA = aaaa.status === "fulfilled" && Array.isArray(aaaa.value) && aaaa.value.length > 0
+    return hasA || hasAAAA
+  } catch {
+    return false
+  }
 }
 
 function makeMirenArtCode() {
@@ -1079,6 +1104,34 @@ app.post("/api/events/send-reminders", async (req, res) => {
 // ---------------------------------------------------------------
 // 🔐 AUTH ROUTES
 // ---------------------------------------------------------------
+app.get("/api/auth/check", async (req, res) => {
+  const email = normalizeEmail(req.query?.email || "")
+  const displayName = String(req.query?.displayName || "").trim()
+
+  try {
+    if (email) {
+      const [{ rows }, domainExists] = await Promise.all([
+        db.query("SELECT 1 FROM users WHERE lower(email) = lower($1) LIMIT 1", [email]),
+        emailDomainExists(email),
+      ])
+
+      return res.json({
+        taken: rows.length > 0,
+        emailExists: domainExists,
+      })
+    }
+
+    if (displayName) {
+      const { rows } = await db.query("SELECT 1 FROM users WHERE display_name = $1 LIMIT 1", [displayName])
+      return res.json({ taken: rows.length > 0 })
+    }
+
+    return res.status(400).json({ error: "Missing query" })
+  } catch (err) {
+    return res.status(500).json({ error: "Check failed" })
+  }
+})
+
 app.post("/api/auth/register", async (req, res) => {
   const { email, password, displayName } = req.body
    const normalizedEmail = normalizeEmail(email)
@@ -1089,6 +1142,10 @@ app.post("/api/auth/register", async (req, res) => {
   }
 
   try {
+        const domainExists = await emailDomainExists(normalizedEmail)
+    if (!domainExists) {
+      return res.status(400).json({ error: "Email not found" })
+    }
     const userCheck = await db.query("SELECT * FROM users WHERE lower(email) = lower($1)", [
       normalizedEmail,
     ])

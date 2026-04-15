@@ -408,6 +408,13 @@ html[data-theme="light"] .miren-art {
 }
 
 @media (max-width: 640px) {
+    body.miren-art-route .app-main {
+    padding-top: 10px;
+  }
+
+  .miren-art {
+    margin-top: 0;
+  }
   .miren-art {
     border-radius: 16px;
   }

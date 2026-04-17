@@ -12,7 +12,6 @@ import { clearCart } from "../lib/cart"
 import Loader from "../components/Loader"
 
 const WEEK_DAYS = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
-const MIREN_ART_OPEN_AT = "2026-04-13T19:00:00+03:00" // Europe/Sofia
 const ART_TEXT = {
   bg: {
      title: "MIREN ART",  
@@ -103,20 +102,9 @@ const [spotifyPlaylistUrl, setSpotifyPlaylistUrl] = useState("")
   const [selectedGame, setSelectedGame] = useState("wordle")
   const [artLang, setArtLang] = useState(() => getLang())
 
-  const artOpenDateText = useMemo(() => {
-    return new Intl.DateTimeFormat(artLang === "bg" ? "bg-BG" : "en-GB", {
-      timeZone: "Europe/Sofia",
-      day: "2-digit",
-      month: "long",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    }).format(new Date(MIREN_ART_OPEN_AT))
-  }, [artLang])
 
     const isAdmin = !!user?.email && ADMIN_EMAILS.includes(user.email)
-  const isArtOpen = Date.now() >= new Date(MIREN_ART_OPEN_AT).getTime()
-    const canAccessArt = isArtOpen || isAdmin
+  const canAccessArt = isAdmin
   const artCopy = ART_TEXT[artLang] || ART_TEXT.bg
   useEffect(() => {
         const navEntries = performance.getEntriesByType("navigation")
@@ -234,56 +222,88 @@ const normalized = normalizeHomeHeroPayload(res.data || {})
       <HeroIntro />
 
       <div id="home-main-content" className="page">
-    <div className="home-discord-wrap">
-              <div className="home-discord-wrap home-art-wrap">
-          <div className="home-discord-card home-art-card" aria-label="MIREN ART">
-              <div className="home-discord-icon home-art-icon" aria-hidden="true">
+
+        {/* ── Featured articles — at the top ── */}
+        {loading ? (
+          <Loader />
+        ) : featured.length > 0 ? (
+          <div className="stack" style={{ marginBottom: 28 }}>
+            <h3 className="headline">{t("featured")}</h3>
+            <div className="grid">
+              {featured.map((f) => {
+                const isLocked = !!f.isPremium && !hasSubscription
+                return (
+                  <div key={f.id} className="col-6">
+                    <div className="card" style={{ position: "relative", textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", height: "100%" }}>
+                      {f.isPremium && <div style={{ position: "absolute", top: 10, right: 10, background: "#e63946", color: "white", padding: "2px 8px", borderRadius: 4, fontWeight: "bold", zIndex: 2 }}>🔒 Premium</div>}
+                      {isLocked && <div style={{ position: "absolute", inset: 0, background: "rgba(255,255,255,0.7)", backdropFilter: "blur(5px)", zIndex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", borderRadius: 8 }}><span style={{ fontSize: "3rem" }}>🔒</span><p style={{ marginTop: 8, marginBottom: 12 }}>{t("premium_content")}</p><a href="/subscriptions" className="btn primary">{t("subscribe_unlock")}</a></div>}
+                      {f.imageUrl && <img src={f.imageUrl} style={{ width: "100%", height: 200, objectFit: "cover", borderRadius: 8, marginBottom: 15 }} alt={f.title} loading="lazy" />}
+                      <h4 className="featured-card-title" style={{ marginBottom: 12 }}>{f.title}</h4>
+                      {f.excerpt && <p className="featured-card-excerpt" style={{ color: "var(--text-muted)", marginBottom: 15 }}>{f.excerpt}</p>}
+                      <div style={{ marginTop: "auto" }}><button className="btn outline" onClick={() => !isLocked && setSelectedArticle(f)} disabled={isLocked} type="button">{t("read_more")}</button></div>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        ) : null}
+
+        {/* ── Welcome card ── */}
+        <div className="hero-bg home-welcome-card" style={{ padding: "40px 20px", textAlign: "center", marginBottom: 24 }}>
+          <h1 className="headline" style={{ fontSize: "3rem" }}>
+            {user ? `${t("welcome")}, ${user.displayName}!` : t("home_title")}
+          </h1>
+          <p className="subhead" style={{ fontSize: "1.2rem" }}>
+            {user ? t("home_user_sub") : t("home_sub")}
+          </p>
+          <div className="btn-group mt-3" style={{ justifyContent: "center" }}>
+            {!user && <a className="btn primary" href="/register">{t("start")}</a>}
+            <a className="btn ghost" href="/news">{t("read_news")}</a>
+          </div>
+        </div>
+
+        {/* ── MIREN ART + Discord side by side ── */}
+        <div className="home-discord-wrap" style={{ marginBottom: 28 }}>
+          {/* MIREN ART */}
+          <div className="home-art-card" aria-label="MIREN ART">
+            <div className="home-art-icon" aria-hidden="true">
               <span>🎨</span>
             </div>
-            <div className="home-discord-content home-art-content">
-                            <div className="home-art-head">
+            <div className="home-art-content">
+              <div className="home-art-head">
                 <h3>{artCopy.title}</h3>
               </div>
               <p>{artCopy.subtitle}</p>
-              <p className="text-muted home-art-open-at">{artCopy.openAt.replace("{date}", artOpenDateText)}</p>
               <div className="home-art-actions">
                 <button
-                  className={`btn ${isArtOpen ? "primary" : "ghost"}`}
+                  className="btn ghost"
                   type="button"
                   disabled={!canAccessArt}
                   onClick={() => {
                     if (!canAccessArt) return
-                    if (!user) {
-                      navigate("/register")
-                      return
-                    }
+                    if (!user) { navigate("/register"); return }
                     navigate("/miren-art")
                   }}
                 >
-                  {isArtOpen ? artCopy.registerOpen : artCopy.registerLocked}
+                  🔒 {artCopy.registerLocked}
                 </button>
               </div>
             </div>
           </div>
-        </div>
 
+          {/* Discord */}
           <a
-            className="home-discord-card"
+            className="home-discord-card discord-card"
             href="https://discord.gg/Gpdmt8ztcA"
             target="_blank"
             rel="noreferrer"
             aria-label="Join Miren Magazine Discord server"
           >
-            <div className="home-discord-icon" aria-hidden="true">
+            <div className="home-discord-icon discord-icon" aria-hidden="true">
               <svg viewBox="0 0 245 240" role="img">
-                <path
-                  fill="currentColor"
-                  d="M104.4 104.8c-5.7 0-10.2 5-10.2 11.1 0 6.2 4.6 11.2 10.2 11.2 5.7 0 10.3-5 10.2-11.2 0-6.1-4.5-11.1-10.2-11.1Zm36.2 0c-5.7 0-10.2 5-10.2 11.1 0 6.2 4.6 11.2 10.2 11.2 5.7 0 10.3-5 10.2-11.2 0-6.1-4.5-11.1-10.2-11.1Z"
-                />
-                <path
-                  fill="currentColor"
-                  d="M189.5 20h-134C24.8 20 0 44.8 0 75.5v89C0 195.2 24.8 220 55.5 220h113.2l-5.3-18.4 12.8 11.8 12.1 11.2L210 244V75.5C210 44.8 185.2 20 154.5 20Zm-39.1 145s-3.7-4.4-6.8-8.4c13.6-3.9 18.8-12.5 18.8-12.5-4.3 2.8-8.3 4.8-11.9 6.2-5.1 2.1-9.9 3.5-14.7 4.3-9.8 1.8-18.9 1.3-26.8-.2-6-1.1-11.1-2.8-15.2-4.4-2.3-.9-4.8-2-7.3-3.3-.3-.1-.5-.2-.8-.4-.2-.1-.3-.2-.5-.3-2.2-1.2-3.4-2-3.4-2s5 8.4 18.1 12.4c-3.1 4-6.9 8.7-6.9 8.7-22.8-.7-31.5-15.7-31.5-15.7 0-33.3 14.9-60.3 14.9-60.3 14.9-11.2 29-10.9 29-10.9l1 1.2c-18.6 5.4-27.2 13.5-27.2 13.5s2.3-1.3 6.1-3.1c11-4.8 19.8-6.1 23.4-6.4.6-.1 1.1-.1 1.7-.2 6.1-.8 13.1-1 20.3-.2 9.5 1.1 19.7 3.8 30 9.3 0 0-8.2-7.7-25.9-13.1l1.4-1.6s14.2-.3 29 10.9c0 0 14.9 27 14.9 60.3 0 0-8.8 15-31.6 15.7Z"
-                />
+                <path fill="currentColor" d="M104.4 104.8c-5.7 0-10.2 5-10.2 11.1 0 6.2 4.6 11.2 10.2 11.2 5.7 0 10.3-5 10.2-11.2 0-6.1-4.5-11.1-10.2-11.1Zm36.2 0c-5.7 0-10.2 5-10.2 11.1 0 6.2 4.6 11.2 10.2 11.2 5.7 0 10.3-5 10.2-11.2 0-6.1-4.5-11.1-10.2-11.1Z" />
+                <path fill="currentColor" d="M189.5 20h-134C24.8 20 0 44.8 0 75.5v89C0 195.2 24.8 220 55.5 220h113.2l-5.3-18.4 12.8 11.8 12.1 11.2L210 244V75.5C210 44.8 185.2 20 154.5 20Zm-39.1 145s-3.7-4.4-6.8-8.4c13.6-3.9 18.8-12.5 18.8-12.5-4.3 2.8-8.3 4.8-11.9 6.2-5.1 2.1-9.9 3.5-14.7 4.3-9.8 1.8-18.9 1.3-26.8-.2-6-1.1-11.1-2.8-15.2-4.4-2.3-.9-4.8-2-7.3-3.3-.3-.1-.5-.2-.8-.4-.2-.1-.3-.2-.5-.3-2.2-1.2-3.4-2-3.4-2s5 8.4 18.1 12.4c-3.1 4-6.9 8.7-6.9 8.7-22.8-.7-31.5-15.7-31.5-15.7 0-33.3 14.9-60.3 14.9-60.3 14.9-11.2 29-10.9 29-10.9l1 1.2c-18.6 5.4-27.2 13.5-27.2 13.5s2.3-1.3 6.1-3.1c11-4.8 19.8-6.1 23.4-6.4.6-.1 1.1-.1 1.7-.2 6.1-.8 13.1-1 20.3-.2 9.5 1.1 19.7 3.8 30 9.3 0 0-8.2-7.7-25.9-13.1l1.4-1.6s14.2-.3 29 10.9c0 0 14.9 27 14.9 60.3 0 0-8.8 15-31.6 15.7Z" />
               </svg>
             </div>
             <div className="home-discord-content">
@@ -293,51 +313,6 @@ const normalized = normalizeHomeHeroPayload(res.data || {})
             </div>
           </a>
         </div>
-                <div className="hero-bg home-welcome-card" style={{ padding: "40px 20px", textAlign: "center", marginBottom: 40 }}>              <h1 className="headline" style={{ fontSize: "3rem" }}>
-            {user ? `${t("welcome")}, ${user.displayName}!` : t("home_title")}
-          </h1>
-
-          <p className="subhead" style={{ fontSize: "1.2rem" }}>
-            {user ? t("home_user_sub") : t("home_sub")}
-          </p>
-
-          <div className="btn-group mt-3" style={{ justifyContent: "center" }}>
-            {!user && (
-              <a className="btn primary" href="/register">{t("start")}</a>
-            )}
-             <a className="btn ghost" href="/news">{t("read_news")}</a>
-          </div>
-        </div>
-
-        {loading ? (
-          <Loader />
-        ) : featured.length > 0 ? (
-          <div className="stack">
-            <h3 className="headline">{t("featured")}</h3>
-
-            <div className="grid">
-              {featured.map((f, idx) => {
-                const isLocked = !!f.isPremium && !hasSubscription
-
-                return (
-                  <div key={f.id} className="col-6">
-                      <div className="card" style={{ position: "relative", textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", height: "100%" }}>
-                      {f.isPremium && <div style={{ position: "absolute", top: 10, right: 10, background: "#e63946", color: "white", padding: "2px 8px", borderRadius: 4, fontWeight: "bold", zIndex: 2 }}>🔒 Premium</div>}
-                      {isLocked && <div style={{ position: "absolute", inset: 0, background: "rgba(255,255,255,0.7)", backdropFilter: "blur(5px)", zIndex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", borderRadius: 8 }}><span style={{ fontSize: "3rem" }}>🔒</span><p style={{ marginTop: 8, marginBottom: 12 }}>{t("premium_content")}</p><a href="/subscriptions" className="btn primary">{t("subscribe_unlock")}</a></div>}
-                      {f.imageUrl && <img src={f.imageUrl} style={{ width: "100%", height: 200, objectFit: "cover", borderRadius: 8, marginBottom: 15 }} alt={f.title} loading="lazy" />}
-<h4 className="featured-card-title" style={{ marginBottom: 12 }}>{f.title}</h4>
-                     
-{f.excerpt && <p className="featured-card-excerpt" style={{ color: "var(--text-muted)", marginBottom: 15 }}>{f.excerpt}</p>}
-                      <div style={{ marginTop: "auto" }}><button className="btn outline" onClick={() => !isLocked && setSelectedArticle(f)} disabled={isLocked} type="button">{t("read_more")}</button></div>
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-                        </div>
-        ) : (
-          <p className="subhead">{t("home_no_featured")}</p>
-        )}
 
         <section className="home-work-grid">
               <div className="work-wide glass-card">

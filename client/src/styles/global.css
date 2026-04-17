@@ -399,6 +399,94 @@ html[data-theme="dark"] .scroll-parallax__mesh {
   }
 }
 
+/* ========================
+   FLOATING CLOUDS
+======================== */
+
+.sp-cloud {
+  position: absolute;
+  pointer-events: none;
+  will-change: transform;
+  /* Light theme: soft ink-outlined clouds */
+  stroke: rgba(30, 30, 30, 0.13);
+}
+
+html[data-theme="dark"] .sp-cloud {
+  /* Dark theme: warm ivory-outlined clouds */
+  stroke: rgba(255, 244, 230, 0.10);
+}
+
+/* Cloud 1 — large, top-left, slow drift */
+.sp-cloud--1 {
+  width: clamp(180px, 22vw, 280px);
+  top: 8%;
+  left: -4%;
+  transform: translate3d(0, var(--px-a, 0px), 0);
+  animation: floatY 18s ease-in-out infinite;
+  stroke: rgba(30, 30, 30, 0.11);
+}
+html[data-theme="dark"] .sp-cloud--1 {
+  stroke: rgba(255, 244, 230, 0.09);
+}
+
+/* Cloud 2 — medium, top-right, medium speed */
+.sp-cloud--2 {
+  width: clamp(130px, 16vw, 210px);
+  top: 14%;
+  right: 2%;
+  transform: translate3d(0, var(--px-b, 0px), 0);
+  animation: floatY 14s ease-in-out infinite;
+  animation-delay: -5s;
+  stroke: rgba(30, 30, 30, 0.10);
+}
+html[data-theme="dark"] .sp-cloud--2 {
+  stroke: rgba(255, 244, 230, 0.08);
+}
+
+/* Cloud 3 — large, mid-page, opposite parallax */
+.sp-cloud--3 {
+  width: clamp(160px, 19vw, 250px);
+  top: 42%;
+  left: 60%;
+  transform: translate3d(0, var(--px-c, 0px), 0);
+  animation: floatY 22s ease-in-out infinite;
+  animation-delay: -9s;
+  stroke: rgba(30, 30, 30, 0.09);
+  opacity: 0.85;
+}
+html[data-theme="dark"] .sp-cloud--3 {
+  stroke: rgba(255, 244, 230, 0.07);
+}
+
+/* Cloud 4 — small, mid-left, faster */
+.sp-cloud--4 {
+  width: clamp(100px, 12vw, 165px);
+  top: 58%;
+  left: 6%;
+  transform: translate3d(0, var(--px-d, 0px), 0);
+  animation: floatY 11s ease-in-out infinite;
+  animation-delay: -3s;
+  stroke: rgba(30, 30, 30, 0.10);
+}
+html[data-theme="dark"] .sp-cloud--4 {
+  stroke: rgba(255, 244, 230, 0.08);
+}
+
+/* Cloud 5 — tiny, bottom-right, fastest */
+.sp-cloud--5 {
+  width: clamp(80px, 9vw, 130px);
+  top: 78%;
+  right: 8%;
+  transform: translate3d(0, var(--px-a, 0px), 0);
+  animation: floatY 9s ease-in-out infinite;
+  animation-delay: -6s;
+  stroke: rgba(30, 30, 30, 0.08);
+  opacity: 0.75;
+}
+html[data-theme="dark"] .sp-cloud--5 {
+  stroke: rgba(255, 244, 230, 0.07);
+}
+
 /* =========================
    4) LAYOUT
 ========================= */

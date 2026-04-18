@@ -1597,11 +1597,12 @@ html[data-theme="dark"] .user-profile-inner svg {
   position: relative;
   display: inline-flex;
   align-items: center;
+    width: fit-content;
   cursor: pointer;
   background: transparent;
   border-width: 0;
   border-radius: 2rem;
-  padding: 0.85em 1.1em;
+  padding: 0.85em 0.55em 0.85em 0.7em;
   font-family: "Courier New", monospace;
   font-size: 1.2rem;
   font-weight: bold;
@@ -1610,7 +1611,8 @@ html[data-theme="dark"] .user-profile-inner svg {
   user-select: none;
   filter: url(#hdNoise1);
   animation: hbIdle 1s infinite ease-in-out;
-  transition: rotate 0.3s ease-in-out;
+  transform-origin: center;
+  transition: rotate 0.3s ease-in-out, scale 0.3s ease-in-out;
 }
 html[data-theme="dark"] .hand-btn {
   color: var(--ivory);
@@ -1619,10 +1621,13 @@ html[data-theme="dark"] .hand-btn {
 
 .hand-btn:hover {
   rotate: -2.5deg;
+    transform-origin: center;
+  transition: rotate 0.3s ease-in-out, scale 0.3s ease-in-out;
   animation: hbHover 2.5s infinite ease-in-out;
 }
 .hand-btn:active {
   box-shadow: inset rgba(51,51,51,0.95) 4px 4px 0 1px;
+    scale: 1.03;
   rotate: -2.5deg;
   animation: hbActive 1s infinite ease-in-out;
 }
@@ -1659,8 +1664,8 @@ html[data-theme="dark"] .hand-btn:active .hand-btn-cosm {
 
 /* Yellow highlighter underline SVG */
 .hand-btn-highlight {
-  position: absolute;
-  top: 0; left: 15%;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
   width: 70%; height: 100%;
   fill: rgba(255,225,0,0.5);
   stroke: rgba(255,225,0,0.5);

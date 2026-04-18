@@ -17,12 +17,12 @@ const ART_TEXT = {
   bg: {
     title: "MIREN ART",
     subtitle: "Нова арт зона за визуални проекти, колаборации и творчески формати.",
-    registerLocked: "Регистрацията отваря на 13-ти в 19:00",
+    registerLocked: "Затворено",
   },
   en: {
     title: "MIREN ART",
     subtitle: "A new art zone for visual projects, collaborations, and creative formats.",
-    registerLocked: "Registration opens on the 13th at 19:00",
+    registerLocked: "Closed",
   },
 }
 const ADMIN_EMAILS = ["icaki@mirenmagazine.com", "info@mirenmagazine.com"]
@@ -278,8 +278,17 @@ export default function Home() {
           <div className="home-pair-grid">
             {/* Games */}
             <div className="work-card glass-card games-card">
-              <h4>{t("home_games_title")}</h4>
-              <label className="text-muted">{t("home_games_label")}</label>
+              <div className="spotify-card-top">
+                <div className="spotify-card-icon games-card-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none" role="img">
+                    <path fill="currentColor" d="M21 6H3a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h18a1 1 0 0 0 1-1V7a1 1 0 0 0-1-1ZM7 15a1 1 0 1 1 0-2 1 1 0 0 1 0 2Zm0-4a1 1 0 1 1 0-2 1 1 0 0 1 0 2Zm4 4a1 1 0 1 1 0-2 1 1 0 0 1 0 2Zm4-1h-2v-2h2v2Zm2 0a1 1 0 1 1 0-2 1 1 0 0 1 0 2Zm0-4h-4v-2h4v2Z" />
+                  </svg>
+                </div>
+                <div className="spotify-card-content">
+                  <h4>{t("home_games_title")}</h4>
+                </div>
+              </div>
+              <p className="text-muted spotify-limit">{t("home_games_label")}</p>
               <select className="input" value={selectedGame} onChange={(e) => setSelectedGame(e.target.value)}>
                 <option value="wordle">{t("home_games_word")}</option>
               </select>

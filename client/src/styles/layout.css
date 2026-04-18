@@ -246,7 +246,9 @@ html[data-theme="dark"] .footer::after { opacity: 0.40; }
   .home-discord-wrap { grid-template-columns: 1fr; }
 }
 
-/* ── MIREN ART card (compact, no hover line) ── */
+/* ── MIREN ART card (no hover line) ── */
+.home-art-card.glass-card::after { display: none !important; }
+
 .home-art-card {
   display: flex;
   align-items: flex-start;
@@ -474,8 +476,18 @@ html[data-theme="dark"] .home-discord-btn { color: #7289da; }
 .games-card h4 {
   font-weight: 800;
   color: var(--heading);
-  margin-bottom: 6px;
+  margin-bottom: 4px;
 }
+.games-card-icon {
+  background: rgba(107,123,78,0.14) !important;
+  color: #6b7b4e !important;
+}
+html[data-theme="dark"] .games-card-icon {
+  background: rgba(107,123,78,0.22) !important;
+  color: #a3b18a !important;
+}
+.games-card-icon svg { width: 22px; height: 22px; }
+.games-card:hover .games-card-icon { transform: scale(1.10) rotate(-5deg); }
 
 /* Calendar card */
 .calendar-card h4 {

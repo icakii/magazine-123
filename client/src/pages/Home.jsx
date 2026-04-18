@@ -10,7 +10,6 @@ import { api } from "../lib/api"
 import HeroIntro from "./HeroIntro"
 import { clearCart } from "../lib/cart"
 import Loader from "../components/Loader"
-import TetrisBackground from "../components/TetrisBackground"
 import BackToTopButton from "../components/BackToTopButton"
 
 const WEEK_DAYS = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
@@ -171,8 +170,6 @@ export default function Home() {
 
   return (
     <div className="home-shell">
-      <TetrisBackground />
-
       {/* ── STICKY SLIDES WRAPPER ── */}
       <div className="home-slides">
 

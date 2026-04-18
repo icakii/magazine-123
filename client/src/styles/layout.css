@@ -1264,77 +1264,78 @@ html[data-theme="dark"] [data-tooltip]::after {
    STICKY SLIDES — HOME
 ======================== */
 
-.home-shell { width: 100%; position: relative; }
-
-.home-slides {
+.home-shell {
+  width: 100%;
   position: relative;
-  z-index: 1;
+  overflow-x: hidden;
 }
+
+.home-slides { position: relative; }
 
 .home-slide {
   position: sticky;
   top: 0;
-  height: 100vh;
-  overflow: hidden;
+  min-height: 100vh;
+  overflow-x: hidden;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
-/* Per-slide backgrounds */
+/* Per-slide backgrounds — semi-transparent so tetris shows through */
 .home-slide--1 {
   z-index: 1;
   display: block;
-  background: linear-gradient(160deg, #FFF4E6 0%, #FFE8CC 100%);
+  background: rgba(255, 244, 230, 0.88);
 }
 html[data-theme="dark"] .home-slide--1 {
-  background: linear-gradient(160deg, #1a1010 0%, #0f0808 100%);
+  background: rgba(24, 10, 10, 0.90);
 }
 
 .home-slide--2 {
   z-index: 2;
-  background: linear-gradient(160deg, #fff0f0 0%, #ffe4e4 100%);
+  background: rgba(255, 240, 240, 0.86);
 }
 html[data-theme="dark"] .home-slide--2 {
-  background: linear-gradient(160deg, #180c0c 0%, #0f0808 100%);
+  background: rgba(28, 8, 16, 0.90);
 }
 
 .home-slide--3 {
   z-index: 3;
-  background: linear-gradient(160deg, #f5f0ff 0%, #ede5ff 100%);
+  background: rgba(245, 240, 255, 0.86);
 }
 html[data-theme="dark"] .home-slide--3 {
-  background: linear-gradient(160deg, #120c1a 0%, #0a0812 100%);
+  background: rgba(16, 8, 28, 0.90);
 }
 
 .home-slide--4 {
   z-index: 4;
-  background: linear-gradient(160deg, #edfdf4 0%, #d8f5e7 100%);
+  background: rgba(237, 253, 244, 0.86);
 }
 html[data-theme="dark"] .home-slide--4 {
-  background: linear-gradient(160deg, #0c1810 0%, #080f0a 100%);
+  background: rgba(8, 22, 14, 0.90);
 }
 
 .home-slide--5 {
   z-index: 5;
-  background: linear-gradient(160deg, #edf4ff 0%, #dde9ff 100%);
+  background: rgba(237, 244, 255, 0.86);
 }
 html[data-theme="dark"] .home-slide--5 {
-  background: linear-gradient(160deg, #0c1018 0%, #080f18 100%);
+  background: rgba(8, 14, 26, 0.90);
 }
 
 /* Scroll-reveal on elements inside slides */
 .slide-reveal {
   opacity: 0;
-  transform: translateY(28px);
-  animation: slideReveal 0.65s var(--ease) forwards;
+  transform: translateY(24px);
+  animation: slideReveal 0.60s var(--ease) forwards;
 }
-.slide-reveal:nth-child(1) { animation-delay: 0.05s; }
-.slide-reveal:nth-child(2) { animation-delay: 0.15s; }
-.slide-reveal:nth-child(3) { animation-delay: 0.22s; }
-.slide-reveal:nth-child(4) { animation-delay: 0.30s; }
-.slide-reveal:nth-child(5) { animation-delay: 0.38s; }
-.slide-reveal:nth-child(n+6) { animation-delay: 0.46s; }
+.slide-reveal:nth-child(1) { animation-delay: 0.04s; }
+.slide-reveal:nth-child(2) { animation-delay: 0.12s; }
+.slide-reveal:nth-child(3) { animation-delay: 0.20s; }
+.slide-reveal:nth-child(4) { animation-delay: 0.28s; }
+.slide-reveal:nth-child(5) { animation-delay: 0.36s; }
+.slide-reveal:nth-child(n+6) { animation-delay: 0.44s; }
 @keyframes slideReveal {
   to { opacity: 1; transform: translateY(0); }
 }
@@ -1344,26 +1345,22 @@ html[data-theme="dark"] .home-slide--5 {
   max-width: 1100px;
   padding: clamp(1rem, 4vw, 2.5rem);
   padding-top: calc(var(--nav-offset, 72px) + 1.5rem);
-}
-.slide-scroll {
-  height: 100%;
-  overflow-y: auto;
   display: flex;
   flex-direction: column;
-  align-items: stretch;
-  scrollbar-width: thin;
-  scrollbar-color: rgba(156,42,42,0.3) transparent;
 }
+
 .slide-heading {
-  font-size: clamp(1.5rem, 3.5vw, 2.2rem);
+  font-size: clamp(1.4rem, 3.2vw, 2rem);
   font-weight: 900;
   color: var(--heading);
-  margin-bottom: 1.5rem;
+  margin-bottom: 1.2rem;
   letter-spacing: -0.02em;
+  text-align: center;
 }
 .slide-empty {
   color: var(--text-muted);
   font-size: 1rem;
+  text-align: center;
 }
 
 /* ========================
@@ -1421,8 +1418,12 @@ html[data-theme="dark"] .tc-card {
   z-index: 1;
   border-radius: 20px;
   background-color: var(--tc-contrast);
-  padding: 16px;
+  padding: 18px 16px;
   height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
 }
 
 /* ========================
@@ -1445,6 +1446,8 @@ html[data-theme="dark"] .tc-card {
 .featured-tc-inner {
   display: flex;
   flex-direction: column;
+  align-items: flex-start;
+  text-align: left;
   gap: 8px;
   height: 100%;
   position: relative;
@@ -1512,12 +1515,14 @@ html[data-theme="dark"] .featured-lock-overlay {
 .slide3-welcome {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 14px;
-  padding: 12px 18px;
+  padding: 14px 20px;
   border-radius: 20px;
   background: rgba(239,35,60,0.08);
   border: 1px solid rgba(239,35,60,0.18);
   margin-bottom: 16px;
+  text-align: center;
 }
 html[data-theme="dark"] .slide3-welcome {
   background: rgba(239,35,60,0.12);
@@ -1566,7 +1571,9 @@ html[data-theme="dark"] .slide3-welcome {
 .scard-icon--games { background: rgba(107,123,78,0.12); }
 .scard-icon--spotify { background: rgba(29,185,84,0.12); color: #1DB954; }
 
-.scard-body { display: flex; flex-direction: column; gap: 6px; }
+.scard-body { display: flex; flex-direction: column; gap: 6px; align-items: center; text-align: center; }
+.scard-body .input { text-align: left; width: 100%; }
+.scard-body .btn-group, .scard-actions { justify-content: center; }
 .scard-title {
   font-weight: 800;
   font-size: 1rem;
@@ -1645,7 +1652,16 @@ html[data-theme="dark"] .slide-discord-card { border-color: rgba(88,101,242,0.30
 .slide5-btt {
   display: flex;
   justify-content: center;
-  margin-top: 20px;
+  margin-top: 24px;
+  padding-bottom: 2rem;
+}
+
+/* Slide 4 & 5 centering */
+.home-slide--4 .slide-inner,
+.home-slide--5 .slide-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
 /* ========================
@@ -1739,11 +1755,11 @@ html[data-theme="dark"] .btt-btn:hover { background-color: #9333ea; }
 .tetris-bg {
   position: fixed;
   inset: 0;
-  z-index: 0;
+  z-index: 8;
   pointer-events: none;
   overflow: hidden;
-  opacity: 0;
-  transition: opacity 0.5s ease;
+  opacity: 0.35;
+  transition: opacity 0.6s ease;
 }
 .tetris-bg--active { opacity: 1; }
 
@@ -1789,13 +1805,13 @@ html[data-theme="dark"] .btt-btn:hover { background-color: #9333ea; }
   width: 16px;
   height: 16px;
   background-color: currentColor;
-  border: 1px solid rgba(255,255,255,0.30);
+  border: 1px solid rgba(255,255,255,0.25);
   box-shadow:
-    inset 2px 2px 2px rgba(255,255,255,0.35),
-    inset -2px -2px 2px rgba(0,0,0,0.35);
-  opacity: 0.18;
+    inset 2px 2px 2px rgba(255,255,255,0.30),
+    inset -2px -2px 2px rgba(0,0,0,0.30);
+  opacity: 0.10;
 }
-html[data-theme="dark"] .tb-sq { opacity: 0.22; }
+html[data-theme="dark"] .tb-sq { opacity: 0.14; }
 
 @keyframes tb-fall {
   0%   { transform: translateY(-80px); }

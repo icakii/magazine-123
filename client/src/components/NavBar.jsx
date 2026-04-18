@@ -118,8 +118,13 @@ export default function NavBar() {
           <div className="nav-right nav-right-wrap">
             <div className="nav-actions">
               {!loading && !user && (
-                <Link to="/profile" className="btn outline nav-btn" onClick={closeDrawer}>
-                  {t("profile")}
+                <Link to="/profile" className="user-profile-btn" onClick={closeDrawer} aria-label="Log In">
+                  <div className="user-profile-inner">
+                    <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                      <path d="m15.626 11.769a6 6 0 1 0 -7.252 0 9.008 9.008 0 0 0 -5.374 8.231 3 3 0 0 0 3 3h12a3 3 0 0 0 3-3 9.008 9.008 0 0 0 -5.374-8.231zm-7.626-4.769a4 4 0 1 1 4 4 4 4 0 0 1 -4-4zm10 14h-12a1 1 0 0 1 -1-1 7 7 0 0 1 14 0 1 1 0 0 1 -1 1z" />
+                    </svg>
+                    <p>Log In</p>
+                  </div>
                 </Link>
               )}
 

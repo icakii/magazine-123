@@ -1494,3 +1494,191 @@ html[data-theme="dark"] .btt-btn:hover { background-color: #9333ea; }
 @media (prefers-reduced-motion: reduce) {
   .btt-btn, .hamburger svg, .nav-line { transition: none !important; animation: none !important; }
 }
+
+/* ========================
+   USER-PROFILE LOGIN BUTTON
+======================== */
+
+.user-profile-btn {
+  width: 131px;
+  height: 51px;
+  border-radius: 15px;
+  cursor: pointer;
+  transition: background-color 0.3s ease, box-shadow 0.3s ease;
+  background-image: linear-gradient(to bottom right, var(--oxide-red) 0%, transparent 30%);
+  background-color: rgba(156, 42, 42, 0.18);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  border: none;
+  flex-shrink: 0;
+}
+.user-profile-btn:hover,
+.user-profile-btn:focus-visible {
+  background-color: rgba(156, 42, 42, 0.65);
+  box-shadow: 0 0 12px rgba(156, 42, 42, 0.45);
+  outline: none;
+}
+html[data-theme="dark"] .user-profile-btn {
+  background-image: linear-gradient(to bottom right, rgba(120, 108, 170, 0.9) 0%, transparent 30%);
+  background-color: rgba(100, 90, 140, 0.22);
+}
+html[data-theme="dark"] .user-profile-btn:hover,
+html[data-theme="dark"] .user-profile-btn:focus-visible {
+  background-color: rgba(100, 90, 140, 0.68);
+  box-shadow: 0 0 12px rgba(120, 108, 170, 0.50);
+}
+
+.user-profile-inner {
+  width: 127px;
+  height: 47px;
+  border-radius: 13px;
+  background-color: var(--ivory);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  color: var(--heading);
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+html[data-theme="dark"] .user-profile-inner {
+  background-color: #1a1a1a;
+  color: #ffffff;
+}
+
+.user-profile-inner svg {
+  width: 20px;
+  height: 20px;
+  fill: var(--heading);
+  flex-shrink: 0;
+}
+html[data-theme="dark"] .user-profile-inner svg {
+  fill: #ffffff;
+}
+.user-profile-inner p { margin: 0; }
+
+/* ========================
+   HAND-DRAWN SKETCH BUTTON (hero scroll)
+======================== */
+
+@keyframes hbIdle {
+  0%   { filter: url(#hdNoise1); }
+  50%  { rotate: 2.5deg; filter: url(#hdNoise2); }
+  100% { filter: url(#hdNoise1); }
+}
+@keyframes hbHover {
+  0%   { rotate: 0deg;   filter: url(#hdNoise1); translate: 0 0px; }
+  25%  { rotate: -1deg;  filter: url(#hdNoise2); translate: 0 -2px; }
+  50%  { rotate: 0deg;   filter: url(#hdNoise1); translate: 0 2px; }
+  75%  { rotate: -1deg;  filter: url(#hdNoise2); translate: 0 -2px; }
+  100% { rotate: 0deg;   filter: url(#hdNoise1); translate: 0 0px; }
+}
+@keyframes hbActive {
+  0%   { filter: url(#hdNoiseT1); translate: 0 -1px; }
+  25%  { rotate: -3deg; }
+  50%  { filter: url(#hdNoiseT2); translate: 0 1px; }
+  66%  { rotate: 1.5deg; }
+  100% { filter: url(#hdNoiseT1); translate: 0 -1px; }
+}
+@keyframes hbHighlight {
+  0%   { stroke-dashoffset: 0; }
+  25%  { stroke-dashoffset: 1000; }
+  75%  { stroke-dashoffset: 1000; }
+  100% { stroke-dashoffset: 0; }
+}
+@keyframes hbCol {
+  0%   { stroke: rgba(255,225,0,0.5); }
+  100% { stroke: rgba(46,152,235,0.4); }
+}
+
+.hand-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
+  background: transparent;
+  border-width: 0;
+  border-radius: 2rem;
+  padding: 0.85em 1.1em;
+  font-family: "Courier New", monospace;
+  font-size: 1.2rem;
+  font-weight: bold;
+  color: var(--heading);
+  box-shadow: rgba(51,51,51,0.4) 4px 4px 0 1px;
+  user-select: none;
+  filter: url(#hdNoise1);
+  animation: hbIdle 1s infinite ease-in-out;
+  transition: rotate 0.3s ease-in-out;
+}
+html[data-theme="dark"] .hand-btn {
+  color: var(--ivory);
+  box-shadow: rgba(255,244,230,0.25) 4px 4px 0 1px;
+}
+
+.hand-btn:hover {
+  rotate: -2.5deg;
+  animation: hbHover 2.5s infinite ease-in-out;
+}
+.hand-btn:active {
+  box-shadow: inset rgba(51,51,51,0.95) 4px 4px 0 1px;
+  rotate: -2.5deg;
+  animation: hbActive 1s infinite ease-in-out;
+}
+html[data-theme="dark"] .hand-btn:active {
+  box-shadow: inset rgba(255,244,230,0.5) 4px 4px 0 1px;
+}
+
+/* Decorative cosmos SVG (left of text) */
+.hand-btn-cosm {
+  position: absolute;
+  fill: rgba(51,51,51,0.38);
+  width: 64px;
+  height: 64px;
+  scale: 0.5;
+  translate: calc(-100% + 24px) 1.5rem;
+  transition: rotate 0.3s ease-out, translate 0.3s ease-out, fill 0.3s ease;
+  pointer-events: none;
+}
+html[data-theme="dark"] .hand-btn-cosm {
+  fill: rgba(255,244,230,0.32);
+}
+.hand-btn:hover .hand-btn-cosm {
+  rotate: -15deg;
+  translate: calc(-100% + 22px) 1.9rem;
+}
+.hand-btn:active .hand-btn-cosm {
+  fill: rgba(51,51,51,0.9);
+  rotate: -135deg;
+  translate: calc(-100% + 55px) 1.6rem;
+}
+html[data-theme="dark"] .hand-btn:active .hand-btn-cosm {
+  fill: rgba(255,244,230,0.85);
+}
+
+/* Yellow highlighter underline SVG */
+.hand-btn-highlight {
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  fill: rgba(255,225,0,0.5);
+  stroke: rgba(255,225,0,0.5);
+  stroke-width: 10;
+  stroke-linecap: round;
+  pointer-events: none;
+  stroke-dasharray: 1000;
+  stroke-dashoffset: 1000;
+  transition: stroke-dashoffset 0.5s ease-in-out;
+}
+.hand-btn:hover .hand-btn-highlight { stroke-dashoffset: 0; }
+.hand-btn:active .hand-btn-highlight {
+  stroke-dashoffset: 1000;
+  animation: hbHighlight 5s infinite, hbCol 0.5s forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hand-btn { animation: none !important; filter: none !important; }
+  .hand-btn-cosm { transition: none !important; }
+  .hand-btn-highlight { transition: none !important; animation: none !important; }
+}

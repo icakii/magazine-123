@@ -1597,8 +1597,9 @@ html[data-theme="dark"] .user-profile-inner svg {
   position: relative;
   display: inline-flex;
   align-items: center;
+  align-self: flex-start;
   gap: 0.15em;
-    width: fit-content;
+  width: fit-content;
   cursor: pointer;
   background: transparent;
   border-width: 0;
@@ -1638,10 +1639,10 @@ html[data-theme="dark"] .hand-btn:active {
 
 /* Decorative cosmos SVG (left of text) */
 .hand-btn-cosm {
+  position: absolute;
   width: 52px;
   height: 52px;
-  scale: 0.42;
-  translate: calc(-100% + 19px) 1.02rem;
+  fill: rgba(51,51,51,0.38);
   scale: 0.5;
   translate: calc(-100% + 24px) 1.5rem;
   transition: rotate 0.3s ease-out, translate 0.3s ease-out, fill 0.3s ease;
@@ -1665,7 +1666,8 @@ html[data-theme="dark"] .hand-btn:active .hand-btn-cosm {
 
 /* Yellow highlighter underline SVG */
 .hand-btn-highlight {
-    top: 48%;
+  position: absolute;
+  top: 48%;
   left: 1.9rem;
   width: calc(100% - 2.1rem);
   height: 58%;

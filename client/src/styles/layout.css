@@ -1695,37 +1695,55 @@ html[data-theme="dark"] .hand-btn:active .hand-btn-cosm {
    NAV MOBILE — ONE ROW
 ======================== */
 
-/* Always keep toggle + button on one line — no wrapping ever */
+/* ── Nav: force single flex row always ── */
+.nav-inner {
+  display: flex !important;
+  flex-direction: row !important;
+  flex-wrap: nowrap !important;
+  align-items: center !important;
+  gap: 8px !important;
+}
+/* nav-top has display:contents so nav-left + nav-center are direct flex children */
+.nav-center {
+  flex: 1 1 0 !important;
+  min-width: 0 !important;
+  justify-content: flex-start !important;
+  padding-left: 6px !important;
+}
 .nav-right,
-.nav-right-wrap { flex-wrap: nowrap !important; min-width: 0; overflow: visible; }
+.nav-right-wrap {
+  display: flex !important;
+  flex-direction: row !important;
+  flex-wrap: nowrap !important;
+  align-items: center !important;
+  flex-shrink: 0 !important;
+  gap: 8px !important;
+}
+.nav-actions {
+  display: flex !important;
+  flex-wrap: nowrap !important;
+  align-items: center !important;
+}
+.theme-toggle-label,
+.nav-actions { flex-shrink: 0 !important; }
 
+/* Shrink elements on mobile */
 @media (max-width: 820px) {
-  .nav-right,
-  .nav-right-wrap { gap: 6px; align-items: center; }
-
-  /* Both children must not shrink below their content */
-  .theme-toggle-label,
-  .nav-actions { flex-shrink: 0; }
-
-  /* Shrink theme toggle */
+  .nav-inner { gap: 6px !important; }
   .theme-toggle-label { font-size: 12px; width: 3.4em; height: 40px; }
-
-  /* Shrink login/logout buttons */
   .user-profile-btn  { width: 100px; height: 40px; }
   .user-profile-inner { width: 96px; height: 36px; font-size: 0.8rem; gap: 6px; }
   .user-profile-inner svg { width: 16px; height: 16px; }
   .nav-btn.logout-btn { padding: 0.45rem 0.75rem !important; font-size: 0.8rem; white-space: nowrap; }
-
-  /* Brand slightly left */
-  .nav-center { justify-content: flex-start; padding-left: 4px; }
 }
 
 @media (max-width: 480px) {
-  .theme-toggle-label { font-size: 10px; width: 3em; height: 36px; }
-  .user-profile-btn  { width: 86px; height: 36px; }
-  .user-profile-inner { width: 82px; height: 32px; font-size: 0.74rem; gap: 4px; }
-  .user-profile-inner svg { width: 14px; height: 14px; }
-  .nav-btn.logout-btn { padding: 0.4rem 0.6rem !important; font-size: 0.74rem; }
+  .nav-inner { gap: 4px !important; }
+  .theme-toggle-label { font-size: 10px; width: 3em; height: 34px; }
+  .user-profile-btn  { width: 84px; height: 34px; }
+  .user-profile-inner { width: 80px; height: 30px; font-size: 0.72rem; gap: 4px; }
+  .user-profile-inner svg { width: 13px; height: 13px; }
+  .nav-btn.logout-btn { padding: 0.4rem 0.55rem !important; font-size: 0.72rem; }
 }
 
 @media (prefers-reduced-motion: reduce) {

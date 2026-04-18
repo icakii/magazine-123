@@ -28,6 +28,15 @@ export default function News() {
       .then((res) => setArticles(res.data || []))
       .catch(() => setArticles([]))
   }, [])
+ useEffect(() => {
+    const bodyClass = "news-modal-open"
+    if (selectedArticle) {
+      document.body.classList.add(bodyClass)
+    } else {
+      document.body.classList.remove(bodyClass)
+    }
+    return () => document.body.classList.remove(bodyClass)
+  }, [selectedArticle])
 
   const filteredArticles = filter === "All" ? articles : articles.filter((a) => a.articleCategory === filter)
 
@@ -128,9 +137,9 @@ export default function News() {
       </div>
 
       {selectedArticle && (
-        <div className="modal-backdrop" onClick={() => setSelectedArticle(null)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <button className="modal-close" onClick={() => setSelectedArticle(null)} type="button">
+                <div className="modal-backdrop news-modal-backdrop" onClick={() => setSelectedArticle(null)}>
+          <div className="modal-content news-modal-content" onClick={(e) => e.stopPropagation()}>
+              <button className="modal-close" onClick={() => setSelectedArticle(null)} type="button">
               ×
             </button>
             <h2>{selectedArticle.title}</h2>

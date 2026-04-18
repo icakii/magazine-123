@@ -619,6 +619,19 @@ html[data-theme="dark"] .games-card-icon {
   line-height: 1.6;
   flex: 1;
 }
+body.news-modal-open {
+  overflow: hidden;
+}
+
+.news-modal-backdrop {
+  align-items: center;
+  justify-content: center;
+  overscroll-behavior: contain;
+}
+
+.news-modal-content {
+  margin: 0 auto;
+}
 
 /* ========================
    EVENTS PAGE
@@ -1695,41 +1708,41 @@ html[data-theme="dark"] .hand-btn:active .hand-btn-cosm {
    NAV MOBILE — ONE ROW
 ======================== */
 
-/* ── Nav: force single flex row always ── */
-.nav-inner {
-  display: flex !important;
-  flex-direction: row !important;
-  flex-wrap: nowrap !important;
-  align-items: center !important;
-  gap: 8px !important;
-}
-/* nav-top has display:contents so nav-left + nav-center are direct flex children */
-.nav-center {
-  flex: 1 1 0 !important;
-  min-width: 0 !important;
-  justify-content: flex-start !important;
-  padding-left: 6px !important;
-}
-.nav-right,
-.nav-right-wrap {
-  display: flex !important;
-  flex-direction: row !important;
-  flex-wrap: nowrap !important;
-  align-items: center !important;
-  flex-shrink: 0 !important;
-  gap: 8px !important;
-}
-.nav-actions {
-  display: flex !important;
-  flex-wrap: nowrap !important;
-  align-items: center !important;
-}
-.theme-toggle-label,
-.nav-actions { flex-shrink: 0 !important; }
-
-/* Shrink elements on mobile */
-@media (max-width: 820px) {
-  .nav-inner { gap: 6px !important; }
+/* ── Mobile nav only: force controls on one row without affecting desktop ── */
+@media (max-width: 560px) {
+  .nav-inner {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    align-items: center !important;
+    gap: 6px !important;
+  }
+  /* nav-top has display:contents so nav-left + nav-center are direct flex children */
+  .nav-center {
+    flex: 1 1 0 !important;
+    min-width: 0 !important;
+    justify-content: center !important;
+    padding-left: 0 !important;
+  }
+  .nav-right,
+  .nav-right-wrap {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    align-items: center !important;
+    justify-content: flex-end !important;
+    flex-shrink: 0 !important;
+    gap: 8px !important;
+  }
+  .nav-actions {
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    align-items: center !important;
+    justify-content: flex-end !important;
+    gap: 8px !important;
+  }
+  .theme-toggle-label,
+  .nav-actions { flex-shrink: 0 !important; }
   .theme-toggle-label { font-size: 12px; width: 3.4em; height: 40px; }
   .user-profile-btn  { width: 100px; height: 40px; }
   .user-profile-inner { width: 96px; height: 36px; font-size: 0.8rem; gap: 6px; }
@@ -2000,31 +2013,9 @@ html[data-theme="dark"] .flip-card-back {
 }
 
 @media (max-width: 560px) {
-  .nav .nav-center {
-    justify-content: center !important;
-    padding-left: 0 !important;
-  }
-
   .nav .brand {
 margin: 0 auto !important;
     text-align: center !important;
     transform: translateX(12px) !important;
-  }
-
-  .nav .nav-right,
-  .nav .nav-right-wrap {
-    display: flex !important;
-    flex-direction: row !important;
-    align-items: center !important;
-    justify-content: flex-end !important;
-    gap: 8px !important;
-  }
-
-  .nav .nav-actions {
-    display: flex !important;
-    flex-wrap: nowrap !important;
-    align-items: center !important;
-    justify-content: flex-end !important;
-    gap: 8px !important;
   }
 }

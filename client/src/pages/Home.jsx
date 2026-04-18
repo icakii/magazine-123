@@ -71,12 +71,7 @@ export default function Home() {
   const [reqMsg, setReqMsg] = useState("")
   const [selectedGame, setSelectedGame] = useState("wordle")
   const [artLang, setArtLang] = useState(() => getLang())
-  const [clockTime, setClockTime] = useState(new Date())
-
-  useEffect(() => {
-    const id = setInterval(() => setClockTime(new Date()), 1000)
-    return () => clearInterval(id)
-  }, [])
+  const [welcomeFlipped, setWelcomeFlipped] = useState(false)
 
   const isAdmin = !!user?.email && ADMIN_EMAILS.includes(user.email)
   const canAccessArt = isAdmin
@@ -213,29 +208,29 @@ export default function Home() {
 
         {/* ── Welcome card (flip) ── */}
         <section className="home-section">
-          <div className="flip-card home-welcome-flip">
+          <div
+            className={`home-welcome-flip${welcomeFlipped ? " is-flipped" : ""}`}
+            onClick={() => setWelcomeFlipped((f) => !f)}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => e.key === "Enter" && setWelcomeFlipped((f) => !f)}
+            aria-label="Flip card"
+          >
             <div className="flip-card-inner">
-              <div className="flip-card-front glass-card home-welcome">
-                <h1 className="home-welcome-title">
+              <div className="flip-card-front">
+                <p className="flip-welcome-title">
                   {user ? `${t("welcome")}, ${user.displayName}!` : t("home_title")}
-                </h1>
-                <p className="home-welcome-sub">
-                  {user ? t("home_user_sub") : t("home_sub")}
                 </p>
-                <div className="home-welcome-actions">
-                  {!user && <a className="btn primary" href="/register">{t("start")}</a>}
-                  <a className="btn ghost" href="/news">{t("read_news")}</a>
-                </div>
               </div>
-              <div className="flip-card-back home-welcome">
-                <div className="home-clock">
-                  <div className="home-clock-time">
-                    {clockTime.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
-                  </div>
-                  <div className="home-clock-date">
-                    {clockTime.toLocaleDateString([], { weekday: "long", day: "numeric", month: "long", year: "numeric" })}
-                  </div>
-                </div>
+              <div className="flip-card-back">
+                <p className="flip-back-text">Read the news here</p>
+                <a
+                  className="btn primary"
+                  href="/news"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {t("read_news")}
+                </a>
               </div>
             </div>
           </div>

@@ -2001,13 +2001,14 @@ html[data-theme="dark"] .flip-card-back {
 
 @media (max-width: 560px) {
   .nav .nav-center {
-    justify-content: flex-start !important;
+    justify-content: center !important;
     padding-left: 0 !important;
   }
 
   .nav .brand {
-    margin: 0 !important;
-    text-align: left !important;
+margin: 0 auto !important;
+    text-align: center !important;
+    transform: translateX(12px) !important;
   }
 
   .nav .nav-right,

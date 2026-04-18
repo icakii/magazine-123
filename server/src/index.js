@@ -119,7 +119,7 @@ const EMAIL_ACCOUNTS = {
     label: "MIREN Newsletter",
   },
   billing: {
-    user: "billing@mirenmagazine.com",
+    user: "support@mirenmagazine.com",
     pass: "ztzg jkeh qvoq maed",
     label: "MIREN Orders",
   },

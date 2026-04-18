@@ -1998,3 +1998,32 @@ html[data-theme="dark"] .flip-card-back {
   margin: 0;
   opacity: 0.92;
 }
+
+@media (max-width: 560px) {
+  .nav .nav-center {
+    justify-content: flex-start !important;
+    padding-left: 0 !important;
+  }
+
+  .nav .brand {
+    margin: 0 !important;
+    text-align: left !important;
+  }
+
+  .nav .nav-right,
+  .nav .nav-right-wrap {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: flex-end !important;
+    gap: 8px !important;
+  }
+
+  .nav .nav-actions {
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    align-items: center !important;
+    justify-content: flex-end !important;
+    gap: 8px !important;
+  }
+}

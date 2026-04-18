@@ -17,13 +17,11 @@ const ART_TEXT = {
   bg: {
     title: "MIREN ART",
     subtitle: "Нова арт зона за визуални проекти, колаборации и творчески формати.",
-    registerOpen: "Регистрация",
     registerLocked: "Регистрацията отваря на 13-ти в 19:00",
   },
   en: {
     title: "MIREN ART",
     subtitle: "A new art zone for visual projects, collaborations, and creative formats.",
-    registerOpen: "Register",
     registerLocked: "Registration opens on the 13th at 19:00",
   },
 }
@@ -57,16 +55,6 @@ function normalizeHomeHeroPayload(data) {
       .map((ev) => ({ day: normalizeWeekdayKey(ev?.date || ev?.day), title: String(ev?.title || "").trim() }))
       .filter((ev) => ev.day && ev.title),
   }
-}
-
-function TCard({ children, className = "", href, target, rel }) {
-  const Tag = href ? "a" : "div"
-  return (
-    <Tag className={`tc-card ${className}`} href={href} target={target} rel={rel}>
-      <div className="tc-noise" aria-hidden="true" />
-      <div className="tc-inner">{children}</div>
-    </Tag>
-  )
 }
 
 export default function Home() {
@@ -170,217 +158,198 @@ export default function Home() {
 
   return (
     <div className="home-shell">
-      {/* ── STICKY SLIDES WRAPPER ── */}
-      <div className="home-slides">
+      <HeroIntro />
 
-        {/* SLIDE 1 — Hero */}
-        <section className="home-slide home-slide--1" id="home-slide-hero">
-          <HeroIntro />
+      <div className="home-content" id="home-main-content">
+
+        {/* ── Featured Articles ── */}
+        <section className="home-section">
+          <h2 className="home-section-title">{t("featured")}</h2>
+          {loading ? (
+            <Loader />
+          ) : featured.length > 0 ? (
+            <div className="home-featured-grid">
+              {featured.map((f) => {
+                const isLocked = !!f.isPremium && !hasSubscription
+                return (
+                  <div key={f.id} className="home-featured-card glass-card">
+                    {f.isPremium && (
+                      <div className="featured-premium-badge">🔒 Premium</div>
+                    )}
+                    {isLocked && (
+                      <div className="featured-lock-overlay">
+                        <span>🔒</span>
+                        <p>{t("premium_content")}</p>
+                        <a href="/subscriptions" className="btn primary">{t("subscribe_unlock")}</a>
+                      </div>
+                    )}
+                    {f.imageUrl && (
+                      <img src={f.imageUrl} className="home-featured-img" alt={f.title} loading="lazy" />
+                    )}
+                    <div className="home-featured-body">
+                      <h3 className="home-featured-title">{f.title}</h3>
+                      {f.excerpt && <p className="home-featured-excerpt">{f.excerpt}</p>}
+                      <button
+                        className="btn outline home-featured-btn"
+                        onClick={() => !isLocked && setSelectedArticle(f)}
+                        disabled={isLocked}
+                        type="button"
+                      >
+                        {t("read_more")}
+                      </button>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          ) : null}
         </section>
 
-        {/* SLIDE 2 — Featured Articles */}
-        <section className="home-slide home-slide--2" id="home-main-content">
-          <div className="slide-inner slide-scroll">
-            <h2 className="slide-heading slide-reveal">{t("featured")}</h2>
-            {loading ? (
-              <Loader />
-            ) : featured.length > 0 ? (
-              <div className="featured-slide-grid">
-                {featured.map((f) => {
-                  const isLocked = !!f.isPremium && !hasSubscription
-                  return (
-                    <div key={f.id} className="featured-slide-item slide-reveal">
-                      <div className="tc-card featured-tc" style={{ position: "relative" }}>
-                        <div className="tc-noise" aria-hidden="true" />
-                        <div className="tc-inner featured-tc-inner">
-                          {f.isPremium && (
-                            <div className="featured-premium-badge">🔒 Premium</div>
-                          )}
-                          {isLocked && (
-                            <div className="featured-lock-overlay">
-                              <span>🔒</span>
-                              <p>{t("premium_content")}</p>
-                              <a href="/subscriptions" className="btn primary">{t("subscribe_unlock")}</a>
-                            </div>
-                          )}
-                          {f.imageUrl && (
-                            <img src={f.imageUrl} className="featured-tc-img" alt={f.title} loading="lazy" />
-                          )}
-                          <h4 className="featured-tc-title">{f.title}</h4>
-                          {f.excerpt && <p className="featured-tc-excerpt">{f.excerpt}</p>}
-                          <button
-                            className="btn outline featured-tc-btn"
-                            onClick={() => !isLocked && setSelectedArticle(f)}
-                            disabled={isLocked}
-                            type="button"
-                          >
-                            {t("read_more")}
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
-            ) : (
-              <p className="slide-empty">{t("no_articles") || "No articles yet."}</p>
-            )}
+        {/* ── Welcome card ── */}
+        <section className="home-section">
+          <div className="home-welcome glass-card">
+            <h1 className="home-welcome-title">
+              {user ? `${t("welcome")}, ${user.displayName}!` : t("home_title")}
+            </h1>
+            <p className="home-welcome-sub">
+              {user ? t("home_user_sub") : t("home_sub")}
+            </p>
+            <div className="home-welcome-actions">
+              {!user && <a className="btn primary" href="/register">{t("start")}</a>}
+              <a className="btn ghost" href="/news">{t("read_news")}</a>
+            </div>
           </div>
         </section>
 
-        {/* SLIDE 3 — Cards: Welcome + ART + Discord + Games + Spotify */}
-        <section className="home-slide home-slide--3">
-          <div className="slide-inner slide-scroll">
-            {/* Welcome strip */}
-            <div className="slide3-welcome slide-reveal">
-              <span className="slide3-welcome-emoji">👋</span>
-              <div>
-                <h2 className="slide3-welcome-title">
-                  {user ? `${t("welcome")}, ${user.displayName}!` : t("home_title")}
-                </h2>
-                <p className="slide3-welcome-sub">
-                  {user ? t("home_user_sub") : t("home_sub")}
-                </p>
+        {/* ── MIREN ART + Discord ── */}
+        <section className="home-section">
+          <div className="home-pair-grid">
+            {/* MIREN ART */}
+            <div className="home-art-card glass-card">
+              <div className="home-art-icon" aria-hidden="true">
+                <span>🎨</span>
               </div>
-              {!user && (
-                <a className="btn primary slide3-welcome-cta" href="/register">{t("start")}</a>
-              )}
+              <div className="home-art-content">
+                <div className="home-art-head">
+                  <h3>{artCopy.title}</h3>
+                </div>
+                <p>{artCopy.subtitle}</p>
+                <div className="home-art-actions">
+                  <button
+                    className="btn ghost"
+                    type="button"
+                    disabled={!canAccessArt}
+                    onClick={() => {
+                      if (!canAccessArt) return
+                      if (!user) { navigate("/register"); return }
+                      navigate("/miren-art")
+                    }}
+                  >
+                    🔒 {artCopy.registerLocked}
+                  </button>
+                </div>
+              </div>
             </div>
 
-            {/* 2×2 cards */}
-            <div className="slide3-grid">
-              {/* MIREN ART */}
-              <TCard className="slide-art-card slide-reveal">
-                <div className="scard-icon scard-icon--art" aria-hidden="true">🎨</div>
-                <div className="scard-body">
-                  <h3 className="scard-title">{artCopy.title}</h3>
-                  <p className="scard-sub">{artCopy.subtitle}</p>
-                  <div className="scard-actions">
-                    <button
-                      className="btn ghost"
-                      type="button"
-                      disabled={!canAccessArt}
-                      onClick={() => {
-                        if (!canAccessArt) return
-                        if (!user) { navigate("/register"); return }
-                        navigate("/miren-art")
-                      }}
-                    >
-                      🔒 {artCopy.registerLocked}
-                    </button>
-                  </div>
-                </div>
-              </TCard>
+            {/* Discord */}
+            <a
+              className="home-discord-card discord-card glass-card"
+              href="https://discord.gg/Gpdmt8ztcA"
+              target="_blank"
+              rel="noreferrer"
+            >
+              <div className="home-discord-icon discord-icon" aria-hidden="true">
+                <svg viewBox="0 0 245 240" role="img">
+                  <path fill="currentColor" d="M104.4 104.8c-5.7 0-10.2 5-10.2 11.1 0 6.2 4.6 11.2 10.2 11.2 5.7 0 10.3-5 10.2-11.2 0-6.1-4.5-11.1-10.2-11.1Zm36.2 0c-5.7 0-10.2 5-10.2 11.1 0 6.2 4.6 11.2 10.2 11.2 5.7 0 10.3-5 10.2-11.2 0-6.1-4.5-11.1-10.2-11.1Z" />
+                  <path fill="currentColor" d="M189.5 20h-134C24.8 20 0 44.8 0 75.5v89C0 195.2 24.8 220 55.5 220h113.2l-5.3-18.4 12.8 11.8 12.1 11.2L210 244V75.5C210 44.8 185.2 20 154.5 20Zm-39.1 145s-3.7-4.4-6.8-8.4c13.6-3.9 18.8-12.5 18.8-12.5-4.3 2.8-8.3 4.8-11.9 6.2-5.1 2.1-9.9 3.5-14.7 4.3-9.8 1.8-18.9 1.3-26.8-.2-6-1.1-11.1-2.8-15.2-4.4-2.3-.9-4.8-2-7.3-3.3-.3-.1-.5-.2-.8-.4-.2-.1-.3-.2-.5-.3-2.2-1.2-3.4-2-3.4-2s5 8.4 18.1 12.4c-3.1 4-6.9 8.7-6.9 8.7-22.8-.7-31.5-15.7-31.5-15.7 0-33.3 14.9-60.3 14.9-60.3 14.9-11.2 29-10.9 29-10.9l1 1.2c-18.6 5.4-27.2 13.5-27.2 13.5s2.3-1.3 6.1-3.1c11-4.8 19.8-6.1 23.4-6.4.6-.1 1.1-.1 1.7-.2 6.1-.8 13.1-1 20.3-.2 9.5 1.1 19.7 3.8 30 9.3 0 0-8.2-7.7-25.9-13.1l1.4-1.6s14.2-.3 29 10.9c0 0 14.9 27 14.9 60.3 0 0-8.8 15-31.6 15.7Z" />
+                </svg>
+              </div>
+              <div className="home-discord-content">
+                <h3>{t("home_discord_title")}</h3>
+                <p>{t("home_discord_text")}</p>
+                <span className="home-discord-btn">{t("home_discord_btn")}</span>
+              </div>
+            </a>
+          </div>
+        </section>
 
-              {/* Discord */}
-              <TCard
-                className="slide-discord-card slide-reveal"
-                href="https://discord.gg/Gpdmt8ztcA"
-                target="_blank"
-                rel="noreferrer"
-              >
-                <div className="scard-icon scard-icon--discord" aria-hidden="true">
-                  <svg viewBox="0 0 245 240" role="img" width="28" height="28">
-                    <path fill="currentColor" d="M104.4 104.8c-5.7 0-10.2 5-10.2 11.1 0 6.2 4.6 11.2 10.2 11.2 5.7 0 10.3-5 10.2-11.2 0-6.1-4.5-11.1-10.2-11.1Zm36.2 0c-5.7 0-10.2 5-10.2 11.1 0 6.2 4.6 11.2 10.2 11.2 5.7 0 10.3-5 10.2-11.2 0-6.1-4.5-11.1-10.2-11.1Z" />
-                    <path fill="currentColor" d="M189.5 20h-134C24.8 20 0 44.8 0 75.5v89C0 195.2 24.8 220 55.5 220h113.2l-5.3-18.4 12.8 11.8 12.1 11.2L210 244V75.5C210 44.8 185.2 20 154.5 20Zm-39.1 145s-3.7-4.4-6.8-8.4c13.6-3.9 18.8-12.5 18.8-12.5-4.3 2.8-8.3 4.8-11.9 6.2-5.1 2.1-9.9 3.5-14.7 4.3-9.8 1.8-18.9 1.3-26.8-.2-6-1.1-11.1-2.8-15.2-4.4-2.3-.9-4.8-2-7.3-3.3-.3-.1-.5-.2-.8-.4-.2-.1-.3-.2-.5-.3-2.2-1.2-3.4-2-3.4-2s5 8.4 18.1 12.4c-3.1 4-6.9 8.7-6.9 8.7-22.8-.7-31.5-15.7-31.5-15.7 0-33.3 14.9-60.3 14.9-60.3 14.9-11.2 29-10.9 29-10.9l1 1.2c-18.6 5.4-27.2 13.5-27.2 13.5s2.3-1.3 6.1-3.1c11-4.8 19.8-6.1 23.4-6.4.6-.1 1.1-.1 1.7-.2 6.1-.8 13.1-1 20.3-.2 9.5 1.1 19.7 3.8 30 9.3 0 0-8.2-7.7-25.9-13.1l1.4-1.6s14.2-.3 29 10.9c0 0 14.9 27 14.9 60.3 0 0-8.8 15-31.6 15.7Z" />
-                  </svg>
-                </div>
-                <div className="scard-body">
-                  <h3 className="scard-title scard-title--discord">{t("home_discord_title")}</h3>
-                  <p className="scard-sub">{t("home_discord_text")}</p>
-                  <span className="scard-discord-cta">{t("home_discord_btn")}</span>
-                </div>
-              </TCard>
+        {/* ── Games + Spotify ── */}
+        <section className="home-section">
+          <div className="home-pair-grid">
+            {/* Games */}
+            <div className="work-card glass-card games-card">
+              <h4>{t("home_games_title")}</h4>
+              <label className="text-muted">{t("home_games_label")}</label>
+              <select className="input" value={selectedGame} onChange={(e) => setSelectedGame(e.target.value)}>
+                <option value="wordle">{t("home_games_word")}</option>
+              </select>
+              <div className="btn-group" style={{ marginTop: 12 }}>
+                <a className="btn primary" href="/games">{t("home_games_play")}</a>
+                <a className="btn ghost" href="/leaderboards">{t("home_games_board")}</a>
+              </div>
+              <p className="text-muted" style={{ marginTop: 8, fontSize: "0.82rem" }}>{t("home_games_note")}</p>
+            </div>
 
-              {/* Games */}
-              <TCard className="slide-games-card slide-reveal">
-                <div className="scard-icon scard-icon--games" aria-hidden="true">🎮</div>
-                <div className="scard-body">
-                  <h3 className="scard-title">{t("home_games_title")}</h3>
-                  <label className="scard-label">{t("home_games_label")}</label>
-                  <select
-                    className="input scard-select"
-                    value={selectedGame}
-                    onChange={(e) => setSelectedGame(e.target.value)}
-                  >
-                    <option value="wordle">{t("home_games_word")}</option>
-                  </select>
-                  <div className="scard-actions">
-                    <a className="btn primary" href="/games">{t("home_games_play")}</a>
-                    <a className="btn ghost" href="/leaderboards">{t("home_games_board")}</a>
-                  </div>
-                </div>
-              </TCard>
-
-              {/* Spotify */}
-              <TCard className="slide-spotify-card slide-reveal">
-                <div className="scard-icon scard-icon--spotify" aria-hidden="true">
-                  <svg viewBox="0 0 168 168" role="img" width="26" height="26">
+            {/* Spotify */}
+            <div className="work-card glass-card spotify-card">
+              <div className="spotify-card-top">
+                <div className="spotify-card-icon" aria-hidden="true">
+                  <svg viewBox="0 0 168 168" role="img">
                     <path fill="currentColor" d="M84 0a84 84 0 1 0 0 168 84 84 0 0 0 0-168Zm38.5 121.2a5.3 5.3 0 0 1-7.3 1.8c-20-12.2-45.1-15-74.6-8.4a5.3 5.3 0 1 1-2.3-10.3c32.2-7.2 60-4 82.4 9.5a5.3 5.3 0 0 1 1.8 7.4Zm10.5-23.3a6.6 6.6 0 0 1-9.1 2.2c-22.9-14.1-57.8-18.2-84.9-9.8a6.6 6.6 0 1 1-3.8-12.7c30.9-9.3 69.3-4.8 95.6 11.3a6.6 6.6 0 0 1 2.2 9Zm.9-24.3c-27.4-16.3-72.7-17.8-98.8-9.7a8 8 0 1 1-4.7-15.3c30-9.1 79.9-7.3 111.7 11.5a8 8 0 0 1-8.2 13.5Z" />
                   </svg>
                 </div>
-                <div className="scard-body">
-                  <h3 className="scard-title">{t("home_spotify_title")}</h3>
+                <div className="spotify-card-content">
+                  <h4>{t("home_spotify_title")}</h4>
                   {spotifyPlaylistUrl ? (
-                    <a href={spotifyPlaylistUrl} target="_blank" rel="noreferrer" className="btn outline scard-spotify-open">
+                    <a href={spotifyPlaylistUrl} target="_blank" rel="noreferrer" className="btn outline spotify-open-btn">
                       {t("home_spotify_open")}
                     </a>
                   ) : (
-                    <p className="scard-sub">{t("home_spotify_not_set")}</p>
+                    <p className="text-muted spotify-open-unset">{t("home_spotify_not_set")}</p>
                   )}
-                  <p className="scard-label">{t("home_spotify_limit")}</p>
-                  <div className="scard-spotify-form">
-                    <input className="input" placeholder={t("home_spotify_song")} value={song} onChange={(e) => setSong(e.target.value)} />
-                    <input className="input" placeholder={t("home_spotify_artist")} value={artist} onChange={(e) => setArtist(e.target.value)} />
-                  </div>
-                  <button className="btn primary scard-spotify-send" type="button" onClick={sendSpotifyRequest}>
-                    {t("home_spotify_send")}
-                  </button>
-                  {reqMsg && <p className="scard-label" style={{ marginTop: 6 }}>{reqMsg}</p>}
                 </div>
-              </TCard>
-            </div>
-          </div>
-        </section>
-
-        {/* SLIDE 4 — Partnership / Work */}
-        <section className="home-slide home-slide--4">
-          <div className="slide-inner">
-            <div className="slide4-wrap slide-reveal">
-              <TCard className="slide-work-card">
-                <div className="scard-body slide-work-body">
-                  <div className="slide-work-icon" aria-hidden="true">✍️</div>
-                  <h2 className="slide-work-title">{t("home_work_title")}</h2>
-                  <p className="slide-work-sub">{t("home_work_text")}</p>
-                  <a className="btn primary slide-work-cta" href="/opportunities">{t("home_work_cta")}</a>
-                </div>
-              </TCard>
-            </div>
-          </div>
-        </section>
-
-        {/* SLIDE 5 — Schedule + Back to Top */}
-        <section className="home-slide home-slide--5">
-          <div className="slide-inner slide-scroll">
-            <h2 className="slide-heading slide-reveal">{t("home_weekly_schedule")}</h2>
-            <div className="slide5-grid slide-reveal">
-              <div className="weekly-schedule-grid">
-                {weeklySchedule.map((item) => (
-                  <div key={item.day} className={`weekly-row${item.title !== "—" ? " weekly-row-has-event" : ""}`}>
-                    <div className="weekly-day">{WEEK_DAY_LABELS[item.day]}</div>
-                    <div className="weekly-title">{item.title}</div>
-                  </div>
-                ))}
               </div>
-            </div>
-
-            <div className="slide5-btt slide-reveal">
-              <BackToTopButton />
+              <p className="text-muted spotify-limit">{t("home_spotify_limit")}</p>
+              <div className="spotify-form-grid">
+                <input className="input" placeholder={t("home_spotify_song")} value={song} onChange={(e) => setSong(e.target.value)} />
+                <input className="input" placeholder={t("home_spotify_artist")} value={artist} onChange={(e) => setArtist(e.target.value)} />
+              </div>
+              <button className="btn primary spotify-send-btn" type="button" onClick={sendSpotifyRequest}>
+                {t("home_spotify_send")}
+              </button>
+              {reqMsg && <p className="text-muted" style={{ marginTop: 8 }}>{reqMsg}</p>}
             </div>
           </div>
         </section>
 
-      </div>{/* end .home-slides */}
+        {/* ── Work / Partnership ── */}
+        <section className="home-section">
+          <div className="work-wide glass-card">
+            <h3>{t("home_work_title")}</h3>
+            <p>{t("home_work_text")}</p>
+            <a className="btn primary work-wide-cta" href="/opportunities">{t("home_work_cta")}</a>
+          </div>
+        </section>
+
+        {/* ── Weekly Schedule ── */}
+        <section className="home-section">
+          <div className="calendar-card glass-card">
+            <h4>{t("home_weekly_schedule")}</h4>
+            <div className="weekly-schedule-grid">
+              {weeklySchedule.map((item) => (
+                <div key={item.day} className={`weekly-row${item.title !== "—" ? " weekly-row-has-event" : ""}`}>
+                  <div className="weekly-day">{WEEK_DAY_LABELS[item.day]}</div>
+                  <div className="weekly-title">{item.title}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div style={{ display: "flex", justifyContent: "center", marginTop: 32 }}>
+            <BackToTopButton />
+          </div>
+        </section>
+
+      </div>
 
       {selectedArticle && createPortal(
         <div className="modal-backdrop" onClick={() => setSelectedArticle(null)}>

@@ -1597,14 +1597,15 @@ html[data-theme="dark"] .user-profile-inner svg {
   position: relative;
   display: inline-flex;
   align-items: center;
+  gap: 0.15em;
     width: fit-content;
   cursor: pointer;
   background: transparent;
   border-width: 0;
   border-radius: 2rem;
-  padding: 0.85em 0.55em 0.85em 0.7em;
+  padding: 0.55em 0.45em 0.5em 0.55em;
   font-family: "Courier New", monospace;
-  font-size: 1.2rem;
+  font-size: 1.06rem;
   font-weight: bold;
   color: var(--heading);
   box-shadow: rgba(51,51,51,0.4) 4px 4px 0 1px;
@@ -1637,10 +1638,10 @@ html[data-theme="dark"] .hand-btn:active {
 
 /* Decorative cosmos SVG (left of text) */
 .hand-btn-cosm {
-  position: absolute;
-  fill: rgba(51,51,51,0.38);
-  width: 64px;
-  height: 64px;
+  width: 52px;
+  height: 52px;
+  scale: 0.42;
+  translate: calc(-100% + 19px) 1.02rem;
   scale: 0.5;
   translate: calc(-100% + 24px) 1.5rem;
   transition: rotate 0.3s ease-out, translate 0.3s ease-out, fill 0.3s ease;
@@ -1651,12 +1652,12 @@ html[data-theme="dark"] .hand-btn-cosm {
 }
 .hand-btn:hover .hand-btn-cosm {
   rotate: -15deg;
-  translate: calc(-100% + 22px) 1.9rem;
+  translate: calc(-100% + 17px) 1.2rem;
 }
 .hand-btn:active .hand-btn-cosm {
   fill: rgba(51,51,51,0.9);
   rotate: -135deg;
-  translate: calc(-100% + 55px) 1.6rem;
+  translate: calc(-100% + 31px) 1.08rem;
 }
 html[data-theme="dark"] .hand-btn:active .hand-btn-cosm {
   fill: rgba(255,244,230,0.85);
@@ -1664,14 +1665,16 @@ html[data-theme="dark"] .hand-btn:active .hand-btn-cosm {
 
 /* Yellow highlighter underline SVG */
 .hand-btn-highlight {
-  top: 0; left: 0;
-  width: 100%; height: 100%;
-  width: 70%; height: 100%;
-  fill: rgba(255,225,0,0.5);
+    top: 48%;
+  left: 1.9rem;
+  width: calc(100% - 2.1rem);
+  height: 58%;
+  fill: none;
   stroke: rgba(255,225,0,0.5);
   stroke-width: 10;
   stroke-linecap: round;
   pointer-events: none;
+    opacity: 0.72;
   stroke-dasharray: 1000;
   stroke-dashoffset: 1000;
   transition: stroke-dashoffset 0.5s ease-in-out;

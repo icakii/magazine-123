@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import { createPortal } from "react-dom"
 import { api } from "../lib/api"
 import { useAuth } from "../hooks/useAuth"
 import { useNavigate } from "react-router-dom"
@@ -28,14 +29,13 @@ export default function News() {
       .then((res) => setArticles(res.data || []))
       .catch(() => setArticles([]))
   }, [])
- useEffect(() => {
-    const bodyClass = "news-modal-open"
+  useEffect(() => {
     if (selectedArticle) {
-      document.body.classList.add(bodyClass)
+      document.body.style.overflow = "hidden"
     } else {
-      document.body.classList.remove(bodyClass)
+      document.body.style.overflow = ""
     }
-    return () => document.body.classList.remove(bodyClass)
+    return () => { document.body.style.overflow = "" }
   }, [selectedArticle])
 
   const filteredArticles = filter === "All" ? articles : articles.filter((a) => a.articleCategory === filter)
@@ -136,19 +136,16 @@ export default function News() {
         })}
       </div>
 
-      {selectedArticle && (
-                <div className="modal-backdrop news-modal-backdrop" onClick={() => setSelectedArticle(null)}>
-          <div className="modal-content news-modal-content" onClick={(e) => e.stopPropagation()}>
-              <button className="modal-close" onClick={() => setSelectedArticle(null)} type="button">
-              ×
-            </button>
+      {selectedArticle && createPortal(
+        <div className="modal-backdrop" onClick={() => setSelectedArticle(null)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <button className="modal-close" onClick={() => setSelectedArticle(null)} type="button">×</button>
             <h2>{selectedArticle.title}</h2>
             {selectedArticle.imageUrl && <img src={selectedArticle.imageUrl} style={{ width: "100%", borderRadius: 8 }} alt="" />}
-            <div className="modal-text" style={{ marginTop: 20 }}>
-              {selectedArticle.text}
-            </div>
+            <div className="modal-text" style={{ marginTop: 20 }}>{selectedArticle.text}</div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   )

@@ -73,6 +73,15 @@ export default function Home() {
   const [artLang, setArtLang] = useState(() => getLang())
   const [welcomeFlipped, setWelcomeFlipped] = useState(false)
 
+  useEffect(() => {
+    if (selectedArticle) {
+      document.body.style.overflow = "hidden"
+    } else {
+      document.body.style.overflow = ""
+    }
+    return () => { document.body.style.overflow = "" }
+  }, [selectedArticle])
+
   const isAdmin = !!user?.email && ADMIN_EMAILS.includes(user.email)
   const canAccessArt = isAdmin
   const artCopy = ART_TEXT[artLang] || ART_TEXT.bg

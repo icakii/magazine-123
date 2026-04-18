@@ -1850,6 +1850,15 @@ html[data-theme="light"] .bubble-bg { display: block; }
   height: 160px;
   perspective: 1200px;
   cursor: pointer;
+  transition:
+    transform 400ms var(--ease-bounce),
+    box-shadow 340ms var(--ease);
+}
+.home-welcome-flip:hover {
+  transform: translateY(-6px) scale(1.012);
+  box-shadow:
+    0 20px 50px rgba(156,42,42, 0.11),
+    0 6px 16px rgba(30,30,30, 0.07);
 }
 
 .flip-card-inner {
@@ -1877,6 +1886,25 @@ html[data-theme="light"] .bubble-bg { display: block; }
   -webkit-backface-visibility: hidden;
   border-radius: var(--radius-lg);
   box-shadow: 0 8px 14px rgba(0,0,0,0.15);
+}
+
+.flip-card-front::after,
+.flip-card-back::after {
+  content: "";
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  background: linear-gradient(90deg, var(--clay), var(--oxide-red), var(--olive));
+  background-size: 200% 100%;
+  animation: gradientSweep 5s ease infinite;
+  opacity: 0;
+  transition: opacity 250ms var(--ease);
+  pointer-events: none;
+}
+.home-welcome-flip:hover .flip-card-front::after,
+.home-welcome-flip:hover .flip-card-back::after {
+  opacity: 1;
 }
 
 .flip-card-front {

@@ -209,11 +209,18 @@ html[data-theme="dark"] .footer::after { opacity: 0.40; }
 .modal-backdrop {
   backdrop-filter: blur(7px) saturate(1.1);
   -webkit-backdrop-filter: blur(7px) saturate(1.1);
+  touch-action: none;
+}
+.modal-content {
+  touch-action: pan-y;
 }
 
 .modal-content {
   position: relative;
-  overflow: hidden;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
 }
 
 /* Gradient top bar on modal */

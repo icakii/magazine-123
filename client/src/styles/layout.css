@@ -1604,9 +1604,9 @@ html[data-theme="dark"] .user-profile-inner svg {
   background: transparent;
   border-width: 0;
   border-radius: 2rem;
-  padding: 0.55em 0.45em 0.5em 0.55em;
+  padding: 0.9em 1.35em;
   font-family: "Courier New", monospace;
-  font-size: 1.06rem;
+  font-size: 1.2rem;
   font-weight: bold;
   color: var(--heading);
   box-shadow: rgba(51,51,51,0.4) 4px 4px 0 1px;
@@ -1685,6 +1685,10 @@ html[data-theme="dark"] .hand-btn:active .hand-btn-cosm {
 .hand-btn:active .hand-btn-highlight {
   stroke-dashoffset: 1000;
   animation: hbHighlight 5s infinite, hbCol 0.5s forwards;
+}
+
+@media (max-width: 900px) {
+  .hand-btn { align-self: center; }
 }
 
 @media (prefers-reduced-motion: reduce) {

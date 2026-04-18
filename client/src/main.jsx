@@ -34,6 +34,8 @@ import AuthGuard from "./components/AuthGuard"
 import MaintenanceGate from "./components/MaintenanceGate"
 import ScrollReveal from "./components/ScrollReveal"
 import ScrollParallaxDecor from "./components/ScrollParallaxDecor"
+import StarsBackground from "./components/StarsBackground"
+import BubbleBackground from "./components/BubbleBackground"
 import Loader from "./components/Loader"
 
 // Auth provider
@@ -114,6 +116,8 @@ ReactDOM.createRoot(document.getElementById("root")).render(
       <MaintenanceGate>
         <NavBar />
         <ScrollParallaxDecor />
+      <StarsBackground />
+      <BubbleBackground />
         <main className="app-main">
           <Routes>
             <Route path="/" element={<Navigate to="/home" replace />} />

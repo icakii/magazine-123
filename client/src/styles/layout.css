@@ -1696,3 +1696,230 @@ html[data-theme="dark"] .hand-btn:active .hand-btn-cosm {
   .hand-btn-cosm { transition: none !important; }
   .hand-btn-highlight { transition: none !important; animation: none !important; }
 }
+
+/* ========================
+   THEME TOGGLE
+======================== */
+
+.theme-toggle-label {
+  font-size: 17px;
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  width: 4em;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.theme-toggle-label input[type="checkbox"] {
+  opacity: 0;
+  width: 0;
+  height: 0;
+  position: absolute;
+}
+.theme-toggle-label svg {
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+/* SVG element transitions */
+.theme-toggle-label #ttContainerRect,
+.theme-toggle-label #tt-patches,
+.theme-toggle-label #tt-stars,
+.theme-toggle-label #tt-button,
+.theme-toggle-label #tt-sun,
+.theme-toggle-label #tt-moon,
+.theme-toggle-label #tt-cloud {
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Dark background */
+.theme-toggle-label input:checked + svg #ttContainerRect { fill: #2b4360; }
+
+/* Move button */
+.theme-toggle-label input:checked + svg #tt-button {
+  transform: translate(28px, 2.333px);
+}
+
+/* Sun / moon visibility */
+.theme-toggle-label #tt-sun  { opacity: 1; }
+.theme-toggle-label #tt-moon { opacity: 0; }
+.theme-toggle-label input:checked + svg #tt-sun  { opacity: 0; }
+.theme-toggle-label input:checked + svg #tt-moon { opacity: 1; }
+
+/* Cloud / stars */
+.theme-toggle-label #tt-cloud { opacity: 1; }
+.theme-toggle-label #tt-stars { opacity: 0; }
+.theme-toggle-label input:checked + svg #tt-cloud { opacity: 0; }
+.theme-toggle-label input:checked + svg #tt-stars { opacity: 1; }
+
+/* ========================
+   STARS BACKGROUND (dark only, scroll-driven)
+======================== */
+
+.stars-bg {
+  display: none;
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  overflow: hidden;
+}
+html[data-theme="dark"] .stars-bg { display: block; }
+
+.stars-s,
+.stars-m,
+.stars-l {
+  position: absolute;
+  top: 0; left: 0;
+  background: transparent;
+  border-radius: 50%;
+  will-change: transform;
+}
+.stars-s { width: 1px; height: 1px; transform: translateY(var(--px-c, 0)); opacity: 0.7; }
+.stars-m { width: 2px; height: 2px; transform: translateY(var(--px-a, 0)); opacity: 0.85; }
+.stars-l { width: 3px; height: 3px; transform: translateY(var(--px-b, 0)); opacity: 1; }
+
+/* ========================
+   BUBBLE BACKGROUND (light only)
+======================== */
+
+.bubble-bg {
+  display: none;
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  overflow: hidden;
+  opacity: 0.18;
+}
+html[data-theme="light"] .bubble-bg { display: block; }
+
+.bubble-item {
+  position: absolute;
+  width: 200px;
+  height: 200px;
+  border-radius: 50%;
+  animation: bubbleFloat 8s ease-in-out infinite;
+}
+.bubble-item:nth-child(1) { left: 5%;  top: 15%; }
+.bubble-item:nth-child(2) { right: 8%; top: 10%;    transform: scale(0.45); animation-delay: -4s; }
+.bubble-item:nth-child(3) { right: 6%; bottom: 18%; transform: scale(0.45); animation-delay: -6s; }
+.bubble-item:nth-child(4) { left: 8%;  bottom: 12%; transform: scale(0.35); animation-delay: -3s; }
+.bubble-item:nth-child(5) { left: 45%; top: 55%;    transform: scale(0.5);  animation-delay: -5s; }
+
+@keyframes bubbleFloat {
+  0%, 100% { translate: 0 -20px; }
+  50%       { translate: 0  20px; }
+}
+
+.bubble-item::before {
+  content: "";
+  position: absolute;
+  top: 50px; left: 45px;
+  width: 30px; height: 30px;
+  border-radius: 50%;
+  background: #fff;
+  z-index: 10;
+  filter: blur(2px);
+}
+.bubble-item::after {
+  content: "";
+  position: absolute;
+  top: 80px; left: 80px;
+  width: 20px; height: 20px;
+  border-radius: 50%;
+  background: #fff;
+  z-index: 10;
+  filter: blur(2px);
+}
+.bubble-item span { position: absolute; border-radius: 50%; }
+.bubble-item span:nth-child(1) { inset: 10px; border-left:   15px solid #0fb4ff; filter: blur(8px); }
+.bubble-item span:nth-child(2) { inset: 10px; border-right:  15px solid #ff4484; filter: blur(8px); }
+.bubble-item span:nth-child(3) { inset: 10px; border-top:    15px solid #ffeb3b; filter: blur(8px); }
+.bubble-item span:nth-child(4) { inset: 30px; border-left:   15px solid #ff4484; filter: blur(12px); }
+.bubble-item span:nth-child(5) { inset: 10px; border-bottom: 10px solid #fff;    filter: blur(8px); transform: rotate(330deg); }
+
+/* ========================
+   FLIP CARD — WELCOME PANEL
+======================== */
+
+.home-welcome-flip {
+  width: 100%;
+  perspective: 1200px;
+}
+
+.flip-card-inner {
+  position: relative;
+  width: 100%;
+  min-height: 220px;
+  text-align: center;
+  transition: transform 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+  transform-style: preserve-3d;
+}
+.home-welcome-flip:hover .flip-card-inner {
+  transform: rotateY(180deg);
+}
+
+.flip-card-front,
+.flip-card-back {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  min-height: 220px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  border-radius: var(--radius-lg);
+}
+
+.flip-card-back {
+  background: linear-gradient(120deg, bisque 60%, rgb(255,231,222) 88%, rgb(255,211,195) 40%, rgba(255,127,80,0.5) 48%);
+  border: 1px solid rgba(255,127,80,0.4);
+  box-shadow: 0 8px 32px rgba(196,106,74,0.18);
+  transform: rotateY(180deg);
+}
+html[data-theme="dark"] .flip-card-back {
+  background: linear-gradient(120deg, rgba(55,53,62,0.95) 60%, rgba(61,58,70,0.92) 88%, rgba(74,55,52,0.9) 40%, rgba(156,42,42,0.35) 78%);
+  border: 1px solid rgba(196,106,74,0.28);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.55);
+}
+
+/* needed so the flip-card section has a height (absolute children) */
+.home-section:has(.home-welcome-flip) {
+  min-height: 220px;
+}
+
+/* ========================
+   HOME CLOCK
+======================== */
+
+.home-clock {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 36px 28px;
+}
+.home-clock-time {
+  font-size: clamp(2.2rem, 7vw, 3.8rem);
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  font-variant-numeric: tabular-nums;
+  color: var(--clay);
+  line-height: 1;
+}
+html[data-theme="dark"] .home-clock-time { color: #ffb49a; }
+.home-clock-back .home-clock-time { color: coral; }
+html[data-theme="dark"] .flip-card-back .home-clock-time { color: #e8c4a0; }
+
+.home-clock-date {
+  font-size: 0.95rem;
+  color: rgba(100,50,30,0.75);
+  font-weight: 600;
+  text-transform: capitalize;
+}
+html[data-theme="dark"] .home-clock-date { color: rgba(255,200,160,0.7); }

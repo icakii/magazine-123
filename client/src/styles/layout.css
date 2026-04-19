@@ -1751,10 +1751,10 @@ html[data-theme="dark"] .hand-btn:active .hand-btn-cosm {
   .theme-toggle-label,
   .nav-actions { flex-shrink: 0 !important; }
   .theme-toggle-label { font-size: 12px; width: 3.4em; height: 40px; }
-  .user-profile-btn  { width: 100px; height: 40px; }
-  .user-profile-inner { width: 96px; height: 36px; font-size: 0.8rem; gap: 6px; }
-  .user-profile-inner svg { width: 16px; height: 16px; }
-  .nav-btn.logout-btn { padding: 0.45rem 0.75rem !important; font-size: 0.8rem; white-space: nowrap; }
+  .user-profile-btn  { width: 80px; height: 36px; }
+  .user-profile-inner { width: 76px; height: 32px; font-size: 0.72rem; gap: 4px; }
+  .user-profile-inner svg { width: 14px; height: 14px; }
+  .nav-btn.logout-btn { padding: 0.4rem 0.6rem !important; font-size: 0.75rem; white-space: nowrap; }
 }
 
 @media (max-width: 480px) {
@@ -2021,9 +2021,10 @@ html[data-theme="dark"] .flip-card-back {
 
 @media (max-width: 560px) {
   .nav .brand {
-margin: 0 auto !important;
+    margin: 0 !important;
     text-align: center !important;
-    transform: translateX(12px) !important;
+    transform: none !important;
+    font-size: 1.7rem !important;
   }
 }
 /* ========================

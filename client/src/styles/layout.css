@@ -1717,55 +1717,60 @@ html[data-theme="dark"] .hand-btn:active .hand-btn-cosm {
 
 /* ── Mobile nav only: force controls on one row without affecting desktop ── */
 @media (max-width: 560px) {
-  .nav-inner {
-    display: flex !important;
+  .nav .nav-inner {
+        display: flex !important;
     flex-direction: row !important;
     flex-wrap: nowrap !important;
     align-items: center !important;
     gap: 6px !important;
     grid-template-columns: unset !important;
   }
-  .nav-left  { order: unset !important; }
-  .nav-center {
+  .nav .nav-left  { order: unset !important; }
+  .nav .nav-center {
     flex: 1 1 auto !important;
     min-width: 0 !important;
     justify-content: flex-start !important;
-    padding-left: 2px !important;
+    padding-left: 0 !important;
     order: unset !important;
     grid-column: unset !important;
   }
-  .nav-right,
-  .nav-right-wrap {
+  .nav .nav-center .brand {
+    margin-left: -6px !important;
+  }
+  .nav .nav-right,
+  .nav .nav-right-wrap {
     display: flex !important;
     flex-direction: row !important;
     flex-wrap: nowrap !important;
     align-items: center !important;
     justify-content: flex-end !important;
     flex-shrink: 0 !important;
-    gap: 6px !important;
+    gap: 5px !important;
     order: unset !important;
   }
-  .nav-actions {
+  .nav .nav-actions {
     display: flex !important;
     flex-wrap: nowrap !important;
     align-items: center !important;
-    gap: 6px !important;
+    gap: 5px !important;
     flex-shrink: 0 !important;
+        min-width: fit-content !important;
+    
   }
-  .theme-toggle-label { font-size: 11px; width: 3.2em; height: 38px; flex-shrink: 0 !important; }
-  .user-profile-btn  { width: 66px !important; height: 30px !important; }
-  .user-profile-inner { width: 62px !important; height: 26px !important; font-size: 0.66rem !important; gap: 3px !important; }
-  .user-profile-inner svg { width: 13px; height: 13px; }
-  .nav-btn.logout-btn { padding: 0.35rem 0.55rem !important; font-size: 0.72rem; white-space: nowrap; }
+  .theme-toggle-label { font-size: 10.5px; width: 3em; height: 36px; flex-shrink: 0 !important; }
+  .user-profile-btn  { width: 74px !important; height: 32px !important; }
+  .user-profile-inner { width: 70px !important; height: 28px !important; font-size: 0.72rem !important; gap: 4px !important; }
+  .user-profile-inner svg { width: 14px; height: 14px; }
+  .nav-btn.logout-btn { padding: 0.42rem 0.7rem !important; font-size: 0.78rem; white-space: nowrap; }
 }
 
 @media (max-width: 480px) {
-  .nav-inner { gap: 4px !important; }
-  .theme-toggle-label { font-size: 10px; width: 3em; height: 34px; }
-  .user-profile-btn  { width: 62px !important; height: 28px !important; }
-  .user-profile-inner { width: 58px !important; height: 24px !important; font-size: 0.64rem !important; gap: 2px !important; }
-  .user-profile-inner svg { width: 12px; height: 12px; }
-  .nav-btn.logout-btn { padding: 0.3rem 0.5rem !important; font-size: 0.7rem; }
+  .nav .nav-inner { gap: 4px !important; }
+  .theme-toggle-label { font-size: 9.8px; width: 2.9em; height: 33px; }
+  .user-profile-btn  { width: 70px !important; height: 30px !important; }
+  .user-profile-inner { width: 66px !important; height: 26px !important; font-size: 0.69rem !important; gap: 3px !important; }
+      .user-profile-inner svg { width: 12px; height: 12px; }
+  .nav-btn.logout-btn { padding: 0.38rem 0.62rem !important; font-size: 0.74rem; }
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -1516,13 +1516,13 @@ app.post("/api/auth/google", async (req, res) => {
   if (!access_token) return res.status(400).json({ error: "Missing access_token" })
 
   try {
-    const infoRes = await fetch(`https://www.googleapis.com/oauth2/v2/userinfo?access_token=${access_token}`)
-    if (!infoRes.ok) return res.status(401).json({ error: "Invalid Google token" })
-    const payload = await infoRes.json()
+    const oauthClient = new OAuth2Client()
+    const tokenInfo = await oauthClient.getTokenInfo(access_token)
+    if (!tokenInfo.email) return res.status(401).json({ error: "Invalid Google token" })
 
-    const googleEmail = normalizeEmail(payload.email || "")
-    const googleName = String(payload.name || "").trim()
-    const googleSub = String(payload.id || "")
+    const googleEmail = normalizeEmail(tokenInfo.email)
+    const googleName = ""
+    const googleSub = String(tokenInfo.sub || tokenInfo.user_id || "")
 
     if (!googleEmail) return res.status(400).json({ error: "No email from Google" })
 

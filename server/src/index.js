@@ -1518,20 +1518,17 @@ app.post("/api/auth/verify-2fa", async (req, res) => {
 // 🔐 GOOGLE OAUTH
 // ---------------------------------------------------------------
 app.post("/api/auth/google", async (req, res) => {
-  const { credential } = req.body
-  if (!credential) return res.status(400).json({ error: "Missing credential" })
-
-  const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID
-  if (!GOOGLE_CLIENT_ID) return res.status(500).json({ error: "Google auth not configured" })
+  const { access_token } = req.body
+  if (!access_token) return res.status(400).json({ error: "Missing access_token" })
 
   try {
-    const client = new OAuth2Client(GOOGLE_CLIENT_ID)
-    const ticket = await client.verifyIdToken({ idToken: credential, audience: GOOGLE_CLIENT_ID })
-    const payload = ticket.getPayload()
+    const infoRes = await fetch(`https://www.googleapis.com/oauth2/v2/userinfo?access_token=${access_token}`)
+    if (!infoRes.ok) return res.status(401).json({ error: "Invalid Google token" })
+    const payload = await infoRes.json()
 
     const googleEmail = normalizeEmail(payload.email || "")
     const googleName = String(payload.name || "").trim()
-    const googleSub = String(payload.sub || "")
+    const googleSub = String(payload.id || "")
 
     if (!googleEmail) return res.status(400).json({ error: "No email from Google" })
 

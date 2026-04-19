@@ -62,8 +62,8 @@ export function AuthProvider({ children }) {
   )
 
   const googleLogin = useCallback(
-    async (credential) => {
-      const res = await api.post("/auth/google", { credential })
+    async (access_token) => {
+      const res = await api.post("/auth/google", { access_token })
       if (res.data?.token) storeToken(res.data.token)
       await refreshMe()
       return { ok: true }

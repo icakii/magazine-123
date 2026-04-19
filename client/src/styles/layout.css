@@ -1723,13 +1723,16 @@ html[data-theme="dark"] .hand-btn:active .hand-btn-cosm {
     flex-wrap: nowrap !important;
     align-items: center !important;
     gap: 6px !important;
+    grid-template-columns: unset !important;
   }
-  /* nav-top has display:contents so nav-left + nav-center are direct flex children */
+  .nav-left  { order: unset !important; }
   .nav-center {
-    flex: 1 1 0 !important;
+    flex: 1 1 auto !important;
     min-width: 0 !important;
-    justify-content: center !important;
-    padding-left: 0 !important;
+    justify-content: flex-start !important;
+    padding-left: 2px !important;
+    order: unset !important;
+    grid-column: unset !important;
   }
   .nav-right,
   .nav-right-wrap {
@@ -1739,31 +1742,30 @@ html[data-theme="dark"] .hand-btn:active .hand-btn-cosm {
     align-items: center !important;
     justify-content: flex-end !important;
     flex-shrink: 0 !important;
-    gap: 8px !important;
+    gap: 6px !important;
+    order: unset !important;
   }
   .nav-actions {
     display: flex !important;
     flex-wrap: nowrap !important;
     align-items: center !important;
-    justify-content: flex-end !important;
-    gap: 8px !important;
+    gap: 6px !important;
+    flex-shrink: 0 !important;
   }
-  .theme-toggle-label,
-  .nav-actions { flex-shrink: 0 !important; }
-  .theme-toggle-label { font-size: 12px; width: 3.4em; height: 40px; }
-  .user-profile-btn  { width: 80px; height: 36px; }
-  .user-profile-inner { width: 76px; height: 32px; font-size: 0.72rem; gap: 4px; }
-  .user-profile-inner svg { width: 14px; height: 14px; }
-  .nav-btn.logout-btn { padding: 0.4rem 0.6rem !important; font-size: 0.75rem; white-space: nowrap; }
+  .theme-toggle-label { font-size: 11px; width: 3.2em; height: 38px; flex-shrink: 0 !important; }
+  .user-profile-btn  { width: 66px !important; height: 30px !important; }
+  .user-profile-inner { width: 62px !important; height: 26px !important; font-size: 0.66rem !important; gap: 3px !important; }
+  .user-profile-inner svg { width: 13px; height: 13px; }
+  .nav-btn.logout-btn { padding: 0.35rem 0.55rem !important; font-size: 0.72rem; white-space: nowrap; }
 }
 
 @media (max-width: 480px) {
   .nav-inner { gap: 4px !important; }
   .theme-toggle-label { font-size: 10px; width: 3em; height: 34px; }
-  .user-profile-btn  { width: 84px; height: 34px; }
-  .user-profile-inner { width: 80px; height: 30px; font-size: 0.72rem; gap: 4px; }
-  .user-profile-inner svg { width: 13px; height: 13px; }
-  .nav-btn.logout-btn { padding: 0.4rem 0.55rem !important; font-size: 0.72rem; }
+  .user-profile-btn  { width: 62px !important; height: 28px !important; }
+  .user-profile-inner { width: 58px !important; height: 24px !important; font-size: 0.64rem !important; gap: 2px !important; }
+  .user-profile-inner svg { width: 12px; height: 12px; }
+  .nav-btn.logout-btn { padding: 0.3rem 0.5rem !important; font-size: 0.7rem; }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -2022,9 +2024,9 @@ html[data-theme="dark"] .flip-card-back {
 @media (max-width: 560px) {
   .nav .brand {
     margin: 0 !important;
-    text-align: center !important;
+    text-align: left !important;
     transform: none !important;
-    font-size: 1.7rem !important;
+    font-size: 1.55rem !important;
   }
 }
 /* ========================

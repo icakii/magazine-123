@@ -1,6 +1,7 @@
 # env files
 .env
 *.env
+!client/.env
 
 # node
 node_modules

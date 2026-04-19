@@ -1512,17 +1512,21 @@ app.post("/api/auth/verify-2fa", async (req, res) => {
 // 🔐 GOOGLE OAUTH
 // ---------------------------------------------------------------
 app.post("/api/auth/google", async (req, res) => {
-  const { access_token } = req.body
-  if (!access_token) return res.status(400).json({ error: "Missing access_token" })
+  const { credential } = req.body
+  if (!credential) return res.status(400).json({ error: "Missing credential" })
+
+  const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID
+  if (!GOOGLE_CLIENT_ID) return res.status(500).json({ error: "Google auth not configured on server" })
 
   try {
-    const oauthClient = new OAuth2Client()
-    const tokenInfo = await oauthClient.getTokenInfo(access_token)
-    if (!tokenInfo.email) return res.status(401).json({ error: "Invalid Google token" })
+    const oauthClient = new OAuth2Client(GOOGLE_CLIENT_ID)
+    const ticket = await oauthClient.verifyIdToken({ idToken: credential, audience: GOOGLE_CLIENT_ID })
+    const payload = ticket.getPayload()
+    if (!payload?.email) return res.status(401).json({ error: "Invalid Google token" })
 
-    const googleEmail = normalizeEmail(tokenInfo.email)
-    const googleName = ""
-    const googleSub = String(tokenInfo.sub || tokenInfo.user_id || "")
+    const googleEmail = normalizeEmail(payload.email)
+    const googleName = String(payload.name || "").trim()
+    const googleSub = String(payload.sub || "")
 
     if (!googleEmail) return res.status(400).json({ error: "No email from Google" })
 

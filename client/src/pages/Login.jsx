@@ -1,10 +1,10 @@
 // client/src/pages/Login.jsx
 import { useState } from "react"
 import { Link, useLocation, useNavigate } from "react-router-dom"
-import { GoogleLogin } from "@react-oauth/google"
 import { api } from "../lib/api"
 import { t } from "../lib/i18n"
 import { useAuth } from "../context/AuthContext"
+import GoogleAuthButton from "../components/GoogleAuthButton"
 
 export default function Login() {
   const { login, googleLogin } = useAuth()
@@ -162,12 +162,13 @@ export default function Login() {
           <>
             <div className="auth-divider"><span>or</span></div>
             <div className="google-login-wrap">
-              <GoogleLogin
-                onSuccess={async (credentialResponse) => {
+              <GoogleAuthButton
+                loading={loading}
+                onSuccess={async (idToken) => {
                   setMsg({ type: "", text: "" })
                   setLoading(true)
                   try {
-                    await googleLogin(credentialResponse.credential)
+                    await googleLogin(idToken)
                     nav(loc.state?.from || "/profile", { replace: true })
                   } catch {
                     setMsg({ type: "error", text: "Google sign-in failed" })
@@ -176,10 +177,6 @@ export default function Login() {
                   }
                 }}
                 onError={() => setMsg({ type: "error", text: "Google sign-in failed" })}
-                width="280"
-                text="continue_with"
-                shape="rectangular"
-                size="large"
               />
             </div>
           </>

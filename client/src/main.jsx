@@ -2,7 +2,7 @@
 import React, { useEffect } from "react"
 import ReactDOM from "react-dom/client"
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom"
-import { GoogleOAuthProvider } from "@react-oauth/google"
+import GoogleOAuthCallback from "./pages/GoogleOAuthCallback"
 
 // Страници
 import Home from "./pages/Home"
@@ -109,10 +109,7 @@ function ThemeBootstrap() {
   return null
 }
 
-const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || "601194951892-idgf92otjutba0cfirtmr36lhk5rljti.apps.googleusercontent.com"
-
 ReactDOM.createRoot(document.getElementById("root")).render(
-  <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
   <AuthProvider>
     <BrowserRouter>
       <ThemeBootstrap />
@@ -158,6 +155,7 @@ ReactDOM.createRoot(document.getElementById("root")).render(
             {/* Auth */}
             <Route path="/register" element={<Register />} />
             <Route path="/login" element={<Login />} />
+            <Route path="/auth/google/callback" element={<GoogleOAuthCallback />} />
             <Route path="/confirm" element={<Confirm />} />
             <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/2fa/verify" element={<TwoFAVerify />} />
@@ -223,5 +221,4 @@ ReactDOM.createRoot(document.getElementById("root")).render(
       </MaintenanceGate>
     </BrowserRouter>
   </AuthProvider>
-  </GoogleOAuthProvider>
 )

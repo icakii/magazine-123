@@ -1,10 +1,10 @@
 // client/src/pages/Register.jsx
 import { useRef, useState } from "react"
 import { Link, useNavigate } from "react-router-dom"
-import { GoogleLogin } from "@react-oauth/google"
 import { api } from "../lib/api"
 import { t } from "../lib/i18n"
 import { useAuth } from "../context/AuthContext"
+import GoogleAuthButton from "../components/GoogleAuthButton"
 
 export default function Register() {
   const { googleLogin } = useAuth()
@@ -181,11 +181,12 @@ export default function Register() {
 
         <div className="auth-divider"><span>or</span></div>
         <div className="google-login-wrap">
-          <GoogleLogin
-            onSuccess={async (credentialResponse) => {
+          <GoogleAuthButton
+            loading={loading}
+            onSuccess={async (idToken) => {
               setLoading(true)
               try {
-                await googleLogin(credentialResponse.credential)
+                await googleLogin(idToken)
                 nav("/profile", { replace: true })
               } catch {
                 setMsg("Google sign-in failed")
@@ -194,10 +195,6 @@ export default function Register() {
               }
             }}
             onError={() => setMsg("Google sign-in failed")}
-            width="280"
-            text="continue_with"
-            shape="rectangular"
-            size="large"
           />
         </div>
 

@@ -2178,41 +2178,31 @@ html[data-theme="dark"] .btn-read-more {
   padding: 0 18px;
   border-radius: 6px;
   border: 2px solid #323232;
-  background: #ffffff;
+  background-color: #ffffff;
   color: #323232;
   font-size: 0.95rem;
   font-weight: 700;
   cursor: pointer;
   box-shadow: 3px 3px 0 #323232;
-  transition: color 0.22s, box-shadow 0.15s;
-  position: relative;
-  overflow: hidden;
+  transition: background-color 0.22s, color 0.22s, box-shadow 0.15s;
 }
 html[data-theme="dark"] .oauth-google-btn {
-  border-color: #e8e8e8;
-  background: #2a2a2a;
+  border-color: #d4d4d4;
+  background-color: #2a2a2a;
   color: #e8e8e8;
-  box-shadow: 3px 3px 0 #e8e8e8;
+  box-shadow: 3px 3px 0 #d4d4d4;
 }
-.oauth-google-btn::before {
-  content: "";
-  position: absolute;
-  top: 0; left: 0;
-  height: 100%; width: 0;
-  background: #212121;
-  transition: width 0.22s;
-  z-index: 0;
+.oauth-google-btn:hover {
+  background-color: #212121;
+  color: #e8e8e8;
 }
-html[data-theme="dark"] .oauth-google-btn::before {
-  background: #e8e8e8;
+html[data-theme="dark"] .oauth-google-btn:hover {
+  background-color: #e8e8e8;
+  color: #212121;
 }
-.oauth-google-btn:hover { color: #e8e8e8; }
-html[data-theme="dark"] .oauth-google-btn:hover { color: #212121; }
-.oauth-google-btn:hover::before { width: 100%; }
 .oauth-google-btn:active { box-shadow: 1px 1px 0 #323232; }
-html[data-theme="dark"] .oauth-google-btn:active { box-shadow: 1px 1px 0 #e8e8e8; }
+html[data-theme="dark"] .oauth-google-btn:active { box-shadow: 1px 1px 0 #d4d4d4; }
 .oauth-google-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-.oauth-google-btn > * { position: relative; z-index: 1; }
 
 .oauth-google-icon {
   width: 1.3rem;

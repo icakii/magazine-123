@@ -81,14 +81,14 @@ app.use(cookieParser())
 // ---------------------------------------------------------------
 app.use(
   helmet({
-    // Allow showing external images/videos (Cloudinary)
     contentSecurityPolicy: {
       useDefaults: true,
       directives: {
-        // keep defaults + widen only what we need
         "img-src": ["'self'", "data:", "blob:", "https:"],
         "media-src": ["'self'", "data:", "blob:", "https:"],
-        // if you embed fonts from google etc add here, иначе остави defaults
+        "script-src": ["'self'", "'unsafe-inline'", "https://accounts.google.com"],
+        "frame-src": ["'self'", "https://accounts.google.com"],
+        "connect-src": ["'self'", "https://accounts.google.com", "https://www.googleapis.com"],
       },
     },
     crossOriginResourcePolicy: { policy: "cross-origin" },

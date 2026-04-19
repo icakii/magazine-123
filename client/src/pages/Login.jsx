@@ -1,7 +1,7 @@
 // client/src/pages/Login.jsx
 import { useState } from "react"
 import { Link, useLocation, useNavigate } from "react-router-dom"
-import { useGoogleLogin, GoogleLogin } from "@react-oauth/google"
+import { GoogleLogin } from "@react-oauth/google"
 import { api } from "../lib/api"
 import { t } from "../lib/i18n"
 import { useAuth } from "../context/AuthContext"
@@ -15,24 +15,6 @@ export default function Login() {
   const [msg, setMsg] = useState({ type: "", text: "" })
   const [isForgotPass, setIsForgotPass] = useState(false)
   const [loading, setLoading] = useState(false)
-
-  const handleGoogleLogin = useGoogleLogin({
-    flow: "implicit",
-    ux_mode: "popup",
-    onSuccess: async (tokenResponse) => {
-      setMsg({ type: "", text: "" })
-      setLoading(true)
-      try {
-        await googleLogin(tokenResponse.access_token)
-        nav(loc.state?.from || "/profile", { replace: true })
-      } catch {
-        setMsg({ type: "error", text: "Google sign-in failed" })
-      } finally {
-        setLoading(false)
-      }
-    },
-    onError: () => setMsg({ type: "error", text: "Google sign-in failed" }),
-  })
 
   function update(e) {
     setForm((f) => ({ ...f, [e.target.name]: e.target.value }))

@@ -109,7 +109,7 @@ function ThemeBootstrap() {
   return null
 }
 
-const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || ""
+const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || "601194951892-idgf92otjutba0cfirtmr36lhk5rljti.apps.googleusercontent.com"
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>

@@ -2,6 +2,7 @@
 import React, { useEffect } from "react"
 import ReactDOM from "react-dom/client"
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom"
+import { GoogleOAuthProvider } from "@react-oauth/google"
 
 // Страници
 import Home from "./pages/Home"
@@ -37,6 +38,7 @@ import ScrollParallaxDecor from "./components/ScrollParallaxDecor"
 import StarsBackground from "./components/StarsBackground"
 import BubbleBackground from "./components/BubbleBackground"
 import Loader from "./components/Loader"
+import CookieConsent from "./components/CookieConsent"
 
 // Auth provider
 import { AuthProvider, useAuth } from "./context/AuthContext"
@@ -107,7 +109,10 @@ function ThemeBootstrap() {
   return null
 }
 
+const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || ""
+
 ReactDOM.createRoot(document.getElementById("root")).render(
+  <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
   <AuthProvider>
     <BrowserRouter>
       <ThemeBootstrap />
@@ -214,7 +219,9 @@ ReactDOM.createRoot(document.getElementById("root")).render(
           </Routes>
         </main>
         <Footer />
+        <CookieConsent />
       </MaintenanceGate>
     </BrowserRouter>
   </AuthProvider>
+  </GoogleOAuthProvider>
 )

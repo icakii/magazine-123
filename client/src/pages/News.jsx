@@ -128,7 +128,7 @@ export default function News() {
 
               <p style={{ flex: 1 }}>{article.excerpt}</p>
 
-              <button className="btn outline" style={{ marginTop: 15 }} onClick={() => !isLocked && setSelectedArticle(article)} disabled={isLocked} type="button">
+              <button className="btn-read-more" onClick={() => !isLocked && setSelectedArticle(article)} disabled={isLocked} type="button">
                 Read More
               </button>
             </div>

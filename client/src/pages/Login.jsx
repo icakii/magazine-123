@@ -1,12 +1,13 @@
 // client/src/pages/Login.jsx
 import { useState } from "react"
 import { Link, useLocation, useNavigate } from "react-router-dom"
+import { GoogleLogin } from "@react-oauth/google"
 import { api } from "../lib/api"
 import { t } from "../lib/i18n"
 import { useAuth } from "../context/AuthContext"
 
 export default function Login() {
-  const { login } = useAuth()
+  const { login, googleLogin } = useAuth()
   const nav = useNavigate()
   const loc = useLocation()
 
@@ -155,6 +156,32 @@ export default function Login() {
               </button>
             </div>
           </form>
+        )}
+
+        {!isForgotPass && (
+          <>
+            <div className="auth-divider"><span>or</span></div>
+            <div className="google-login-wrap">
+              <GoogleLogin
+                onSuccess={async (credentialResponse) => {
+                  setMsg({ type: "", text: "" })
+                  setLoading(true)
+                  try {
+                    await googleLogin(credentialResponse.credential)
+                    nav(loc.state?.from || "/profile", { replace: true })
+                  } catch {
+                    setMsg({ type: "error", text: "Google sign-in failed" })
+                  } finally {
+                    setLoading(false)
+                  }
+                }}
+                onError={() => setMsg({ type: "error", text: "Google sign-in failed" })}
+                theme="outline"
+                size="large"
+                width="100%"
+              />
+            </div>
+          </>
         )}
 
         {msg.text && (

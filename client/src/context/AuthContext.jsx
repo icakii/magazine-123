@@ -61,6 +61,16 @@ export function AuthProvider({ children }) {
     [refreshMe]
   )
 
+  const googleLogin = useCallback(
+    async (credential) => {
+      const res = await api.post("/auth/google", { credential })
+      if (res.data?.token) storeToken(res.data.token)
+      await refreshMe()
+      return { ok: true }
+    },
+    [refreshMe]
+  )
+
   // NOTE: в твоя бекенд verify-2fa enable-ва 2FA.
   // Засега го ползваме и за login flow (по-късно е добре да ги разделим на два endpoint-а).
   const verify2FA = useCallback(
@@ -84,8 +94,8 @@ export function AuthProvider({ children }) {
   }, [])
 
   const value = useMemo(
-    () => ({ user, loading, refreshMe, login, verify2FA, logout }),
-    [user, loading, refreshMe, login, verify2FA, logout]
+    () => ({ user, loading, refreshMe, login, googleLogin, verify2FA, logout }),
+    [user, loading, refreshMe, login, googleLogin, verify2FA, logout]
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

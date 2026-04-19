@@ -18,6 +18,7 @@ const helmet = require("helmet")
 const path = require("path")
 const fs = require("fs")
 const userRouter = require("./routes/user.routes")
+const { OAuth2Client } = require("google-auth-library")
 
 // ✅ ROUTERS
 const storeRouter = require("./routes/store")
@@ -562,6 +563,10 @@ app.get("/api/fix-db", async (req, res) => {
     await db.query(
       `ALTER TABLE magazine_issues ADD COLUMN IF NOT EXISTS hero_vfx_url TEXT;`
     )
+
+    await db.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS instagram_handle TEXT;`)
+    await db.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS instagram_updated_at TIMESTAMPTZ;`)
+    await db.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS google_sub TEXT;`)
 
     res.send("✅ УСПЕХ! Базата данни е поправена за новите полета.")
   } catch (e) {
@@ -1238,6 +1243,7 @@ app.post("/api/auth/login", async (req, res) => {
     const user = rows[0]
     if (!user) return res.status(404).json({ error: "User not found" })
 
+    if (!user.password_hash) return res.status(401).json({ error: "This account uses Google Sign-In. Please sign in with Google." })
     const ok = await bcrypt.compare(password, user.password_hash)
     if (!ok) return res.status(401).json({ error: "Wrong password" })
 
@@ -1507,6 +1513,68 @@ app.post("/api/auth/verify-2fa", async (req, res) => {
   }
 })
 
+
+// ---------------------------------------------------------------
+// 🔐 GOOGLE OAUTH
+// ---------------------------------------------------------------
+app.post("/api/auth/google", async (req, res) => {
+  const { credential } = req.body
+  if (!credential) return res.status(400).json({ error: "Missing credential" })
+
+  const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID
+  if (!GOOGLE_CLIENT_ID) return res.status(500).json({ error: "Google auth not configured" })
+
+  try {
+    const client = new OAuth2Client(GOOGLE_CLIENT_ID)
+    const ticket = await client.verifyIdToken({ idToken: credential, audience: GOOGLE_CLIENT_ID })
+    const payload = ticket.getPayload()
+
+    const googleEmail = normalizeEmail(payload.email || "")
+    const googleName = String(payload.name || "").trim()
+    const googleSub = String(payload.sub || "")
+
+    if (!googleEmail) return res.status(400).json({ error: "No email from Google" })
+
+    // find or create user
+    let { rows } = await db.query("SELECT * FROM users WHERE lower(email) = lower($1) LIMIT 1", [googleEmail])
+    let user = rows[0]
+
+    if (!user) {
+      // generate unique display name
+      let displayName = googleName || googleEmail.split("@")[0]
+      const taken = await db.query("SELECT 1 FROM users WHERE display_name = $1 LIMIT 1", [displayName])
+      if (taken.rows.length > 0) displayName = `${displayName}${Math.floor(Math.random() * 9000) + 1000}`
+
+      const insertRes = await db.query(
+        `INSERT INTO users (email, display_name, password_hash, created_at, is_confirmed, google_sub)
+         VALUES ($1, $2, NULL, NOW(), true, $3)
+         RETURNING *`,
+        [googleEmail, displayName, googleSub]
+      )
+      user = insertRes.rows[0]
+
+      // create free subscription
+      await db.query("INSERT INTO subscriptions (email, plan) VALUES ($1, 'free') ON CONFLICT DO NOTHING", [googleEmail])
+    } else {
+      // update google_sub if missing
+      if (!user.google_sub) {
+        await db.query("UPDATE users SET google_sub = $1, is_confirmed = true WHERE email = $2", [googleSub, googleEmail])
+      }
+    }
+
+    const token = signToken({ email: user.email })
+    setAuthCookie(res, token)
+
+    return res.json({
+      ok: true,
+      token,
+      user: { email: user.email, displayName: user.display_name },
+    })
+  } catch (err) {
+    console.error("GOOGLE AUTH ERROR:", err)
+    return res.status(401).json({ error: "Google authentication failed" })
+  }
+})
 
 // ---------------------------------------------------------------
 // 💳 SUBSCRIPTIONS & STRIPE CHECKOUT

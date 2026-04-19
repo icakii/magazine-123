@@ -6,13 +6,11 @@ export default function GoogleOAuthCallback() {
     const idToken = hash.get("id_token")
     const error = hash.get("error")
 
-    if (window.opener) {
-      window.opener.postMessage(
-        { source: "google-oauth", idToken, error },
-        window.location.origin
-      )
-      window.close()
-    }
+    const bc = new BroadcastChannel("google-oauth")
+    bc.postMessage({ idToken, error })
+    bc.close()
+
+    setTimeout(() => window.close(), 300)
   }, [])
 
   return (

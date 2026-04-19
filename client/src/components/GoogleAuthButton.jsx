@@ -34,22 +34,18 @@ export default function GoogleAuthButton({ onSuccess, onError, loading: external
 
     setLoading(true)
 
-    function handler(event) {
-      if (event.origin !== window.location.origin) return
-      if (event.data?.source !== "google-oauth") return
-      window.removeEventListener("message", handler)
+    const bc = new BroadcastChannel("google-oauth")
+    bc.onmessage = (event) => {
+      bc.close()
       setLoading(false)
-
-      if (event.data.error) {
+      if (event.data?.error) {
         onError?.(event.data.error)
-      } else if (event.data.idToken) {
+      } else if (event.data?.idToken) {
         onSuccess?.(event.data.idToken)
       } else {
         onError?.("No token received")
       }
     }
-
-    window.addEventListener("message", handler)
   }
 
   return (

@@ -17,6 +17,8 @@ export default function Login() {
   const [loading, setLoading] = useState(false)
 
   const handleGoogleLogin = useGoogleLogin({
+    flow: "implicit",
+    ux_mode: "popup",
     onSuccess: async (tokenResponse) => {
       setMsg({ type: "", text: "" })
       setLoading(true)

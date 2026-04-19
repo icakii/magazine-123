@@ -16,6 +16,8 @@ export default function Register() {
   const msgRef = useRef(null)
 
   const handleGoogleLogin = useGoogleLogin({
+    flow: "implicit",
+    ux_mode: "popup",
     onSuccess: async (tokenResponse) => {
       setLoading(true)
       try {

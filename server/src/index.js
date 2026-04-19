@@ -119,11 +119,6 @@ const EMAIL_ACCOUNTS = {
     pass: "uywk zcdo ymhe gjdb",
     label: "MIREN Newsletter",
   },
-  billing: {
-    user: "support@mirenmagazine.com",
-    pass: "ztzg jkeh qvoq maed",
-    label: "MIREN Orders",
-  },
 }
 
 function createTransportFor(account) {
@@ -146,7 +141,6 @@ const transporters = {
   login: createTransportFor(EMAIL_ACCOUNTS.login),
   contact: createTransportFor(EMAIL_ACCOUNTS.contact),
   newsletter: createTransportFor(EMAIL_ACCOUNTS.newsletter),
-  billing: createTransportFor(EMAIL_ACCOUNTS.billing),
 }
 
 Object.entries(transporters).forEach(([key, transporter]) => {
@@ -318,8 +312,8 @@ app.post(
               <p><b>Items:</b><br/>${lines}</p>
             `
 
-            await transporters.billing.sendMail({
-              from: `"${EMAIL_ACCOUNTS.billing.label}" <${EMAIL_ACCOUNTS.billing.user}>`,
+            await transporters.login.sendMail({
+              from: `"${EMAIL_ACCOUNTS.login.label}" <${EMAIL_ACCOUNTS.login.user}>`,
               to: internalOrderInbox,
               subject: `New Order • ${session.id}`,
               html,

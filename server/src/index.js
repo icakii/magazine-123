@@ -1121,7 +1121,7 @@ app.get("/api/auth/check", async (req, res) => {
     }
 
     if (displayName) {
-      const { rows } = await db.query("SELECT 1 FROM users WHERE display_name = $1 LIMIT 1", [displayName])
+      const { rows } = await db.query("SELECT 1 FROM users WHERE lower(display_name) = lower($1) LIMIT 1", [displayName])
       return res.json({ taken: rows.length > 0 })
     }
 
@@ -1153,7 +1153,7 @@ app.post("/api/auth/register", async (req, res) => {
     }
 
     const nameCheck = await db.query(
-      "SELECT * FROM users WHERE display_name = $1",
+      "SELECT * FROM users WHERE lower(display_name) = lower($1)",
       [normalizedDisplayName]
     )
     if (nameCheck.rows.length > 0) {

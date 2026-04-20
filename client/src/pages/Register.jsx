@@ -67,6 +67,15 @@ export default function Register() {
     if (loading) return
 
     setMsg("")
+
+    if (errors.email || errors.displayName) {
+      setTimeout(() => {
+        const el = document.querySelector(".input.is-error") || msgRef.current
+        if (el) el.scrollIntoView({ behavior: "smooth", block: "center" })
+      }, 50)
+      return
+    }
+
     setErrors({ email: "", displayName: "" })
 
     const payload = normalizedForm()

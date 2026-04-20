@@ -5,9 +5,14 @@
     <link rel="icon" type="image/png" sizes="32x32" href="/logo12345.png" />
     <link rel="shortcut icon" href="/logo12345.png" />
     <link rel="apple-touch-icon" href="/logo12345.png" />
-    
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>MIREN</title>
+    <script>
+      try {
+        var t = localStorage.getItem("miren_theme");
+        if (t === "dark" || t === "light") document.documentElement.setAttribute("data-theme", t);
+      } catch(e) {}
+    </script>
     <!-- Fonts loaded via CSS import in global.css (Oswald/Montserrat/Roboto Slab) -->
   </head>
   <body>

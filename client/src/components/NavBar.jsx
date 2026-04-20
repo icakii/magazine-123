@@ -21,9 +21,11 @@ export default function NavBar() {
 
   function handleThemeToggle() {
     const next = theme === "dark" ? "light" : "dark"
+    document.documentElement.classList.add("theme-changing")
     document.documentElement.setAttribute("data-theme", next)
     try { localStorage.setItem("miren_theme", next) } catch {}
     setTheme(next)
+    setTimeout(() => document.documentElement.classList.remove("theme-changing"), 350)
   }
 
   const navRef = useRef(null)

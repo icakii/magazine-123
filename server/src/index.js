@@ -41,6 +41,8 @@ const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:5173"
 const APP_URL = process.env.APP_URL || "http://localhost:5173"
 const STRIPE_PRICE_MONTHLY = process.env.STRIPE_PRICE_MONTHLY || ""
 const STRIPE_PRICE_YEARLY = process.env.STRIPE_PRICE_YEARLY || ""
+const STRIPE_PRICE_MAGAZINE = process.env.STRIPE_PRICE_MAGAZINE || ""
+const MAGAZINE_STOCK_TOTAL = 60
 
 // ---------------------------------------------------------------
 // 0) TRUST PROXY (Render)
@@ -257,7 +259,29 @@ app.post(
         // -----------------------------------------------------------
         if (session.payment_status === "paid" && session.mode === "payment") {
           try {
-                       const internalOrderInbox = "icaki@mirenmagazine.com"
+            // Save magazine order to DB
+            if (session.metadata?.type === "magazine") {
+              const qty = parseInt(session.metadata?.quantity || 1)
+              const customFields = Array.isArray(session.custom_fields) ? session.custom_fields : []
+              const fullNameField = customFields.find((f) => f?.key === "full_name")
+              const fullName = fullNameField?.text?.value || ""
+              const shipping = session.shipping_details || {}
+              await db.query(
+                `INSERT INTO magazine_orders (stripe_session_id, customer_email, full_name, shipping_address, quantity, amount_total, currency)
+                 VALUES ($1,$2,$3,$4,$5,$6,$7) ON CONFLICT (stripe_session_id) DO NOTHING`,
+                [
+                  session.id,
+                  customerEmail,
+                  fullName,
+                  JSON.stringify(shipping.address || {}),
+                  qty,
+                  session.amount_total,
+                  session.currency,
+                ]
+              ).catch((e) => console.error("MAGAZINE ORDER DB ERROR:", e))
+            }
+
+            const internalOrderInbox = "icaki@mirenmagazine.com"
 
             // line items
             let lines = "(no items)"
@@ -320,8 +344,8 @@ app.post(
             })
 
                         if (customerEmail) {
-              await transporters.billing.sendMail({
-                from: `"${EMAIL_ACCOUNTS.billing.label}" <${EMAIL_ACCOUNTS.billing.user}>`,
+              await transporters.login.sendMail({
+                from: `"${EMAIL_ACCOUNTS.login.label}" <${EMAIL_ACCOUNTS.login.user}>`,
                 to: customerEmail,
                 subject: `Order confirmation • ${session.id}`,
                 html,
@@ -561,6 +585,21 @@ app.get("/api/fix-db", async (req, res) => {
     await db.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS instagram_handle TEXT;`)
     await db.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS instagram_updated_at TIMESTAMPTZ;`)
     await db.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS google_sub TEXT;`)
+
+    await db.query(`
+      CREATE TABLE IF NOT EXISTS magazine_orders (
+        id SERIAL PRIMARY KEY,
+        stripe_session_id TEXT UNIQUE NOT NULL,
+        customer_email TEXT NOT NULL,
+        full_name TEXT,
+        shipping_address JSONB,
+        quantity INTEGER DEFAULT 1,
+        amount_total INTEGER,
+        currency TEXT,
+        status TEXT DEFAULT 'paid',
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      );
+    `)
 
     res.send("✅ УСПЕХ! Базата данни е поправена за новите полета.")
   } catch (e) {
@@ -1675,6 +1714,74 @@ const userEmail = req.user.email
            metadata: { plan },
       success_url: `${APP_URL}/profile?payment_success=true`,
       cancel_url: `${APP_URL}/subscriptions`,
+    })
+
+    res.json({ url: session.url })
+  } catch (e) {
+    res.status(500).json({ error: e.message })
+  }
+})
+
+// ---------------------------------------------------------------
+// 📦 MAGAZINE STOCK
+// ---------------------------------------------------------------
+app.get("/api/magazine/stock", async (req, res) => {
+  try {
+    const { rows } = await db.query(
+      "SELECT COALESCE(SUM(quantity),0) AS sold FROM magazine_orders WHERE status = 'paid'"
+    )
+    const sold = parseInt(rows[0]?.sold || 0)
+    const remaining = Math.max(0, MAGAZINE_STOCK_TOTAL - sold)
+    res.json({ total: MAGAZINE_STOCK_TOTAL, sold, remaining })
+  } catch (e) {
+    res.status(500).json({ error: e.message })
+  }
+})
+
+app.post("/api/create-magazine-checkout", async (req, res) => {
+  const quantity = Math.max(1, parseInt(req.body?.quantity || 1))
+  const userEmail = req.user?.email || req.body?.email || ""
+
+  try {
+    const { rows } = await db.query(
+      "SELECT COALESCE(SUM(quantity),0) AS sold FROM magazine_orders WHERE status = 'paid'"
+    )
+    const sold = parseInt(rows[0]?.sold || 0)
+    const remaining = MAGAZINE_STOCK_TOTAL - sold
+    if (quantity > remaining) {
+      return res.status(400).json({ error: `Only ${remaining} copies left` })
+    }
+
+    const lineItem = STRIPE_PRICE_MAGAZINE
+      ? { price: STRIPE_PRICE_MAGAZINE, quantity }
+      : {
+          price_data: {
+            product_data: { name: "MIREN Списание" },
+            unit_amount: 1499,
+            currency: "eur",
+          },
+          quantity,
+        }
+
+    const session = await stripe.checkout.sessions.create({
+      payment_method_types: ["card"],
+      mode: "payment",
+      line_items: [lineItem],
+      ...(userEmail ? { customer_email: userEmail } : {}),
+      custom_fields: [
+        {
+          key: "full_name",
+          label: { type: "custom", custom: "Три имена (Three names)" },
+          type: "text",
+        },
+      ],
+      phone_number_collection: { enabled: true },
+      shipping_address_collection: {
+        allowed_countries: ["BG", "GB", "DE", "FR", "NL", "AT", "BE", "GR", "RO", "US"],
+      },
+      metadata: { type: "magazine", quantity: String(quantity) },
+      success_url: `${APP_URL}/store?order=success`,
+      cancel_url: `${APP_URL}/store`,
     })
 
     res.json({ url: session.url })

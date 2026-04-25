@@ -28,7 +28,6 @@ const TABS = [
   { key: "store", label: "Store Items" },
   { key: "orders", label: "Orders" },
   { key: "subscriptions", label: "Subscriptions" },
-  { key: "users", label: "Users" },
   { key: "newsletter", label: "Newsletter" },
 ]
 
@@ -628,8 +627,12 @@ const [heroVfxUrl, setHeroVfxUrl] = useState("")
         }
 
         if (activeTab === "newsletter") {
-          const res = await api.get("/newsletter/subscribers")
-          setSubscribers(Array.isArray(res.data) ? res.data : [])
+          const [subsRes, usersRes] = await Promise.all([
+            api.get("/newsletter/subscribers"),
+            api.get("/admin/users"),
+          ])
+          setSubscribers(Array.isArray(subsRes.data) ? subsRes.data : [])
+          setUsers(Array.isArray(usersRes.data) ? usersRes.data : [])
           return
         }
       } catch (e) {
@@ -1255,47 +1258,26 @@ isVideoUrl(heroVfxUrl) ? (
         </div>
       )}
 
-      {/* USERS */}
-      {activeTab === "users" && (
-        <div className="admin-card">
-          <h3 className="headline">Потребители ({users.length})</h3>
-
-          {users.length === 0 ? (
-            <p className="text-muted">Няма регистрирани потребители.</p>
-          ) : (
-            <div className="list">
-              {users.map((u) => (
-                <div key={u.id} className="list-row">
-                  <div className="list-main">
-                    <div className="list-title">
-                      {u.display_name || "(без потребителско име)"}{" "}
-                      {u.is_google && <span style={{ fontSize: "0.75em", background: "#4285F4", color: "#fff", borderRadius: 4, padding: "1px 5px" }}>Google</span>}
-                    </div>
-                    <div className="list-sub text-muted">
-                      {u.email} • Регистриран: {u.created_at ? new Date(u.created_at).toLocaleDateString("bg-BG") : "—"}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
 
       {/* NEWSLETTER */}
       {activeTab === "newsletter" && (
         <div className="admin-grid">
           <div className="admin-card">
-            <h3 className="headline">Audience</h3>
-            {subscribers.length === 0 ? (
-              <p className="text-muted">No newsletter subscribers yet.</p>
+            <h3 className="headline">Регистрирани акаунти ({users.length})</h3>
+            {users.length === 0 ? (
+              <p className="text-muted">Няма регистрирани потребители.</p>
             ) : (
               <div className="list">
-                {subscribers.map((s, i) => (
-                  <div key={s.email || i} className="list-row">
+                {users.map((u, i) => (
+                  <div key={u.email || i} className="list-row">
                     <div className="list-main">
-                      <div className="list-title">{s.email}</div>
-                      <div className="list-sub text-muted">{s.created_at ? new Date(s.created_at).toLocaleString() : ""}</div>
+                      <div className="list-title">
+                        {u.display_name || "(без потребителско име)"}{" "}
+                        {u.is_google && <span style={{ fontSize: "0.75em", background: "#4285F4", color: "#fff", borderRadius: 4, padding: "1px 5px" }}>Google</span>}
+                      </div>
+                      <div className="list-sub text-muted">
+                        {u.email} • {u.created_at ? new Date(u.created_at).toLocaleDateString("bg-BG") : "—"}
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -1304,20 +1286,36 @@ isVideoUrl(heroVfxUrl) ? (
           </div>
 
           <div className="admin-card">
-            <h3 className="headline">Send Newsletter</h3>
-                        <p className="text-muted">Sends to all registered accounts + newsletter subscribers.</p>
+            <h3 className="headline">Newsletter абонати ({subscribers.length})</h3>
+            {subscribers.length === 0 ? (
+              <p className="text-muted">Няма newsletter абонати.</p>
+            ) : (
+              <div className="list">
+                {subscribers.map((s, i) => (
+                  <div key={s.email || i} className="list-row">
+                    <div className="list-main">
+                      <div className="list-title">{s.email}</div>
+                      <div className="list-sub text-muted">{s.created_at ? new Date(s.created_at).toLocaleString("bg-BG") : ""}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="admin-card" style={{ gridColumn: "1 / -1" }}>
+            <h3 className="headline">Изпрати имейл</h3>
+            <p className="text-muted">Изпраща до всички регистрирани акаунти ({users.length}) + newsletter абонати ({subscribers.length}) — общо ~{new Set([...users.map(u => u.email), ...subscribers.map(s => s.email)]).size} получателя.</p>
             <label className="field">
-              <span>Subject</span>
+              <span>Тема</span>
               <input value={emailSubject} onChange={(e) => setEmailSubject(e.target.value)} />
             </label>
-
             <label className="field">
-              <span>Body (HTML allowed)</span>
+              <span>Съдържание (HTML)</span>
               <textarea rows={10} value={emailBody} onChange={(e) => setEmailBody(e.target.value)} />
             </label>
-
             <button className="btn primary" onClick={sendNewsletter} disabled={busy} type="button">
-              Send
+              Изпрати
             </button>
           </div>
         </div>

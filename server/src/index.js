@@ -788,12 +788,20 @@ app.post("/api/admin/miren-art/reset-codes", adminMiddleware, async (req, res) =
 app.get("/api/admin/users", adminMiddleware, async (req, res) => {
   try {
     const { rows } = await db.query(
-      `SELECT id, email, display_name, created_at, google_sub IS NOT NULL AS is_google
+      `SELECT email, display_name, created_at,
+              CASE WHEN google_sub IS NOT NULL THEN true ELSE false END AS is_google
        FROM users ORDER BY created_at DESC`
     )
     res.json(rows)
   } catch (e) {
-    res.status(500).json({ error: e.message })
+    try {
+      const { rows } = await db.query(
+        `SELECT email, display_name, created_at FROM users ORDER BY created_at DESC`
+      )
+      res.json(rows.map(r => ({ ...r, is_google: false })))
+    } catch (e2) {
+      res.status(500).json({ error: e2.message })
+    }
   }
 })
 

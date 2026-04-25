@@ -4224,6 +4224,28 @@ body.cart-open{
   backdrop-filter: blur(6px) !important;
 }
 
+.admin-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: var(--grad-card);
+  border: 1px solid var(--nav-border);
+  border-radius: 12px;
+  padding: 12px 20px;
+  min-width: 100px;
+}
+.admin-stat-label {
+  font-size: 0.75rem;
+  color: var(--clr-muted, #888);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.admin-stat-value {
+  font-size: 1.8rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
 .form-grid {
   display: grid !important;
   grid-template-columns: 1fr 1fr !important;

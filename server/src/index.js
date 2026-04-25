@@ -422,7 +422,7 @@ function authMiddleware(req, res, next) {
 
 function adminMiddleware(req, res, next) {
   authMiddleware(req, res, () => {
-    const adminEmails = ["icaki@mirenmagazine.com", "info@mirenmagazine.com"]
+    const adminEmails = ["info@mirenmagazine.com"]
     if (!adminEmails.includes(req.user.email)) {
       return res.status(403).json({ error: "Admin access required" })
     }
@@ -779,6 +779,77 @@ app.post("/api/admin/miren-art/reset-codes", adminMiddleware, async (req, res) =
   } catch (e) {
     console.error("POST /api/admin/miren-art/reset-codes error:", e)
     return res.status(500).json({ error: "Failed to reset codes" })
+  }
+})
+
+// ---------------------------------------------------------------
+// 👥 ADMIN — USERS
+// ---------------------------------------------------------------
+app.get("/api/admin/users", adminMiddleware, async (req, res) => {
+  try {
+    const { rows } = await db.query(
+      `SELECT id, email, display_name, created_at, google_sub IS NOT NULL AS is_google
+       FROM users ORDER BY created_at DESC`
+    )
+    res.json(rows)
+  } catch (e) {
+    res.status(500).json({ error: e.message })
+  }
+})
+
+// ---------------------------------------------------------------
+// 📦 ADMIN — MAGAZINE ORDERS
+// ---------------------------------------------------------------
+app.get("/api/admin/magazine-orders", adminMiddleware, async (req, res) => {
+  try {
+    const { rows } = await db.query(
+      `SELECT id, stripe_session_id, customer_email, full_name, shipping_address,
+              quantity, amount_total, currency, status, created_at
+       FROM magazine_orders ORDER BY created_at DESC`
+    )
+    res.json(rows)
+  } catch (e) {
+    res.status(500).json({ error: e.message })
+  }
+})
+
+// ---------------------------------------------------------------
+// 💳 ADMIN — STRIPE SUBSCRIPTIONS
+// ---------------------------------------------------------------
+app.get("/api/admin/subscriptions", adminMiddleware, async (req, res) => {
+  try {
+    const list = await stripe.subscriptions.list({ limit: 100, status: "all" })
+    const subs = list.data.map((s) => ({
+      id: s.id,
+      customer: s.customer,
+      email: s.customer_email || null,
+      status: s.status,
+      plan: s.items?.data?.[0]?.price?.nickname || s.items?.data?.[0]?.price?.id || "—",
+      amount: (s.items?.data?.[0]?.price?.unit_amount || 0) / 100,
+      currency: s.items?.data?.[0]?.price?.currency || "eur",
+      interval: s.items?.data?.[0]?.price?.recurring?.interval || "—",
+      current_period_end: s.current_period_end,
+      created: s.created,
+    }))
+    res.json(subs)
+  } catch (e) {
+    res.status(500).json({ error: e.message })
+  }
+})
+
+// ---------------------------------------------------------------
+// 🛒 ADMIN — STORE ORDERS (magazine orders alias for Orders tab)
+// ---------------------------------------------------------------
+app.get("/api/admin/store/orders", adminMiddleware, async (req, res) => {
+  try {
+    const { rows } = await db.query(
+      `SELECT id, stripe_session_id, customer_email, full_name, shipping_address,
+              quantity, amount_total, currency, status, created_at
+       FROM magazine_orders ORDER BY created_at DESC`
+    )
+    res.json(rows)
+  } catch (e) {
+    res.status(500).json({ error: e.message })
   }
 })
 

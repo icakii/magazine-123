@@ -6,7 +6,7 @@ import { useAuth } from "../hooks/useAuth"
 import { api } from "../lib/api"
 import Loader from "../components/Loader"
 
-const ADMIN_EMAILS = ["icaki@mirenmagazine.com", "info@mirenmagazine.com", "info@mirenmagaizne.com"]
+const ADMIN_EMAILS = ["info@mirenmagazine.com"]
 const WEEK_DAYS = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
 const WEEK_DAY_LABELS = {
   monday: "Monday",
@@ -18,15 +18,17 @@ const WEEK_DAY_LABELS = {
   sunday: "Sunday",
 }
 const TABS = [
-  { key: "hero", label: "Hero" },            // ✅ single hero (no list)
+  { key: "hero", label: "Hero" },
   { key: "miren-art", label: "MIREN ART" },
-  { key: "magazines", label: "Magazines" },  // ✅ full magazine issues (cover/pages/premium)
+  { key: "magazines", label: "Magazines" },
   { key: "home", label: "Home" },
   { key: "news", label: "News" },
   { key: "gallery", label: "Gallery" },
   { key: "events", label: "Events" },
   { key: "store", label: "Store Items" },
   { key: "orders", label: "Orders" },
+  { key: "subscriptions", label: "Subscriptions" },
+  { key: "users", label: "Users" },
   { key: "newsletter", label: "Newsletter" },
 ]
 
@@ -528,6 +530,9 @@ const [heroVfxUrl, setHeroVfxUrl] = useState("")
   const [emailSubject, setEmailSubject] = useState("")
   const [emailBody, setEmailBody] = useState("")
   const [mirenArtCodes, setMirenArtCodes] = useState([])
+  const [users, setUsers] = useState([])
+  const [subscriptions, setSubscriptions] = useState([])
+  const [magazineStock, setMagazineStock] = useState(null)
 
   const resetMirenArtCodes = async () => {
     const ok = window.confirm(
@@ -595,14 +600,30 @@ const [heroVfxUrl, setHeroVfxUrl] = useState("")
         }
 
         if (activeTab === "store") {
-          const res = await api.get("/store/items")
-          setStoreItems(Array.isArray(res.data) ? res.data : [])
+          const [itemsRes, stockRes] = await Promise.all([
+            api.get("/store/items"),
+            api.get("/magazine/stock"),
+          ])
+          setStoreItems(Array.isArray(itemsRes.data) ? itemsRes.data : [])
+          setMagazineStock(stockRes.data || null)
           return
         }
 
         if (activeTab === "orders") {
-          const res = await api.get("/admin/store/orders")
+          const res = await api.get("/admin/magazine-orders")
           setOrders(Array.isArray(res.data) ? res.data : [])
+          return
+        }
+
+        if (activeTab === "subscriptions") {
+          const res = await api.get("/admin/subscriptions")
+          setSubscriptions(Array.isArray(res.data) ? res.data : [])
+          return
+        }
+
+        if (activeTab === "users") {
+          const res = await api.get("/admin/users")
+          setUsers(Array.isArray(res.data) ? res.data : [])
           return
         }
 
@@ -1116,20 +1137,37 @@ isVideoUrl(heroVfxUrl) ? (
       {/* STORE ITEMS */}
       {activeTab === "store" && (
         <div className="admin-card">
-          <h3 className="headline">Store Items (read-only here)</h3>
-          <p className="text-muted">CRUD можеш да го държиш в отделния ти UI или да кажеш и ще добавя.</p>
+          <h3 className="headline">Store Items</h3>
+
+          {magazineStock && (
+            <div style={{ display: "flex", gap: 24, marginBottom: 16, flexWrap: "wrap" }}>
+              <div className="admin-stat">
+                <span className="admin-stat-label">Общо наличност</span>
+                <span className="admin-stat-value">{magazineStock.total}</span>
+              </div>
+              <div className="admin-stat">
+                <span className="admin-stat-label">Продадени</span>
+                <span className="admin-stat-value">{magazineStock.sold}</span>
+              </div>
+              <div className="admin-stat" style={{ color: magazineStock.remaining < 10 ? "var(--clr-danger, red)" : undefined }}>
+                <span className="admin-stat-label">Оставащи</span>
+                <span className="admin-stat-value">{magazineStock.remaining}</span>
+              </div>
+            </div>
+          )}
 
           {storeItems.length === 0 ? (
             <p className="text-muted">No items.</p>
           ) : (
             <div className="list">
               {storeItems.map((it) => (
-                <div className="list-row" key={it.id || it.priceId}>
+                <div className="list-row" key={it.id || it.stripe_price_id}>
                   <div className="list-main">
                     <div className="list-title">{it.title}</div>
                     <div className="list-sub text-muted">
-                      {it.priceId} • active: {String(!!it.isActive)} • release: {it.releaseAt ? ymd(it.releaseAt) : "—"}
+                      Price ID: {it.stripe_price_id || "—"} • Active: {String(!!it.is_active)} • Category: {it.category || "—"}
                     </div>
+                    {it.description && <div className="list-sub text-muted">{it.description}</div>}
                   </div>
                 </div>
               ))}
@@ -1141,42 +1179,101 @@ isVideoUrl(heroVfxUrl) ? (
       {/* ORDERS */}
       {activeTab === "orders" && (
         <div className="admin-card">
-          <h3 className="headline">Orders</h3>
+          <h3 className="headline">Поръчки на списания ({orders.length})</h3>
 
           {orders.length === 0 ? (
-            <p className="text-muted">No paid orders.</p>
+            <p className="text-muted">Няма поръчки.</p>
           ) : (
             <div className="list">
-              {orders.map((o) => (
-                <div key={o.id} className="list-row">
+              {orders.map((o) => {
+                const addr = typeof o.shipping_address === "string"
+                  ? (() => { try { return JSON.parse(o.shipping_address) } catch { return {} } })()
+                  : (o.shipping_address || {})
+                return (
+                  <div key={o.id} className="list-row">
+                    <div className="list-main">
+                      <div className="list-title">
+                        {o.full_name || "(без име)"} — {o.customer_email || "(без имейл)"}
+                        <span style={{ marginLeft: 10, fontSize: "0.8em", background: o.status === "paid" ? "var(--clr-success, #22c55e)" : "#888", color: "#fff", borderRadius: 4, padding: "1px 6px" }}>
+                          {o.status || "pending"}
+                        </span>
+                      </div>
+
+                      <div className="list-sub text-muted">
+                        {o.created_at ? new Date(o.created_at).toLocaleString("bg-BG") : "—"} •{" "}
+                        {((o.amount_total || 0) / 100).toFixed(2)} {String(o.currency || "EUR").toUpperCase()} •{" "}
+                        Брой: {o.quantity || 1}
+                      </div>
+
+                      {(addr.line1 || addr.city) && (
+                        <div className="mini text-muted">
+                          Адрес: {[addr.line1, addr.line2, addr.city, addr.postal_code, addr.country].filter(Boolean).join(", ")}
+                        </div>
+                      )}
+
+                      <div className="mini text-muted" style={{ fontSize: "0.75em" }}>
+                        Session: {o.stripe_session_id}
+                      </div>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* SUBSCRIPTIONS */}
+      {activeTab === "subscriptions" && (
+        <div className="admin-card">
+          <h3 className="headline">Абонаменти ({subscriptions.length})</h3>
+
+          {subscriptions.length === 0 ? (
+            <p className="text-muted">Няма абонаменти.</p>
+          ) : (
+            <div className="list">
+              {subscriptions.map((s) => (
+                <div key={s.id} className="list-row">
                   <div className="list-main">
                     <div className="list-title">
-                      {o.full_name ? `${o.full_name} • ` : ""}
-                      {o.customer_email || "(no email)"}
+                      {s.email || s.customer || "(без имейл)"}
+                      <span style={{ marginLeft: 10, fontSize: "0.8em", background: s.status === "active" ? "var(--clr-success, #22c55e)" : s.status === "canceled" ? "#ef4444" : "#888", color: "#fff", borderRadius: 4, padding: "1px 6px" }}>
+                        {s.status}
+                      </span>
                     </div>
-
                     <div className="list-sub text-muted">
-                      {new Date((o.created || 0) * 1000).toLocaleString()} • {(o.amount_total || 0) / 100}{" "}
-                      {String(o.currency || "").toUpperCase()} • {o.customer_phone || "no phone"}
+                      {s.amount} {String(s.currency || "EUR").toUpperCase()}/{s.interval} •{" "}
+                      Създаден: {s.created ? new Date(s.created * 1000).toLocaleDateString("bg-BG") : "—"} •{" "}
+                      Следващо плащане: {s.current_period_end ? new Date(s.current_period_end * 1000).toLocaleDateString("bg-BG") : "—"}
                     </div>
+                    <div className="mini text-muted" style={{ fontSize: "0.75em" }}>ID: {s.id}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
-                    {Array.isArray(o.line_items) && o.line_items.length > 0 && (
-                      <div className="mini">
-                        {o.line_items.map((li, idx) => (
-                          <div key={idx} className="mini-row">
-                            • {li.description} x{li.quantity}
-                          </div>
-                        ))}
-                      </div>
-                    )}
+      {/* USERS */}
+      {activeTab === "users" && (
+        <div className="admin-card">
+          <h3 className="headline">Потребители ({users.length})</h3>
 
-                    {o.shipping_address && (
-                      <div className="mini text-muted">
-                        {o.shipping_name || ""} • {o.shipping_address.line1 || ""},{" "}
-                        {o.shipping_address.city || ""} {o.shipping_address.postal_code || ""},{" "}
-                        {o.shipping_address.country || ""}
-                      </div>
-                    )}
+          {users.length === 0 ? (
+            <p className="text-muted">Няма регистрирани потребители.</p>
+          ) : (
+            <div className="list">
+              {users.map((u) => (
+                <div key={u.id} className="list-row">
+                  <div className="list-main">
+                    <div className="list-title">
+                      {u.display_name || "(без потребителско име)"}{" "}
+                      {u.is_google && <span style={{ fontSize: "0.75em", background: "#4285F4", color: "#fff", borderRadius: 4, padding: "1px 5px" }}>Google</span>}
+                    </div>
+                    <div className="list-sub text-muted">
+                      {u.email} • Регистриран: {u.created_at ? new Date(u.created_at).toLocaleDateString("bg-BG") : "—"}
+                    </div>
                   </div>
                 </div>
               ))}

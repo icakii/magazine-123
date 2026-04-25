@@ -1262,7 +1262,23 @@ isVideoUrl(heroVfxUrl) ? (
       {/* NEWSLETTER */}
       {activeTab === "newsletter" && (
         <div className="admin-grid">
-          <div className="admin-card">
+          <div className="admin-card" style={{ gridColumn: "1 / -1" }}>
+            <h3 className="headline">Изпрати имейл</h3>
+            <p className="text-muted">Изпраща до всички регистрирани акаунти — {users.length} получателя.</p>
+            <label className="field">
+              <span>Тема</span>
+              <input value={emailSubject} onChange={(e) => setEmailSubject(e.target.value)} />
+            </label>
+            <label className="field">
+              <span>Съдържание (HTML)</span>
+              <textarea rows={10} value={emailBody} onChange={(e) => setEmailBody(e.target.value)} />
+            </label>
+            <button className="btn primary" onClick={sendNewsletter} disabled={busy} type="button">
+              Изпрати
+            </button>
+          </div>
+
+          <div className="admin-card" style={{ gridColumn: "1 / -1" }}>
             <h3 className="headline">Регистрирани акаунти ({users.length})</h3>
             {users.length === 0 ? (
               <p className="text-muted">Няма регистрирани потребители.</p>
@@ -1283,40 +1299,6 @@ isVideoUrl(heroVfxUrl) ? (
                 ))}
               </div>
             )}
-          </div>
-
-          <div className="admin-card">
-            <h3 className="headline">Newsletter абонати ({subscribers.length})</h3>
-            {subscribers.length === 0 ? (
-              <p className="text-muted">Няма newsletter абонати.</p>
-            ) : (
-              <div className="list">
-                {subscribers.map((s, i) => (
-                  <div key={s.email || i} className="list-row">
-                    <div className="list-main">
-                      <div className="list-title">{s.email}</div>
-                      <div className="list-sub text-muted">{s.created_at ? new Date(s.created_at).toLocaleString("bg-BG") : ""}</div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          <div className="admin-card" style={{ gridColumn: "1 / -1" }}>
-            <h3 className="headline">Изпрати имейл</h3>
-            <p className="text-muted">Изпраща до всички регистрирани акаунти ({users.length}) + newsletter абонати ({subscribers.length}) — общо ~{new Set([...users.map(u => u.email), ...subscribers.map(s => s.email)]).size} получателя.</p>
-            <label className="field">
-              <span>Тема</span>
-              <input value={emailSubject} onChange={(e) => setEmailSubject(e.target.value)} />
-            </label>
-            <label className="field">
-              <span>Съдържание (HTML)</span>
-              <textarea rows={10} value={emailBody} onChange={(e) => setEmailBody(e.target.value)} />
-            </label>
-            <button className="btn primary" onClick={sendNewsletter} disabled={busy} type="button">
-              Изпрати
-            </button>
           </div>
         </div>
       )}

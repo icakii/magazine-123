@@ -301,8 +301,8 @@ html[data-theme="dark"] body::after {
 .scroll-parallax__wash {
   position: absolute;
   border-radius: 50%;
-  filter: blur(72px);
-  opacity: 0.42;
+  filter: blur(36px);
+  opacity: 0.38;
   will-change: transform;
 }
 
@@ -360,8 +360,8 @@ html[data-theme="dark"] body::after {
 }
 
 html[data-theme="dark"] .scroll-parallax__wash {
-  opacity: 0.5;
-  filter: blur(88px);
+  opacity: 0.45;
+  filter: blur(44px);
 }
 
 html[data-theme="dark"] .scroll-parallax__wash--1 {
@@ -6197,5 +6197,31 @@ html[data-theme="dark"] .maintenance-loading {
     padding: 5px 9px !important;
     font-size: 0.74rem !important;
     line-height: 1.1 !important;
+  }
+}
+
+/* ---------------------------------------------------------------
+   PERFORMANCE — stop heavy animations on reduced-motion / low-end
+   --------------------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  .hero-bg,
+  .hero-bg-dark,
+  .scroll-parallax__lines,
+  .scroll-parallax__mesh {
+    animation: none !important;
+  }
+  .editorial-clouds svg,
+  .editorial-clouds path,
+  [class*="cloud"] {
+    animation: none !important;
+  }
+  .hero-orb,
+  [class*="orb"] {
+    animation: none !important;
+  }
+  * {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
   }
 }

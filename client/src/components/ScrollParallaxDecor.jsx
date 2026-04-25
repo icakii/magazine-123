@@ -4,6 +4,16 @@ import { useEffect, useRef, useState } from "react"
  * Subtle scroll-linked background layers (nav ↔ footer).
  * Respects prefers-reduced-motion.
  */
+function isLowEndDevice() {
+  try {
+    const cores = navigator.hardwareConcurrency || 4
+    const mem = navigator.deviceMemory || 4
+    return cores <= 2 || mem <= 2
+  } catch {
+    return false
+  }
+}
+
 export default function ScrollParallaxDecor() {
   const [disabled, setDisabled] = useState(false)
   const raf = useRef(0)
@@ -11,7 +21,7 @@ export default function ScrollParallaxDecor() {
 
   useEffect(() => {
     try {
-      if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      if (window.matchMedia("(prefers-reduced-motion: reduce)").matches || isLowEndDevice()) {
         setDisabled(true)
         return
       }

@@ -281,6 +281,57 @@ export default function Home() {
           </div>
         </section>
 
+        {/* ── Upcoming Events ── */}
+        <section className="home-section">
+          <h2 className="home-section-title">{artLang === "bg" ? "Предстоящи Събития" : "Upcoming Events"}</h2>
+          {upcomingEvents.length === 0 ? (
+            <div className="home-none-box glass-card">
+              <p className="text-muted">{artLang === "bg" ? "Няма предстоящи събития." : "No upcoming events."}</p>
+            </div>
+          ) : (
+            <div className="home-featured-grid">
+              {upcomingEvents.map((ev) => {
+                const isNotified = reminderIds.has(ev.id)
+                return (
+                  <div key={ev.id} className="ev-card glass-card">
+                    {ev.imageUrl && (
+                      <div className="ev-card-img-wrap">
+                        <img src={ev.imageUrl} alt={ev.title} className="ev-card-img" loading="lazy" />
+                      </div>
+                    )}
+                    <div className="ev-card-body">
+                      <div className="ev-card-meta">
+                        <span className="ev-card-date">📅 {ev.date}{ev.time ? ` · ${ev.time}` : ""}</span>
+                        {ev.price && <span className="ev-card-price">{ev.price}</span>}
+                      </div>
+                      <h3 className="ev-card-title">{ev.title}</h3>
+                      {ev.excerpt && <p className="ev-card-desc">{ev.excerpt}</p>}
+                      <div className="ev-card-footer">
+                        <a href="/events" className="btn outline ev-card-btn">
+                          {artLang === "bg" ? "Прочети повече" : "Read more"}
+                        </a>
+                        <div className="ev-notify-wrap">
+                          <label className="ev-checkbox-container">
+                            <input type="checkbox" checked={isNotified} onChange={() => handleHomeEventReminder(ev.id)} />
+                            <div className="ev-checkmark" />
+                            <span className="ev-notify-label">{isNotified ? (artLang === "bg" ? "Ще бъда уведомен" : "I'll be notified") : (artLang === "bg" ? "Уведоми ме" : "Notify me")}</span>
+                          </label>
+                          {ev.reminderCount > 0 && (
+                            <span className="ev-notify-count">{ev.reminderCount} {artLang === "bg" ? "души искат напомняне" : "want a reminder"}</span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+          <div style={{ textAlign: "center", marginTop: 20 }}>
+            <a href="/events" className="btn ghost">{artLang === "bg" ? "Виж всички събития →" : "See all events →"}</a>
+          </div>
+        </section>
+
         {/* ── MIREN ART + Discord ── */}
         <section className="home-section">
           <div className="home-pair-grid">
@@ -389,56 +440,6 @@ export default function Home() {
               {reqMsg && <p className="text-muted" style={{ marginTop: 8 }}>{reqMsg}</p>}
             </div>
           </div>
-        </section>
-
-        {/* ── Upcoming Events ── */}
-        <section className="home-section">
-          <h2 className="home-section-title">{artLang === "bg" ? "Предстоящи Събития" : "Upcoming Events"}</h2>
-          {upcomingEvents.length === 0 ? (
-            <div className="home-none-box glass-card">
-              <p className="text-muted">{artLang === "bg" ? "Няма предстоящи събития." : "No upcoming events."}</p>
-            </div>
-          ) : (
-            <div className="home-featured-grid">
-              {upcomingEvents.map((ev) => {
-                const isNotified = reminderIds.has(ev.id)
-                return (
-                  <div key={ev.id} className="ev-card glass-card">
-                    {ev.imageUrl && (
-                      <div className="ev-card-img-wrap">
-                        <img src={ev.imageUrl} alt={ev.title} className="ev-card-img" loading="lazy" />
-                      </div>
-                    )}
-                    <div className="ev-card-body">
-                      <div className="ev-card-meta">
-                        <span className="ev-card-date">📅 {ev.date}{ev.time ? ` · ${ev.time}` : ""}</span>
-                        {ev.price && <span className="ev-card-price">{ev.price}</span>}
-                      </div>
-                      <h3 className="ev-card-title">{ev.title}</h3>
-                      {ev.excerpt && <p className="ev-card-desc">{ev.excerpt}</p>}
-                      <div className="ev-card-footer">
-                        {ev.link && (
-                          ev.link.startsWith("http")
-                            ? <a href={ev.link} target="_blank" rel="noreferrer" className="btn primary ev-card-btn">{artLang === "bg" ? "Научи повече" : "Learn more"}</a>
-                            : <a href={ev.link} className="btn primary ev-card-btn">{artLang === "bg" ? "Научи повече" : "Learn more"}</a>
-                        )}
-                        <div className="ev-notify-wrap">
-                          <label className="ev-checkbox-container">
-                            <input type="checkbox" checked={isNotified} onChange={() => handleHomeEventReminder(ev.id)} />
-                            <div className="ev-checkmark" />
-                            <span className="ev-notify-label">{isNotified ? (artLang === "bg" ? "Ще бъда уведомен" : "I'll be notified") : (artLang === "bg" ? "Уведоми ме" : "Notify me")}</span>
-                          </label>
-                          {ev.reminderCount > 0 && (
-                            <span className="ev-notify-count">{ev.reminderCount} {artLang === "bg" ? "души искат напомняне" : "want a reminder"}</span>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-          )}
         </section>
 
         {/* ── Work / Partnership ── */}

@@ -2616,3 +2616,99 @@ html[data-theme="dark"] .ev-checkbox-container {
   margin: 8px 4px 0;
   line-height: 1.3;
 }
+
+/* ================================================================
+   FULLSCREEN MODAL (Events + Gallery)
+   ================================================================ */
+.fs-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: rgba(0, 0, 0, 0.82);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  animation: pageFade 200ms ease;
+}
+
+.fs-modal {
+  position: relative;
+  background: var(--bg-elev, #fff);
+  border-radius: 18px;
+  max-width: 680px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 24px 80px rgba(0,0,0,0.35);
+}
+
+.fs-modal--img {
+  max-width: 860px;
+  background: #0a0a0a;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.fs-close {
+  position: absolute;
+  top: 12px;
+  right: 14px;
+  z-index: 10;
+  background: rgba(0,0,0,0.45);
+  color: #fff;
+  border: none;
+  border-radius: 50%;
+  width: 36px;
+  height: 36px;
+  font-size: 1.4rem;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s;
+}
+.fs-close:hover { background: rgba(0,0,0,0.7); }
+
+.fs-img {
+  width: 100%;
+  max-height: 400px;
+  object-fit: cover;
+  border-radius: 18px 18px 0 0;
+  display: block;
+}
+
+.fs-img--full {
+  max-height: 80vh;
+  object-fit: contain;
+  border-radius: 14px 14px 0 0;
+}
+
+.fs-body {
+  padding: 22px 26px 26px;
+}
+
+.fs-title {
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: var(--heading);
+  margin: 8px 0 10px;
+}
+
+.fs-text {
+  font-size: 0.95rem;
+  color: var(--body);
+  line-height: 1.65;
+  margin: 0 0 10px;
+}
+
+.fs-gal-title {
+  color: #ddd;
+  font-size: 0.95rem;
+  font-weight: 600;
+  padding: 12px 20px;
+  margin: 0;
+  text-align: center;
+}

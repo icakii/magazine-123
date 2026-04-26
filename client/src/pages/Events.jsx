@@ -35,6 +35,7 @@ export default function Events() {
   const { user } = useAuth()
   const [articles, setArticles] = useState([])
   const [reminderIds, setReminderIds] = useState(new Set())
+  const [fullscreen, setFullscreen] = useState(null)
   const [lang, setLang] = useState(() => getLang())
   const copy = COPY[lang] || COPY.bg
 
@@ -84,6 +85,7 @@ export default function Events() {
   }
 
   return (
+    <>
     <div className="page">
       <h2 className="headline">{copy.title}</h2>
       <p className="subhead" style={{ marginBottom: 32 }}>{copy.sub}</p>
@@ -95,7 +97,7 @@ export default function Events() {
           {articles.map((article) => {
             const isNotified = reminderIds.has(article.id)
             return (
-              <div key={article.id} className="ev-card glass-card">
+              <div key={article.id} className="ev-card glass-card" style={{ cursor: "pointer" }} onClick={(e) => { if (e.target.closest("label,input,a,button")) return; setFullscreen(article) }}>
                 {article.imageUrl && (
                   <div className="ev-card-img-wrap">
                     <img src={article.imageUrl} alt={article.title} className="ev-card-img" loading="lazy" />
@@ -154,5 +156,37 @@ export default function Events() {
         </div>
       )}
     </div>
+
+      {fullscreen && (
+        <div className="fs-backdrop" onClick={() => setFullscreen(null)}>
+          <div className="fs-modal" onClick={(e) => e.stopPropagation()}>
+            <button className="fs-close" onClick={() => setFullscreen(null)} type="button">×</button>
+            {fullscreen.imageUrl && (
+              <img src={fullscreen.imageUrl} alt={fullscreen.title} className="fs-img" />
+            )}
+            <div className="fs-body">
+              <div className="ev-card-meta" style={{ marginBottom: 8 }}>
+                <span className="ev-card-date">📅 {fullscreen.date}{fullscreen.time ? ` · ${fullscreen.time}` : ""}</span>
+                {fullscreen.price && <span className="ev-card-price">{fullscreen.price}</span>}
+              </div>
+              <h2 className="fs-title">{fullscreen.title}</h2>
+              {fullscreen.excerpt && <p className="fs-text">{fullscreen.excerpt}</p>}
+              {fullscreen.text && <p className="fs-text">{fullscreen.text}</p>}
+              {fullscreen.link && (
+                <a
+                  href={fullscreen.link}
+                  target={fullscreen.link.startsWith("http") ? "_blank" : undefined}
+                  rel="noreferrer"
+                  className="btn primary"
+                  style={{ marginTop: 16 }}
+                >
+                  {copy.readMore}
+                </a>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   )
 }

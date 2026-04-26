@@ -424,6 +424,8 @@ const [heroVfxUrl, setHeroVfxUrl] = useState("")
     isPremium: false,
     time: "",
     reminderEnabled: false,
+    price: "",
+    link: "",
   })
 
   const resetArticleForm = () => {
@@ -440,6 +442,8 @@ const [heroVfxUrl, setHeroVfxUrl] = useState("")
       isPremium: false,
       time: "",
       reminderEnabled: false,
+      price: "",
+      link: "",
     })
   }
 
@@ -457,6 +461,8 @@ const [heroVfxUrl, setHeroVfxUrl] = useState("")
       isPremium: !!a.isPremium,
       time: a.time || "",
       reminderEnabled: !!a.reminderEnabled,
+      price: a.price || "",
+      link: a.link || "",
     })
     window.scrollTo({ top: 0, behavior: "smooth" })
   }
@@ -1035,6 +1041,16 @@ isVideoUrl(heroVfxUrl) ? (
                   <label className="field">
                     <span>Time (optional)</span>
                     <input value={articleForm.time} onChange={(e) => setArticleForm((p) => ({ ...p, time: e.target.value }))} placeholder="18:30" />
+                  </label>
+
+                  <label className="field">
+                    <span>Price (optional) — e.g. "Free" / "€10"</span>
+                    <input value={articleForm.price} onChange={(e) => setArticleForm((p) => ({ ...p, price: e.target.value }))} placeholder="Free / €10 / ..." />
+                  </label>
+
+                  <label className="field" style={{ gridColumn: "1 / -1" }}>
+                    <span>Link (optional) — URL or /internal-path</span>
+                    <input value={articleForm.link} onChange={(e) => setArticleForm((p) => ({ ...p, link: e.target.value }))} placeholder="https://... or /events" />
                   </label>
 
                   <label className="field row">

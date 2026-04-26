@@ -601,6 +601,9 @@ app.get("/api/fix-db", async (req, res) => {
       );
     `)
 
+    await db.query(`ALTER TABLE articles ADD COLUMN IF NOT EXISTS price TEXT;`)
+    await db.query(`ALTER TABLE articles ADD COLUMN IF NOT EXISTS link TEXT;`)
+
     res.send("✅ УСПЕХ! Базата данни е поправена за новите полета.")
   } catch (e) {
     console.error("FIX-DB ERROR:", e)
@@ -968,15 +971,24 @@ app.delete("/api/magazines/:id", adminMiddleware, async (req, res) => {
 app.get("/api/articles", async (req, res) => {
   try {
     const { category } = req.query
-    let query = "SELECT * FROM articles"
+    let query = `
+      SELECT a.*,
+        COALESCE(r.reminder_count, 0)::int AS reminder_count
+      FROM articles a
+      LEFT JOIN (
+        SELECT article_id, COUNT(*) AS reminder_count
+        FROM event_reminders
+        GROUP BY article_id
+      ) r ON r.article_id = a.id
+    `
     const params = []
 
     if (category) {
-      query += " WHERE category = $1"
+      query += " WHERE a.category = $1"
       params.push(category)
     }
 
-    query += " ORDER BY date DESC"
+    query += " ORDER BY a.date DESC"
 
     const { rows } = await db.query(query, params)
 
@@ -992,6 +1004,9 @@ app.get("/api/articles", async (req, res) => {
       isPremium: row.is_premium,
       time: row.time,
       reminderEnabled: row.reminder_enabled || false,
+      price: row.price || null,
+      link: row.link || null,
+      reminderCount: row.reminder_count || 0,
     }))
 
     res.json(mappedRows)
@@ -1003,45 +1018,27 @@ app.get("/api/articles", async (req, res) => {
 
 app.post("/api/articles", adminMiddleware, async (req, res) => {
   const {
-    title,
-    text,
-    author,
-    date,
-    imageUrl,
-    category,
-    articleCategory,
-    excerpt,
-    isPremium,
-    time,
-    reminderEnabled,
+    title, text, author, date, imageUrl, category,
+    articleCategory, excerpt, isPremium, time, reminderEnabled, price, link,
   } = req.body
 
   const normalizedArticleCategory = category === "news" ? articleCategory : null
   const normalizedTime = category === "events" ? time : null
   const normalizedReminder = category === "events" ? !!reminderEnabled : false
+  const normalizedPrice = category === "events" ? (price || null) : null
+  const normalizedLink = category === "events" ? (link || null) : null
 
   try {
     const { rows } = await db.query(
       `INSERT INTO articles
        (title, text, author, date, image_url, category, article_category,
-        excerpt, is_premium, time, reminder_enabled)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
+        excerpt, is_premium, time, reminder_enabled, price, link)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
        RETURNING *`,
-      [
-        title,
-        text,
-        author || "MIREN",
-        date,
-        imageUrl,
-        category,
-        normalizedArticleCategory,
-        excerpt,
-        !!isPremium,
-        normalizedTime,
-        normalizedReminder,
-      ]
+      [title, text, author || "MIREN", date, imageUrl, category,
+       normalizedArticleCategory, excerpt, !!isPremium, normalizedTime,
+       normalizedReminder, normalizedPrice, normalizedLink]
     )
-
     res.json({ ok: true, article: rows[0] })
   } catch (err) {
     console.error("POST /api/articles error:", err)
@@ -1052,45 +1049,27 @@ app.post("/api/articles", adminMiddleware, async (req, res) => {
 app.put("/api/articles/:id", adminMiddleware, async (req, res) => {
   const { id } = req.params
   const {
-    title,
-    text,
-    author,
-    date,
-    imageUrl,
-    category,
-    articleCategory,
-    excerpt,
-    isPremium,
-    time,
-    reminderEnabled,
+    title, text, author, date, imageUrl, category,
+    articleCategory, excerpt, isPremium, time, reminderEnabled, price, link,
   } = req.body
 
   const normalizedArticleCategory = category === "news" ? articleCategory : null
   const normalizedTime = category === "events" ? time : null
   const normalizedReminder = category === "events" ? !!reminderEnabled : false
+  const normalizedPrice = category === "events" ? (price || null) : null
+  const normalizedLink = category === "events" ? (link || null) : null
 
   try {
     const result = await db.query(
       `UPDATE articles
        SET title=$1, text=$2, author=$3, date=$4, image_url=$5,
-           category=$6, article_category=$7,
-           excerpt=$8, is_premium=$9, time=$10, reminder_enabled=$11
-       WHERE id=$12
+           category=$6, article_category=$7, excerpt=$8, is_premium=$9,
+           time=$10, reminder_enabled=$11, price=$12, link=$13
+       WHERE id=$14
        RETURNING *`,
-      [
-        title,
-        text,
-        author,
-        date,
-        imageUrl,
-        category,
-        normalizedArticleCategory,
-        excerpt,
-        !!isPremium,
-        normalizedTime,
-        normalizedReminder,
-        id,
-      ]
+      [title, text, author, date, imageUrl, category,
+       normalizedArticleCategory, excerpt, !!isPremium, normalizedTime,
+       normalizedReminder, normalizedPrice, normalizedLink, id]
     )
 
     if (result.rows.length === 0) {
@@ -1192,20 +1171,41 @@ app.post("/api/events/send-reminders", async (req, res) => {
     let sentCount = 0
 
     for (const [email, events] of Object.entries(byEmail)) {
-      const htmlList = events
-        .map(
-          (ev) => `
-        <li>
-          <strong>${ev.title}</strong><br/>
-          Date: ${ev.date}${ev.time ? " " + ev.time : ""}
-        </li>`
-        )
-        .join("")
+      const eventRows = events.map((ev) => `
+        <tr>
+          <td style="padding:12px 16px;border-bottom:1px solid #f0e8e0;">
+            <div style="font-weight:700;font-size:1rem;color:#1a1a1a;">${ev.title}</div>
+            <div style="color:#8b6f5e;font-size:0.875rem;margin-top:4px;">📅 ${ev.date}${ev.time ? " · " + ev.time : ""}</div>
+          </td>
+        </tr>`).join("")
 
       await transporters.fallback.sendMail({
         to: email,
-        subject: "MIREN - Event reminder for tomorrow",
-        html: `<p>You have upcoming events tomorrow:</p><ul>${htmlList}</ul>`,
+        subject: "MIREN · Утре те очакват събития 📅",
+        html: `<!DOCTYPE html><html lang="bg"><head><meta charset="UTF-8"></head>
+<body style="margin:0;padding:0;background:#faf6f1;font-family:'Helvetica Neue',Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#faf6f1;padding:40px 0;">
+    <tr><td align="center">
+      <table width="560" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08);">
+        <tr><td style="background:linear-gradient(135deg,#c46a4a,#8b3a2a);padding:32px 40px;text-align:center;">
+          <div style="font-size:2rem;font-weight:900;letter-spacing:0.12em;color:#fff;">MIREN</div>
+          <div style="color:rgba(255,255,255,0.8);font-size:0.85rem;margin-top:4px;letter-spacing:0.06em;">MAGAZINE</div>
+        </td></tr>
+        <tr><td style="padding:32px 40px;">
+          <h2 style="margin:0 0 8px;font-size:1.4rem;color:#1a1a1a;">Утре те очакват събития!</h2>
+          <p style="margin:0 0 24px;color:#666;font-size:0.95rem;">Напомняме ти за следните предстоящи събития:</p>
+          <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #f0e8e0;border-radius:10px;overflow:hidden;">${eventRows}</table>
+          <div style="margin-top:28px;text-align:center;">
+            <a href="https://mirenmagazine.com/events" style="display:inline-block;background:#c46a4a;color:#fff;padding:12px 32px;border-radius:8px;font-weight:700;text-decoration:none;">Виж всички събития</a>
+          </div>
+        </td></tr>
+        <tr><td style="padding:20px 40px;border-top:1px solid #f0e8e0;text-align:center;">
+          <p style="margin:0;color:#aaa;font-size:0.8rem;">© ${new Date().getFullYear()} MIREN Magazine · <a href="https://mirenmagazine.com" style="color:#c46a4a;text-decoration:none;">mirenmagazine.com</a></p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body></html>`,
       })
 
       sentCount++

@@ -64,6 +64,8 @@ export default function Home() {
   const [articles, setArticles] = useState([])
   const [loading, setLoading] = useState(true)
   const [selectedArticle, setSelectedArticle] = useState(null)
+  const [upcomingEvents, setUpcomingEvents] = useState([])
+  const [galleryItems, setGalleryItems] = useState([])
   const [spotifyPlaylistUrl, setSpotifyPlaylistUrl] = useState("")
   const [calendarEvents, setCalendarEvents] = useState([])
   const [song, setSong] = useState("")
@@ -72,6 +74,7 @@ export default function Home() {
   const [selectedGame, setSelectedGame] = useState("wordle")
   const [artLang, setArtLang] = useState(() => getLang())
   const [welcomeFlipped, setWelcomeFlipped] = useState(false)
+  const [reminderIds, setReminderIds] = useState(new Set())
 
   useEffect(() => {
     if (selectedArticle) {
@@ -106,6 +109,27 @@ export default function Home() {
   }, [])
 
   useEffect(() => {
+    if (!user) { setReminderIds(new Set()); return }
+    api.get("/events/reminders")
+      .then((res) => setReminderIds(new Set(res.data?.articleIds || [])))
+      .catch(() => {})
+  }, [user])
+
+  const handleHomeEventReminder = async (eventId) => {
+    if (!user) { navigate("/profile"); return }
+    const was = reminderIds.has(eventId)
+    setReminderIds((prev) => { const n = new Set(prev); was ? n.delete(eventId) : n.add(eventId); return n })
+    try {
+      await api.post(`/events/${eventId}/reminder`, { enabled: !was })
+      setUpcomingEvents((prev) =>
+        prev.map((a) => a.id === eventId ? { ...a, reminderCount: (a.reminderCount || 0) + (was ? -1 : 1) } : a)
+      )
+    } catch {
+      setReminderIds((prev) => { const n = new Set(prev); was ? n.add(eventId) : n.delete(eventId); return n })
+    }
+  }
+
+  useEffect(() => {
     api.get("/hero", { params: { t: Date.now() } })
       .then((res) => {
         const n = normalizeHomeHeroPayload(res.data || {})
@@ -120,8 +144,20 @@ export default function Home() {
     ;(async () => {
       try {
         setLoading(true)
-        const res = await api.get("/articles", { params: { category: "home" } })
-        if (alive) setArticles(Array.isArray(res.data) ? res.data : [])
+        const [homeRes, eventsRes, galleryRes] = await Promise.all([
+          api.get("/articles", { params: { category: "home" } }),
+          api.get("/articles", { params: { category: "events" } }),
+          api.get("/articles", { params: { category: "gallery" } }),
+        ])
+        if (alive) {
+          setArticles(Array.isArray(homeRes.data) ? homeRes.data : [])
+          const today = new Date().toISOString().slice(0, 10)
+          const upcoming = (Array.isArray(eventsRes.data) ? eventsRes.data : [])
+            .filter((e) => e.date >= today)
+            .slice(0, 4)
+          setUpcomingEvents(upcoming)
+          setGalleryItems((Array.isArray(galleryRes.data) ? galleryRes.data : []).slice(0, 4))
+        }
       } catch {
         if (alive) setArticles([])
       } finally {
@@ -355,6 +391,56 @@ export default function Home() {
           </div>
         </section>
 
+        {/* ── Upcoming Events ── */}
+        <section className="home-section">
+          <h2 className="home-section-title">{artLang === "bg" ? "Предстоящи Събития" : "Upcoming Events"}</h2>
+          {upcomingEvents.length === 0 ? (
+            <div className="home-none-box glass-card">
+              <p className="text-muted">{artLang === "bg" ? "Няма предстоящи събития." : "No upcoming events."}</p>
+            </div>
+          ) : (
+            <div className="home-featured-grid">
+              {upcomingEvents.map((ev) => {
+                const isNotified = reminderIds.has(ev.id)
+                return (
+                  <div key={ev.id} className="ev-card glass-card">
+                    {ev.imageUrl && (
+                      <div className="ev-card-img-wrap">
+                        <img src={ev.imageUrl} alt={ev.title} className="ev-card-img" loading="lazy" />
+                      </div>
+                    )}
+                    <div className="ev-card-body">
+                      <div className="ev-card-meta">
+                        <span className="ev-card-date">📅 {ev.date}{ev.time ? ` · ${ev.time}` : ""}</span>
+                        {ev.price && <span className="ev-card-price">{ev.price}</span>}
+                      </div>
+                      <h3 className="ev-card-title">{ev.title}</h3>
+                      {ev.excerpt && <p className="ev-card-desc">{ev.excerpt}</p>}
+                      <div className="ev-card-footer">
+                        {ev.link && (
+                          ev.link.startsWith("http")
+                            ? <a href={ev.link} target="_blank" rel="noreferrer" className="btn primary ev-card-btn">{artLang === "bg" ? "Научи повече" : "Learn more"}</a>
+                            : <a href={ev.link} className="btn primary ev-card-btn">{artLang === "bg" ? "Научи повече" : "Learn more"}</a>
+                        )}
+                        <div className="ev-notify-wrap">
+                          <label className="ev-checkbox-container">
+                            <input type="checkbox" checked={isNotified} onChange={() => handleHomeEventReminder(ev.id)} />
+                            <div className="ev-checkmark" />
+                            <span className="ev-notify-label">{isNotified ? (artLang === "bg" ? "Ще бъда уведомен" : "I'll be notified") : (artLang === "bg" ? "Уведоми ме" : "Notify me")}</span>
+                          </label>
+                          {ev.reminderCount > 0 && (
+                            <span className="ev-notify-count">{ev.reminderCount} {artLang === "bg" ? "души искат напомняне" : "want a reminder"}</span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </section>
+
         {/* ── Work / Partnership ── */}
         <section className="home-section">
           <div className="work-wide glass-card">
@@ -363,6 +449,29 @@ export default function Home() {
             <a className="btn primary work-wide-cta" href="/opportunities">{t("home_work_cta")}</a>
           </div>
         </section>
+
+        {/* ── Gallery Preview ── */}
+        {galleryItems.length > 0 && (
+          <section className="home-section">
+            <h2 className="home-section-title">{artLang === "bg" ? "Галерия" : "Gallery"}</h2>
+            <div className="home-featured-grid">
+              {galleryItems.map((item) => (
+                <div key={item.id} className="gal-card">
+                  <div className="gal-card-img-wrap">
+                    {item.imageUrl
+                      ? <img src={item.imageUrl} alt={item.title || "Gallery"} className="gal-card-img" loading="lazy" />
+                      : <div className="gal-card-placeholder" />
+                    }
+                    <div className="gal-card-overlay">
+                      <a href="/gallery" className="gal-see-more">{artLang === "bg" ? "Виж повече" : "See more"}</a>
+                    </div>
+                  </div>
+                  {item.title && <p className="gal-card-title">{item.title}</p>}
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
 
         {/* ── Weekly Schedule ── */}
         <section className="home-section">

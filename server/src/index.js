@@ -227,6 +227,7 @@ async function createEcontWaybill({ fullName, customerPhone, shippingAddress, de
   const senderOfficeCode = process.env.ECONT_SENDER_OFFICE_CODE || ""
   const senderCity = process.env.ECONT_SENDER_CITY || "Sofia"
   const senderStreet = process.env.ECONT_SENDER_STREET || ""
+  const senderNum = process.env.ECONT_SENDER_NUM || ""
 
   const shipment = {
     senderClient: {
@@ -251,6 +252,7 @@ async function createEcontWaybill({ fullName, customerPhone, shippingAddress, de
     shipment.senderAddress = {
       city: { name: senderCity, country: { code3: "BGR" } },
       street: senderStreet,
+      num: senderNum,
     }
   }
 

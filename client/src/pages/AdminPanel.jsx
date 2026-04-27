@@ -1222,6 +1222,8 @@ isVideoUrl(heroVfxUrl) ? (
                         {o.created_at ? new Date(o.created_at).toLocaleString("bg-BG") : "—"} •{" "}
                         {((o.amount_total || 0) / 100).toFixed(2)} {String(o.currency || "EUR").toUpperCase()} •{" "}
                         Брой: {o.quantity || 1}
+                        {o.courier && ` • ${o.courier.toUpperCase()} / ${o.shipping_type || "—"}`}
+                        {o.customer_phone && ` • 📞 ${o.customer_phone}`}
                       </div>
 
                       {(addr.line1 || addr.city) && (
@@ -1230,7 +1232,44 @@ isVideoUrl(heroVfxUrl) ? (
                         </div>
                       )}
 
-                      <div className="mini text-muted" style={{ fontSize: "0.75em" }}>
+                      <div style={{ display: "flex", gap: 8, alignItems: "center", marginTop: 8, flexWrap: "wrap" }}>
+                        <input
+                          type="text"
+                          placeholder="Номер на товарителница"
+                          defaultValue={o.tracking_number || ""}
+                          style={{ fontSize: "0.85em", padding: "4px 8px", borderRadius: 6, border: "1px solid #ccc", minWidth: 200 }}
+                          onBlur={async (e) => {
+                            const val = e.target.value.trim()
+                            if (val === (o.tracking_number || "")) return
+                            try {
+                              await api.put(`/admin/magazine-orders/${o.id}/tracking`, { tracking_number: val })
+                              o.tracking_number = val
+                            } catch { alert("Грешка при запазване") }
+                          }}
+                        />
+                        {o.courier === "econt" && !o.tracking_number && (
+                          <button
+                            className="btn primary"
+                            style={{ fontSize: "0.8em", padding: "4px 12px" }}
+                            onClick={async () => {
+                              try {
+                                const res = await api.post(`/admin/magazine-orders/${o.id}/create-waybill`)
+                                if (res.data?.tracking_number) {
+                                  o.tracking_number = res.data.tracking_number
+                                  setOrders((prev) => prev.map((x) => x.id === o.id ? { ...x, tracking_number: res.data.tracking_number } : x))
+                                  alert(`Товарителница: ${res.data.tracking_number}`)
+                                }
+                              } catch (e) {
+                                alert("Грешка: " + (e?.response?.data?.error || e.message))
+                              }
+                            }}
+                          >
+                            Създай товарителница (Econt)
+                          </button>
+                        )}
+                      </div>
+
+                      <div className="mini text-muted" style={{ fontSize: "0.75em", marginTop: 4 }}>
                         Session: {o.stripe_session_id}
                       </div>
                     </div>

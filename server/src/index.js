@@ -208,6 +208,91 @@ async function sendGameStreakEndedEmail({ to, gameKey, streak }) {
 }
 
 // ---------------------------------------------------------------
+// ECONT WAYBILL CREATION
+// ---------------------------------------------------------------
+async function createEcontWaybill({ fullName, customerPhone, shippingAddress, deliveryType, quantity }) {
+  const ECONT_USER = process.env.ECONT_USERNAME
+  const ECONT_PASS = process.env.ECONT_PASSWORD
+  if (!ECONT_USER || !ECONT_PASS) {
+    console.log("⚠️ Econt credentials not configured — skipping waybill creation")
+    return null
+  }
+
+  const addr = shippingAddress || {}
+  const city = addr.city || ""
+  const street = addr.line1 || ""
+  const zip = addr.postal_code || ""
+  const senderName = process.env.ECONT_SENDER_NAME || "MIREN Magazine"
+  const senderPhone = process.env.ECONT_SENDER_PHONE || ""
+  const senderOfficeCode = process.env.ECONT_SENDER_OFFICE_CODE || ""
+  const senderCity = process.env.ECONT_SENDER_CITY || "Sofia"
+  const senderStreet = process.env.ECONT_SENDER_STREET || ""
+
+  const shipment = {
+    senderClient: {
+      name: senderName,
+      phones: senderPhone ? [{ number: senderPhone }] : [],
+    },
+    receiverClient: {
+      name: fullName || "Customer",
+      phones: customerPhone ? [{ number: customerPhone }] : [],
+    },
+    service: { type: "PACK" },
+    packCount: quantity || 1,
+    weight: 0.3 * (quantity || 1),
+    shipmentDescription: "MIREN Списание",
+    payAfterAccept: false,
+    payAfterTest: false,
+  }
+
+  if (senderOfficeCode) {
+    shipment.senderOfficeCode = senderOfficeCode
+  } else {
+    shipment.senderAddress = {
+      city: { name: senderCity, country: { code3: "BGR" } },
+      street: senderStreet,
+    }
+  }
+
+  if (deliveryType === "locker") {
+    shipment.receiverOfficeCode = process.env.ECONT_DEFAULT_LOCKER_CODE || ""
+    // If no locker code configured, fall back to address delivery
+    if (!shipment.receiverOfficeCode) {
+      shipment.receiverAddress = { city: { name: city, country: { code3: "BGR" } }, street, zip }
+      delete shipment.receiverOfficeCode
+    }
+  } else if (deliveryType === "office") {
+    shipment.receiverOfficeCode = process.env.ECONT_DEFAULT_OFFICE_CODE || ""
+    if (!shipment.receiverOfficeCode) {
+      shipment.receiverAddress = { city: { name: city, country: { code3: "BGR" } }, street, zip }
+      delete shipment.receiverOfficeCode
+    }
+  } else {
+    shipment.receiverAddress = { city: { name: city, country: { code3: "BGR" } }, street, zip }
+  }
+
+  try {
+    const auth = Buffer.from(`${ECONT_USER}:${ECONT_PASS}`).toString("base64")
+    const response = await fetch(
+      "https://ee.econt.com/services/Shipments/ShipmentService.createShipments.json",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Basic ${auth}` },
+        body: JSON.stringify({ request: { shipments: [shipment], mode: "create" } }),
+      }
+    )
+    const data = await response.json()
+    if (data.error) { console.error("ECONT API ERROR:", data.error); return null }
+    const shipmentNumber = data.response?.shipments?.[0]?.shipmentNumber || null
+    console.log("✅ Econt waybill created:", shipmentNumber)
+    return shipmentNumber
+  } catch (e) {
+    console.error("ECONT WAYBILL ERROR:", e.message)
+    return null
+  }
+}
+
+// ---------------------------------------------------------------
 // 3) STRIPE WEBHOOK  (трябва да е ПРЕДИ express.json())
 // ---------------------------------------------------------------
 // ---------------------------------------------------------------
@@ -266,19 +351,51 @@ app.post(
               const fullNameField = customFields.find((f) => f?.key === "full_name")
               const fullName = fullNameField?.text?.value || ""
               const shipping = session.shipping_details || {}
+              const customerPhone = session.customer_details?.phone || ""
+
+              // Get courier info from shipping rate metadata
+              let courierName = ""
+              let deliveryType = ""
+              try {
+                if (session.shipping_cost?.shipping_rate) {
+                  const rate = await stripe.shippingRates.retrieve(session.shipping_cost.shipping_rate)
+                  courierName = rate.metadata?.courier || ""
+                  deliveryType = rate.metadata?.delivery_type || ""
+                }
+              } catch (e) { console.error("SHIPPING RATE ERROR:", e) }
+
               await db.query(
-                `INSERT INTO magazine_orders (stripe_session_id, customer_email, full_name, shipping_address, quantity, amount_total, currency)
-                 VALUES ($1,$2,$3,$4,$5,$6,$7) ON CONFLICT (stripe_session_id) DO NOTHING`,
+                `INSERT INTO magazine_orders
+                 (stripe_session_id, customer_email, full_name, shipping_address, quantity, amount_total, currency, customer_phone, courier, shipping_type)
+                 VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) ON CONFLICT (stripe_session_id) DO NOTHING`,
                 [
-                  session.id,
-                  customerEmail,
-                  fullName,
+                  session.id, customerEmail, fullName,
                   JSON.stringify(shipping.address || {}),
-                  qty,
-                  session.amount_total,
-                  session.currency,
+                  qty, session.amount_total, session.currency,
+                  customerPhone, courierName, deliveryType,
                 ]
               ).catch((e) => console.error("MAGAZINE ORDER DB ERROR:", e))
+
+              // Auto-create Econt waybill
+              if (courierName === "econt") {
+                try {
+                  const waybill = await createEcontWaybill({
+                    fullName,
+                    customerPhone,
+                    shippingAddress: shipping.address || {},
+                    deliveryType,
+                    quantity: qty,
+                  })
+                  if (waybill) {
+                    await db.query(
+                      "UPDATE magazine_orders SET tracking_number = $1 WHERE stripe_session_id = $2",
+                      [waybill, session.id]
+                    )
+                  }
+                } catch (econtErr) {
+                  console.error("ECONT WAYBILL CREATION ERROR:", econtErr)
+                }
+              }
             }
 
             const internalOrderInbox = "icaki@mirenmagazine.com"
@@ -603,6 +720,10 @@ app.get("/api/fix-db", async (req, res) => {
 
     await db.query(`ALTER TABLE articles ADD COLUMN IF NOT EXISTS price TEXT;`)
     await db.query(`ALTER TABLE articles ADD COLUMN IF NOT EXISTS link TEXT;`)
+    await db.query(`ALTER TABLE magazine_orders ADD COLUMN IF NOT EXISTS courier TEXT;`)
+    await db.query(`ALTER TABLE magazine_orders ADD COLUMN IF NOT EXISTS shipping_type TEXT;`)
+    await db.query(`ALTER TABLE magazine_orders ADD COLUMN IF NOT EXISTS tracking_number TEXT;`)
+    await db.query(`ALTER TABLE magazine_orders ADD COLUMN IF NOT EXISTS customer_phone TEXT;`)
 
     res.send("✅ УСПЕХ! Базата данни е поправена за новите полета.")
   } catch (e) {
@@ -815,10 +936,58 @@ app.get("/api/admin/magazine-orders", adminMiddleware, async (req, res) => {
   try {
     const { rows } = await db.query(
       `SELECT id, stripe_session_id, customer_email, full_name, shipping_address,
-              quantity, amount_total, currency, status, created_at
+              quantity, amount_total, currency, status, courier, shipping_type,
+              tracking_number, customer_phone, created_at
        FROM magazine_orders ORDER BY created_at DESC`
     )
     res.json(rows)
+  } catch (e) {
+    res.status(500).json({ error: e.message })
+  }
+})
+
+app.put("/api/admin/magazine-orders/:id/tracking", adminMiddleware, async (req, res) => {
+  const { tracking_number } = req.body
+  try {
+    await db.query(
+      "UPDATE magazine_orders SET tracking_number = $1 WHERE id = $2",
+      [tracking_number || null, req.params.id]
+    )
+    res.json({ ok: true })
+  } catch (e) {
+    res.status(500).json({ error: e.message })
+  }
+})
+
+app.post("/api/admin/magazine-orders/:id/create-waybill", adminMiddleware, async (req, res) => {
+  try {
+    const { rows } = await db.query(
+      "SELECT * FROM magazine_orders WHERE id = $1",
+      [req.params.id]
+    )
+    const order = rows[0]
+    if (!order) return res.status(404).json({ error: "Order not found" })
+    if (order.courier !== "econt") return res.status(400).json({ error: "Only Econt orders supported" })
+
+    const addr = typeof order.shipping_address === "string"
+      ? JSON.parse(order.shipping_address)
+      : order.shipping_address || {}
+
+    const waybill = await createEcontWaybill({
+      fullName: order.full_name,
+      customerPhone: order.customer_phone,
+      shippingAddress: addr,
+      deliveryType: order.shipping_type,
+      quantity: order.quantity,
+    })
+
+    if (!waybill) return res.status(500).json({ error: "Econt API did not return a waybill number" })
+
+    await db.query(
+      "UPDATE magazine_orders SET tracking_number = $1 WHERE id = $2",
+      [waybill, order.id]
+    )
+    res.json({ ok: true, tracking_number: waybill })
   } catch (e) {
     res.status(500).json({ error: e.message })
   }
@@ -855,7 +1024,8 @@ app.get("/api/admin/store/orders", adminMiddleware, async (req, res) => {
   try {
     const { rows } = await db.query(
       `SELECT id, stripe_session_id, customer_email, full_name, shipping_address,
-              quantity, amount_total, currency, status, created_at
+              quantity, amount_total, currency, status, courier, shipping_type,
+              tracking_number, customer_phone, created_at
        FROM magazine_orders ORDER BY created_at DESC`
     )
     res.json(rows)
@@ -1850,7 +2020,7 @@ app.post("/api/create-magazine-checkout", async (req, res) => {
       custom_fields: [
         {
           key: "full_name",
-          label: { type: "custom", custom: "Три имена (Three names)" },
+          label: { type: "custom", custom: "Три имена / Full name" },
           type: "text",
         },
       ],
@@ -1858,6 +2028,92 @@ app.post("/api/create-magazine-checkout", async (req, res) => {
       shipping_address_collection: {
         allowed_countries: ["BG", "GB", "DE", "FR", "NL", "AT", "BE", "GR", "RO", "US"],
       },
+      shipping_options: [
+        {
+          shipping_rate_data: {
+            type: "fixed_amount",
+            fixed_amount: { amount: 199, currency: "eur" },
+            display_name: "BoxNow — До автомат",
+            metadata: { courier: "boxnow", delivery_type: "locker" },
+            delivery_estimate: {
+              minimum: { unit: "business_day", value: 1 },
+              maximum: { unit: "business_day", value: 2 },
+            },
+          },
+        },
+        {
+          shipping_rate_data: {
+            type: "fixed_amount",
+            fixed_amount: { amount: 249, currency: "eur" },
+            display_name: "Econt — До автомат (Econt Box)",
+            metadata: { courier: "econt", delivery_type: "locker" },
+            delivery_estimate: {
+              minimum: { unit: "business_day", value: 1 },
+              maximum: { unit: "business_day", value: 2 },
+            },
+          },
+        },
+        {
+          shipping_rate_data: {
+            type: "fixed_amount",
+            fixed_amount: { amount: 299, currency: "eur" },
+            display_name: "Econt — До офис",
+            metadata: { courier: "econt", delivery_type: "office" },
+            delivery_estimate: {
+              minimum: { unit: "business_day", value: 1 },
+              maximum: { unit: "business_day", value: 2 },
+            },
+          },
+        },
+        {
+          shipping_rate_data: {
+            type: "fixed_amount",
+            fixed_amount: { amount: 499, currency: "eur" },
+            display_name: "Econt — До адрес",
+            metadata: { courier: "econt", delivery_type: "courier" },
+            delivery_estimate: {
+              minimum: { unit: "business_day", value: 1 },
+              maximum: { unit: "business_day", value: 3 },
+            },
+          },
+        },
+        {
+          shipping_rate_data: {
+            type: "fixed_amount",
+            fixed_amount: { amount: 249, currency: "eur" },
+            display_name: "Speedy — До автомат (Speedy Box)",
+            metadata: { courier: "speedy", delivery_type: "locker" },
+            delivery_estimate: {
+              minimum: { unit: "business_day", value: 1 },
+              maximum: { unit: "business_day", value: 2 },
+            },
+          },
+        },
+        {
+          shipping_rate_data: {
+            type: "fixed_amount",
+            fixed_amount: { amount: 299, currency: "eur" },
+            display_name: "Speedy — До офис",
+            metadata: { courier: "speedy", delivery_type: "office" },
+            delivery_estimate: {
+              minimum: { unit: "business_day", value: 1 },
+              maximum: { unit: "business_day", value: 2 },
+            },
+          },
+        },
+        {
+          shipping_rate_data: {
+            type: "fixed_amount",
+            fixed_amount: { amount: 499, currency: "eur" },
+            display_name: "Speedy — До адрес",
+            metadata: { courier: "speedy", delivery_type: "courier" },
+            delivery_estimate: {
+              minimum: { unit: "business_day", value: 1 },
+              maximum: { unit: "business_day", value: 3 },
+            },
+          },
+        },
+      ],
       metadata: { type: "magazine", quantity: String(quantity) },
       success_url: `${APP_URL}/store?order=success`,
       cancel_url: `${APP_URL}/store`,

@@ -1293,7 +1293,7 @@ html[data-theme="dark"] .textarea {
   margin-left: calc(50% - 50vw);
   margin-right: calc(50% - 50vw);
 
-  min-height: calc(100vh - var(--nav-offset));
+  min-height: clamp(480px, 72vh, 800px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1363,13 +1363,14 @@ html[data-theme="dark"] .textarea {
   border: 1px solid var(--nav-border);
   box-shadow: var(--shadow-lg);
 
-  min-height: 420px;
+  min-height: clamp(280px, 40vh, 480px);
+  max-height: 60vh;
   display: grid;
   place-items: center;
 }
 
 @media (max-width: 900px) {
-  .hero-media { min-height: 340px; }
+  .hero-media { min-height: 280px; max-height: 50vw; }
 }
 
 .hero-vfx,

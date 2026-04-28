@@ -29,6 +29,7 @@ const TABS = [
   { key: "orders", label: "Orders" },
   { key: "subscriptions", label: "Subscriptions" },
   { key: "newsletter", label: "Newsletter" },
+  { key: "refunds", label: "⚠️ Refunds" },
 ]
 
 const NEWS_ARTICLE_CATEGORIES = [
@@ -614,7 +615,7 @@ const [heroVfxUrl, setHeroVfxUrl] = useState("")
           return
         }
 
-        if (activeTab === "orders") {
+        if (activeTab === "orders" || activeTab === "refunds") {
           const res = await api.get("/admin/magazine-orders")
           setOrders(Array.isArray(res.data) ? res.data : [])
           return
@@ -1313,6 +1314,64 @@ isVideoUrl(heroVfxUrl) ? (
         </div>
       )}
 
+
+      {/* REFUNDS */}
+      {activeTab === "refunds" && (
+        <div className="admin-card" style={{ border: "2px solid #c0392b" }}>
+          <h3 className="headline" style={{ color: "#c0392b" }}>⚠️ Рефунди — Поръчки на списания</h3>
+          <p className="text-muted" style={{ marginBottom: 16 }}>Рефундът е необратим. Парите се връщат на картата на клиента.</p>
+
+          {orders.length === 0 ? (
+            <p className="text-muted">Няма поръчки.</p>
+          ) : (
+            <div className="list">
+              {orders.map((o) => (
+                <div key={o.id} className="list-row">
+                  <div className="list-main">
+                    <div className="list-title">
+                      {o.full_name || "(без име)"} — {o.customer_email}
+                      <span style={{ marginLeft: 10, fontSize: "0.8em", background: o.status === "refunded" ? "#c0392b" : o.status === "paid" ? "#22c55e" : "#888", color: "#fff", borderRadius: 4, padding: "1px 6px" }}>
+                        {o.status || "paid"}
+                      </span>
+                    </div>
+                    <div className="list-sub text-muted">
+                      {o.created_at ? new Date(o.created_at).toLocaleString("bg-BG") : "—"} •{" "}
+                      {((o.amount_total || 0) / 100).toFixed(2)} {String(o.currency || "EUR").toUpperCase()} •{" "}
+                      Брой: {o.quantity || 1}
+                      {o.courier && ` • ${o.courier.toUpperCase()}`}
+                    </div>
+                  </div>
+
+                  {o.status !== "refunded" && (
+                    <button
+                      className="btn"
+                      style={{ background: "#c0392b", color: "#fff", fontSize: "0.85em", whiteSpace: "nowrap" }}
+                      type="button"
+                      onClick={async () => {
+                        const confirmed = window.confirm(
+                          `Сигурен ли си, че искаш да рефундираш поръчката на ${o.customer_email}?\n\n` +
+                          `Сума: ${((o.amount_total || 0) / 100).toFixed(2)} ${String(o.currency || "EUR").toUpperCase()}\n\n` +
+                          `Това действие е необратимо!`
+                        )
+                        if (!confirmed) return
+                        try {
+                          await api.post(`/admin/magazine-orders/${o.id}/refund`)
+                          setOrders((prev) => prev.map((x) => x.id === o.id ? { ...x, status: "refunded" } : x))
+                          alert("Рефундът е направен успешно.")
+                        } catch (e) {
+                          alert("Грешка: " + (e?.response?.data?.error || e.message))
+                        }
+                      }}
+                    >
+                      Рефунд
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* NEWSLETTER */}
       {activeTab === "newsletter" && (

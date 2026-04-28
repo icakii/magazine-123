@@ -961,6 +961,25 @@ app.put("/api/admin/magazine-orders/:id/tracking", adminMiddleware, async (req, 
   }
 })
 
+app.post("/api/admin/magazine-orders/:id/refund", adminMiddleware, async (req, res) => {
+  try {
+    const { rows } = await db.query("SELECT * FROM magazine_orders WHERE id = $1", [req.params.id])
+    const order = rows[0]
+    if (!order) return res.status(404).json({ error: "Order not found" })
+    if (order.status === "refunded") return res.status(400).json({ error: "Already refunded" })
+
+    const session = await stripe.checkout.sessions.retrieve(order.stripe_session_id)
+    if (!session.payment_intent) return res.status(400).json({ error: "No payment intent found" })
+
+    await stripe.refunds.create({ payment_intent: session.payment_intent })
+    await db.query("UPDATE magazine_orders SET status = 'refunded' WHERE id = $1", [order.id])
+
+    res.json({ ok: true })
+  } catch (e) {
+    res.status(500).json({ error: e.message })
+  }
+})
+
 app.post("/api/admin/magazine-orders/:id/create-waybill", adminMiddleware, async (req, res) => {
   try {
     const { rows } = await db.query(

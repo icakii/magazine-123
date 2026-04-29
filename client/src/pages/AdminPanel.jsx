@@ -1181,14 +1181,35 @@ isVideoUrl(heroVfxUrl) ? (
           ) : (
             <div className="list">
               {storeItems.map((it) => (
-                <div className="list-row" key={it.id || it.stripe_price_id}>
+                <div className="list-row" key={it.id || it.priceId}>
                   <div className="list-main">
                     <div className="list-title">{it.title}</div>
                     <div className="list-sub text-muted">
-                      Price ID: {it.stripe_price_id || "—"} • Active: {String(!!it.is_active)} • Category: {it.category || "—"}
+                      Price ID: {it.priceId || "—"} • Category: {it.category || "—"}
                     </div>
                     {it.description && <div className="list-sub text-muted">{it.description}</div>}
                   </div>
+                  <button
+                    className="btn outline"
+                    style={{ fontSize: "0.8em", whiteSpace: "nowrap" }}
+                    onClick={() => {
+                      const newPriceId = window.prompt("Нов Stripe Price ID:", it.priceId || "")
+                      if (!newPriceId || newPriceId === it.priceId) return
+                      api.put(`/admin/store/items/${it.id}`, {
+                        title: it.title,
+                        description: it.description,
+                        imageUrl: it.imageUrl,
+                        category: it.category,
+                        priceId: newPriceId.trim(),
+                        isActive: it.isActive,
+                      }).then(() => {
+                        setStoreItems((prev) => prev.map((x) => x.id === it.id ? { ...x, priceId: newPriceId.trim() } : x))
+                        alert("Price ID обновен!")
+                      }).catch((e) => alert("Грешка: " + (e?.response?.data?.error || e.message)))
+                    }}
+                  >
+                    Смени Price ID
+                  </button>
                 </div>
               ))}
             </div>

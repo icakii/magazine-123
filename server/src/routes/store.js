@@ -227,8 +227,74 @@ router.post("/store/checkout", async (req, res) => {
       phone_number_collection: { enabled: true },
 
       shipping_address_collection: {
-        allowed_countries: ["BG"],
+        allowed_countries: ["BG", "GB", "DE", "FR", "NL", "AT", "BE", "GR", "RO", "US"],
       },
+
+      shipping_options: [
+        {
+          shipping_rate_data: {
+            type: "fixed_amount",
+            fixed_amount: { amount: 199, currency: "eur" },
+            display_name: "BoxNow — До автомат",
+            metadata: { courier: "boxnow", delivery_type: "locker" },
+            delivery_estimate: { minimum: { unit: "business_day", value: 1 }, maximum: { unit: "business_day", value: 2 } },
+          },
+        },
+        {
+          shipping_rate_data: {
+            type: "fixed_amount",
+            fixed_amount: { amount: 249, currency: "eur" },
+            display_name: "Econt — До автомат (Econt Box)",
+            metadata: { courier: "econt", delivery_type: "locker" },
+            delivery_estimate: { minimum: { unit: "business_day", value: 1 }, maximum: { unit: "business_day", value: 2 } },
+          },
+        },
+        {
+          shipping_rate_data: {
+            type: "fixed_amount",
+            fixed_amount: { amount: 299, currency: "eur" },
+            display_name: "Econt — До офис",
+            metadata: { courier: "econt", delivery_type: "office" },
+            delivery_estimate: { minimum: { unit: "business_day", value: 1 }, maximum: { unit: "business_day", value: 2 } },
+          },
+        },
+        {
+          shipping_rate_data: {
+            type: "fixed_amount",
+            fixed_amount: { amount: 499, currency: "eur" },
+            display_name: "Econt — До адрес",
+            metadata: { courier: "econt", delivery_type: "courier" },
+            delivery_estimate: { minimum: { unit: "business_day", value: 1 }, maximum: { unit: "business_day", value: 3 } },
+          },
+        },
+        {
+          shipping_rate_data: {
+            type: "fixed_amount",
+            fixed_amount: { amount: 249, currency: "eur" },
+            display_name: "Speedy — До автомат (Speedy Box)",
+            metadata: { courier: "speedy", delivery_type: "locker" },
+            delivery_estimate: { minimum: { unit: "business_day", value: 1 }, maximum: { unit: "business_day", value: 2 } },
+          },
+        },
+        {
+          shipping_rate_data: {
+            type: "fixed_amount",
+            fixed_amount: { amount: 299, currency: "eur" },
+            display_name: "Speedy — До офис",
+            metadata: { courier: "speedy", delivery_type: "office" },
+            delivery_estimate: { minimum: { unit: "business_day", value: 1 }, maximum: { unit: "business_day", value: 2 } },
+          },
+        },
+        {
+          shipping_rate_data: {
+            type: "fixed_amount",
+            fixed_amount: { amount: 499, currency: "eur" },
+            display_name: "Speedy — До адрес",
+            metadata: { courier: "speedy", delivery_type: "courier" },
+            delivery_estimate: { minimum: { unit: "business_day", value: 1 }, maximum: { unit: "business_day", value: 3 } },
+          },
+        },
+      ],
 
       custom_fields: [
         {

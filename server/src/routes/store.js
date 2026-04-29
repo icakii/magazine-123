@@ -252,15 +252,6 @@ router.post("/store/checkout", async (req, res) => {
         {
           shipping_rate_data: {
             type: "fixed_amount",
-            fixed_amount: { amount: 299, currency: "eur" },
-            display_name: "Econt — До офис",
-            metadata: { courier: "econt", delivery_type: "office" },
-            delivery_estimate: { minimum: { unit: "business_day", value: 1 }, maximum: { unit: "business_day", value: 2 } },
-          },
-        },
-        {
-          shipping_rate_data: {
-            type: "fixed_amount",
             fixed_amount: { amount: 499, currency: "eur" },
             display_name: "Econt — До адрес",
             metadata: { courier: "econt", delivery_type: "courier" },
@@ -273,15 +264,6 @@ router.post("/store/checkout", async (req, res) => {
             fixed_amount: { amount: 249, currency: "eur" },
             display_name: "Speedy — До автомат (Speedy Box)",
             metadata: { courier: "speedy", delivery_type: "locker" },
-            delivery_estimate: { minimum: { unit: "business_day", value: 1 }, maximum: { unit: "business_day", value: 2 } },
-          },
-        },
-        {
-          shipping_rate_data: {
-            type: "fixed_amount",
-            fixed_amount: { amount: 299, currency: "eur" },
-            display_name: "Speedy — До офис",
-            metadata: { courier: "speedy", delivery_type: "office" },
             delivery_estimate: { minimum: { unit: "business_day", value: 1 }, maximum: { unit: "business_day", value: 2 } },
           },
         },

@@ -727,6 +727,7 @@ app.get("/api/fix-db", async (req, res) => {
     await db.query(`ALTER TABLE magazine_orders ADD COLUMN IF NOT EXISTS shipping_type TEXT;`)
     await db.query(`ALTER TABLE magazine_orders ADD COLUMN IF NOT EXISTS tracking_number TEXT;`)
     await db.query(`ALTER TABLE magazine_orders ADD COLUMN IF NOT EXISTS customer_phone TEXT;`)
+    await db.query(`ALTER TABLE event_reminders ADD COLUMN IF NOT EXISTS reminder_sent_at TIMESTAMPTZ;`)
 
     res.send("✅ УСПЕХ! Базата данни е поправена за новите полета.")
   } catch (e) {
@@ -2228,24 +2229,25 @@ app.get("*", (req, res) => {
 
 
 // ---------------------------------------------------------------
-// CRON — Event reminders (всеки ден в 09:00 Sofia time)
+// CRON — Event reminders (проверява на всеки 5 минути, праща точно 24h преди)
 // ---------------------------------------------------------------
-cron.schedule("0 9 * * *", async () => {
-  console.log("⏰ CRON: sending event reminders...")
+cron.schedule("*/5 * * * *", async () => {
   try {
-    const tomorrow = new Date()
-    tomorrow.setDate(tomorrow.getDate() + 1)
-    const dateStr = tomorrow.toISOString().split("T")[0]
+    // Window: събития чийто час е между 23h55m и 24h05m от сега
+    const { rows } = await db.query(`
+      SELECT a.id, a.title, a.date, a.time, r.user_email, r.id AS reminder_id
+      FROM articles a
+      JOIN event_reminders r ON r.article_id = a.id
+      WHERE a.category = 'events'
+        AND r.reminder_sent_at IS NULL
+        AND (
+          (a.date || ' ' || COALESCE(a.time, '12:00'))::timestamp AT TIME ZONE 'Europe/Sofia'
+          BETWEEN (NOW() + INTERVAL '23 hours 55 minutes')
+              AND (NOW() + INTERVAL '24 hours 5 minutes')
+        )
+    `)
 
-    const { rows } = await db.query(
-      `SELECT a.id, a.title, a.date, a.time, r.user_email
-       FROM articles a
-       JOIN event_reminders r ON r.article_id = a.id
-       WHERE a.category = 'events' AND a.date = $1`,
-      [dateStr]
-    )
-
-    if (rows.length === 0) { console.log("⏰ CRON: no reminders to send"); return }
+    if (rows.length === 0) return
 
     const byEmail = {}
     for (const row of rows) {
@@ -2253,7 +2255,6 @@ cron.schedule("0 9 * * *", async () => {
       byEmail[row.user_email].push(row)
     }
 
-    let sent = 0
     for (const [email, events] of Object.entries(byEmail)) {
       const eventRows = events.map((ev) => `
         <tr>
@@ -2291,13 +2292,19 @@ cron.schedule("0 9 * * *", async () => {
   </table>
 </body></html>`,
       })
-      sent++
+
+      // Маркира като изпратен за да не се прати пак
+      await db.query(
+        "UPDATE event_reminders SET reminder_sent_at = NOW() WHERE id = ANY($1)",
+        [events.map((e) => e.reminder_id)]
+      )
     }
-    console.log(`⏰ CRON: sent ${sent} reminder emails`)
+
+    console.log(`⏰ CRON: sent reminders for ${rows.length} subscriptions`)
   } catch (e) {
     console.error("⏰ CRON ERROR:", e.message)
   }
-}, { timezone: "Europe/Sofia" })
+})
 
 // ---------------------------------------------------------------
 // START SERVER

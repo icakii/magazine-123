@@ -1377,9 +1377,8 @@ html[data-theme="dark"] .textarea {
 .hero-cover {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
   display: block;
-  transform: scale(1.02);
 }
 
 .hero-cover--placeholder {

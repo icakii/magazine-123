@@ -209,6 +209,83 @@ async function sendGameStreakEndedEmail({ to, gameKey, streak }) {
 }
 
 // ---------------------------------------------------------------
+// SPEEDY WAYBILL CREATION
+// ---------------------------------------------------------------
+async function createSpeedyWaybill({ fullName, customerPhone, shippingAddress, deliveryType, quantity }) {
+  const SPEEDY_USER = process.env.SPEEDY_USERNAME
+  const SPEEDY_PASS = process.env.SPEEDY_PASSWORD
+  if (!SPEEDY_USER || !SPEEDY_PASS) {
+    console.log("⚠️ Speedy credentials not configured — skipping waybill creation")
+    return null
+  }
+
+  const addr = shippingAddress || {}
+  const city = addr.city || ""
+  const street = addr.line1 || ""
+  const zip = addr.postal_code || ""
+  const senderName = process.env.SPEEDY_SENDER_NAME || process.env.ECONT_SENDER_NAME || "MIREN Magazine"
+  const senderPhone = process.env.SPEEDY_SENDER_PHONE || process.env.ECONT_SENDER_PHONE || ""
+
+  const body = {
+    userName: SPEEDY_USER,
+    password: SPEEDY_PASS,
+    language: "BG",
+    service: {
+      serviceId: deliveryType === "locker" ? 505 : deliveryType === "office" ? 505 : 500,
+      autoAdjustPickupDate: true,
+    },
+    sender: {
+      clientName: senderName,
+      phone: { number: senderPhone },
+    },
+    recipient: {
+      privatePerson: true,
+      clientName: fullName || "Customer",
+      phone: { number: customerPhone || "" },
+      address: {
+        countryId: 100, // Bulgaria
+        siteName: city,
+        streetName: street,
+        postCode: zip,
+      },
+    },
+    parcel: {
+      packageCount: quantity || 1,
+      weight: 0.3 * (quantity || 1),
+    },
+    content: { contents: "Списание", package: "DOCUMENT" },
+    payment: { courierServicePayer: "SENDER" },
+  }
+
+  if (deliveryType === "locker") {
+    body.recipient.pickupOfficeId = parseInt(process.env.SPEEDY_DEFAULT_LOCKER_ID || "0") || undefined
+    if (!body.recipient.pickupOfficeId) delete body.recipient.pickupOfficeId
+  } else if (deliveryType === "office") {
+    body.recipient.pickupOfficeId = parseInt(process.env.SPEEDY_DEFAULT_OFFICE_ID || "0") || undefined
+    if (!body.recipient.pickupOfficeId) delete body.recipient.pickupOfficeId
+  }
+
+  const senderOfficeId = parseInt(process.env.SPEEDY_SENDER_OFFICE_ID || "0")
+  if (senderOfficeId) body.sender.pickupOfficeId = senderOfficeId
+
+  try {
+    const response = await fetch("https://api.speedy.bg/v1/shipment/", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    })
+    const data = await response.json()
+    if (data.error) { console.error("SPEEDY API ERROR:", data.error); return null }
+    const waybill = data.id ? String(data.id) : null
+    console.log("✅ Speedy waybill created:", waybill)
+    return waybill
+  } catch (e) {
+    console.error("SPEEDY WAYBILL ERROR:", e.message)
+    return null
+  }
+}
+
+// ---------------------------------------------------------------
 // ECONT WAYBILL CREATION
 // ---------------------------------------------------------------
 async function createEcontWaybill({ fullName, customerPhone, shippingAddress, deliveryType, quantity }) {
@@ -378,6 +455,27 @@ app.post(
                   customerPhone, courierName, deliveryType,
                 ]
               ).catch((e) => console.error("MAGAZINE ORDER DB ERROR:", e))
+
+              // Auto-create Speedy waybill
+              if (courierName === "speedy") {
+                try {
+                  const waybill = await createSpeedyWaybill({
+                    fullName,
+                    customerPhone,
+                    shippingAddress: shipping.address || {},
+                    deliveryType,
+                    quantity: qty,
+                  })
+                  if (waybill) {
+                    await db.query(
+                      "UPDATE magazine_orders SET tracking_number = $1 WHERE stripe_session_id = $2",
+                      [waybill, session.id]
+                    )
+                  }
+                } catch (speedyErr) {
+                  console.error("SPEEDY WAYBILL CREATION ERROR:", speedyErr)
+                }
+              }
 
               // Auto-create Econt waybill
               if (courierName === "econt") {
@@ -990,19 +1088,15 @@ app.post("/api/admin/magazine-orders/:id/create-waybill", adminMiddleware, async
     )
     const order = rows[0]
     if (!order) return res.status(404).json({ error: "Order not found" })
-    if (order.courier !== "econt") return res.status(400).json({ error: "Only Econt orders supported" })
+    if (!["econt", "speedy"].includes(order.courier)) return res.status(400).json({ error: "Only Econt/Speedy orders supported" })
 
     const addr = typeof order.shipping_address === "string"
       ? JSON.parse(order.shipping_address)
       : order.shipping_address || {}
 
-    const waybill = await createEcontWaybill({
-      fullName: order.full_name,
-      customerPhone: order.customer_phone,
-      shippingAddress: addr,
-      deliveryType: order.shipping_type,
-      quantity: order.quantity,
-    })
+    const waybill = order.courier === "speedy"
+      ? await createSpeedyWaybill({ fullName: order.full_name, customerPhone: order.customer_phone, shippingAddress: addr, deliveryType: order.shipping_type, quantity: order.quantity })
+      : await createEcontWaybill({ fullName: order.full_name, customerPhone: order.customer_phone, shippingAddress: addr, deliveryType: order.shipping_type, quantity: order.quantity })
 
     if (!waybill) return res.status(500).json({ error: "Econt API did not return a waybill number" })
 

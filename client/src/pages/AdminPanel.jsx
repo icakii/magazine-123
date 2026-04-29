@@ -1248,7 +1248,7 @@ isVideoUrl(heroVfxUrl) ? (
                             } catch { alert("Грешка при запазване") }
                           }}
                         />
-                        {o.courier === "econt" && !o.tracking_number && (
+                        {(o.courier === "econt" || o.courier === "speedy") && !o.tracking_number && (
                           <button
                             className="btn primary"
                             style={{ fontSize: "0.8em", padding: "4px 12px" }}
@@ -1265,7 +1265,7 @@ isVideoUrl(heroVfxUrl) ? (
                               }
                             }}
                           >
-                            Създай товарителница (Econt)
+                            Създай товарителница ({o.courier?.toUpperCase()})
                           </button>
                         )}
                       </div>

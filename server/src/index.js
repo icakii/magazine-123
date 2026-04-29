@@ -3,6 +3,7 @@
 // ================================================================
 
 require("dotenv").config()
+const cron = require("node-cron")
 const express = require("express")
 const rateLimit = require("express-rate-limit")
 const cors = require("cors")
@@ -2225,6 +2226,78 @@ app.get("*", (req, res) => {
   return res.sendFile(indexHtml)
 })
 
+
+// ---------------------------------------------------------------
+// CRON — Event reminders (всеки ден в 09:00 Sofia time)
+// ---------------------------------------------------------------
+cron.schedule("0 9 * * *", async () => {
+  console.log("⏰ CRON: sending event reminders...")
+  try {
+    const tomorrow = new Date()
+    tomorrow.setDate(tomorrow.getDate() + 1)
+    const dateStr = tomorrow.toISOString().split("T")[0]
+
+    const { rows } = await db.query(
+      `SELECT a.id, a.title, a.date, a.time, r.user_email
+       FROM articles a
+       JOIN event_reminders r ON r.article_id = a.id
+       WHERE a.category = 'events' AND a.date = $1`,
+      [dateStr]
+    )
+
+    if (rows.length === 0) { console.log("⏰ CRON: no reminders to send"); return }
+
+    const byEmail = {}
+    for (const row of rows) {
+      if (!byEmail[row.user_email]) byEmail[row.user_email] = []
+      byEmail[row.user_email].push(row)
+    }
+
+    let sent = 0
+    for (const [email, events] of Object.entries(byEmail)) {
+      const eventRows = events.map((ev) => `
+        <tr>
+          <td style="padding:12px 16px;border-bottom:1px solid #f0e8e0;">
+            <div style="font-weight:700;font-size:1rem;color:#1a1a1a;">${ev.title}</div>
+            <div style="color:#8b6f5e;font-size:0.875rem;margin-top:4px;">📅 ${ev.date}${ev.time ? " · " + ev.time : ""}</div>
+          </td>
+        </tr>`).join("")
+
+      await transporters.fallback.sendMail({
+        to: email,
+        subject: "MIREN · Утре те очакват събития 📅",
+        html: `<!DOCTYPE html><html lang="bg"><head><meta charset="UTF-8"></head>
+<body style="margin:0;padding:0;background:#faf6f1;font-family:'Helvetica Neue',Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#faf6f1;padding:40px 0;">
+    <tr><td align="center">
+      <table width="560" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08);">
+        <tr><td style="background:linear-gradient(135deg,#c46a4a,#8b3a2a);padding:32px 40px;text-align:center;">
+          <div style="font-size:2rem;font-weight:900;letter-spacing:0.12em;color:#fff;">MIREN</div>
+          <div style="color:rgba(255,255,255,0.8);font-size:0.85rem;margin-top:4px;letter-spacing:0.06em;">MAGAZINE</div>
+        </td></tr>
+        <tr><td style="padding:32px 40px;">
+          <h2 style="margin:0 0 8px;font-size:1.4rem;color:#1a1a1a;">Утре те очакват събития!</h2>
+          <p style="margin:0 0 24px;color:#666;font-size:0.95rem;">Напомняме ти за следните предстоящи събития:</p>
+          <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #f0e8e0;border-radius:10px;overflow:hidden;">${eventRows}</table>
+          <div style="margin-top:28px;text-align:center;">
+            <a href="https://mirenmagazine.com/events" style="display:inline-block;background:#c46a4a;color:#fff;padding:12px 32px;border-radius:8px;font-weight:700;text-decoration:none;">Виж всички събития</a>
+          </div>
+        </td></tr>
+        <tr><td style="padding:20px 40px;border-top:1px solid #f0e8e0;text-align:center;">
+          <p style="margin:0;color:#aaa;font-size:0.8rem;">© ${new Date().getFullYear()} MIREN Magazine · <a href="https://mirenmagazine.com" style="color:#c46a4a;text-decoration:none;">mirenmagazine.com</a></p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body></html>`,
+      })
+      sent++
+    }
+    console.log(`⏰ CRON: sent ${sent} reminder emails`)
+  } catch (e) {
+    console.error("⏰ CRON ERROR:", e.message)
+  }
+}, { timezone: "Europe/Sofia" })
 
 // ---------------------------------------------------------------
 // START SERVER

@@ -1181,35 +1181,52 @@ isVideoUrl(heroVfxUrl) ? (
           ) : (
             <div className="list">
               {storeItems.map((it) => (
-                <div className="list-row" key={it.id || it.priceId}>
-                  <div className="list-main">
-                    <div className="list-title">{it.title}</div>
-                    <div className="list-sub text-muted">
-                      Price ID: {it.priceId || "—"} • Category: {it.category || "—"}
+                <div key={it.id || it.priceId}>
+                  <div className="list-row">
+                    <div className="list-main">
+                      <div className="list-title">{it.title}</div>
+                      <div className="list-sub text-muted">
+                        Price ID: {it.priceId || "—"} • Category: {it.category || "—"}
+                      </div>
+                      {it.description && <div className="list-sub text-muted">{it.description}</div>}
                     </div>
-                    {it.description && <div className="list-sub text-muted">{it.description}</div>}
+                    <button
+                      className="btn outline"
+                      style={{ fontSize: "0.8em", whiteSpace: "nowrap" }}
+                      onClick={() => setStoreItems((prev) => prev.map((x) => x.id === it.id ? { ...x, _editing: !x._editing } : x))}
+                    >
+                      {it._editing ? "Затвори" : "Редактирай"}
+                    </button>
                   </div>
-                  <button
-                    className="btn outline"
-                    style={{ fontSize: "0.8em", whiteSpace: "nowrap" }}
-                    onClick={() => {
-                      const newPriceId = window.prompt("Нов Stripe Price ID:", it.priceId || "")
-                      if (!newPriceId || newPriceId === it.priceId) return
-                      api.put(`/admin/store/items/${it.id}`, {
-                        title: it.title,
-                        description: it.description,
-                        imageUrl: it.imageUrl,
-                        category: it.category,
-                        priceId: newPriceId.trim(),
-                        isActive: it.isActive,
-                      }).then(() => {
-                        setStoreItems((prev) => prev.map((x) => x.id === it.id ? { ...x, priceId: newPriceId.trim() } : x))
-                        alert("Price ID обновен!")
-                      }).catch((e) => alert("Грешка: " + (e?.response?.data?.error || e.message)))
-                    }}
-                  >
-                    Смени Price ID
-                  </button>
+
+                  {it._editing && (
+                    <div style={{ marginTop: 8, marginBottom: 8, display: "flex", flexDirection: "column", gap: 8, padding: "12px", background: "var(--bg-muted)", borderRadius: 8 }}>
+                      <label className="field"><span>Заглавие</span>
+                        <input defaultValue={it.title} id={`si-title-${it.id}`} />
+                      </label>
+                      <label className="field"><span>Описание</span>
+                        <input defaultValue={it.description} id={`si-desc-${it.id}`} />
+                      </label>
+                      <label className="field"><span>Image URL</span>
+                        <input defaultValue={it.imageUrl} id={`si-img-${it.id}`} />
+                      </label>
+                      <label className="field"><span>Stripe Price ID</span>
+                        <input defaultValue={it.priceId} id={`si-price-${it.id}`} />
+                      </label>
+                      <button className="btn primary" style={{ alignSelf: "flex-start" }} onClick={async () => {
+                        const title = document.getElementById(`si-title-${it.id}`)?.value?.trim()
+                        const description = document.getElementById(`si-desc-${it.id}`)?.value?.trim()
+                        const imageUrl = document.getElementById(`si-img-${it.id}`)?.value?.trim()
+                        const priceId = document.getElementById(`si-price-${it.id}`)?.value?.trim()
+                        if (!title || !priceId) return alert("Заглавие и Price ID са задължителни")
+                        try {
+                          await api.put(`/admin/store/items/${it.id}`, { title, description, imageUrl, category: it.category, priceId, isActive: it.isActive })
+                          setStoreItems((prev) => prev.map((x) => x.id === it.id ? { ...x, title, description, imageUrl, priceId, _editing: false } : x))
+                          alert("Запазено!")
+                        } catch(e) { alert("Грешка: " + (e?.response?.data?.error || e.message)) }
+                      }}>Запази</button>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>

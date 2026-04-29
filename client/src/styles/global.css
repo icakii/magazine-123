@@ -1293,7 +1293,7 @@ html[data-theme="dark"] .textarea {
   margin-left: calc(50% - 50vw);
   margin-right: calc(50% - 50vw);
 
-  min-height: clamp(480px, 72vh, 800px);
+  min-height: calc(100vh - var(--nav-offset));
   display: flex;
   align-items: center;
   justify-content: center;
@@ -3153,11 +3153,39 @@ html[data-theme="dark"] .hamburger .line {
   backdrop-filter: blur(10px);
 }
 
+.store-img-wrap {
+  position: relative;
+  width: 100%;
+  background: var(--bg-muted);
+}
 .store-img{
-  width:100%;
-  height: 190px;
-  object-fit: cover;
-  display:block;
+  width: 100%;
+  height: auto;
+  max-height: 280px;
+  object-fit: contain;
+  display: block;
+}
+.store-card--soldout {
+  opacity: 0.8;
+}
+.store-soldout-badge {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) rotate(-15deg);
+  background: #c0392b;
+  color: #fff;
+  font-weight: 900;
+  font-size: 1.4rem;
+  letter-spacing: 0.1em;
+  padding: 8px 24px;
+  border-radius: 6px;
+  pointer-events: none;
+  animation: soldOutPulse 2s ease-in-out infinite;
+}
+@keyframes soldOutPulse {
+  0%, 100% { opacity: 1; transform: translate(-50%, -50%) rotate(-15deg) scale(1); }
+  50% { opacity: 0.75; transform: translate(-50%, -50%) rotate(-15deg) scale(1.05); }
 }
 .store-body{ padding: 14px 14px 16px; }
 .store-title{

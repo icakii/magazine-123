@@ -43,6 +43,7 @@ export default function Store() {
   const [loading, setLoading] = useState(true)
   const [err, setErr] = useState("")
   const [notice, setNotice] = useState("")
+  const [stock, setStock] = useState(null)
 
   const location = useLocation()
   const navigate = useNavigate()
@@ -100,6 +101,9 @@ export default function Store() {
           .filter((x) => x.isActive && x.priceId)
 
         setItems(normalized)
+
+        const stockRes = await api.get("/magazine/stock").catch(() => null)
+        if (stockRes?.data) setStock(stockRes.data)
       } catch (e) {
         if (!alive) return
         setErr("Failed to load store.")
@@ -194,13 +198,19 @@ export default function Store() {
         <Loader />
       ) : (
         <div className="store-grid">
-          {items.map((it) => (
-            <div key={it.id || it.priceId} className="store-card">
-              {it.imageUrl ? (
-                <img className="store-img" src={it.imageUrl} alt={it.title} loading="lazy" />
-              ) : (
-                <div className="store-img store-img--ph">MIREN</div>
-              )}
+          {items.map((it) => {
+            const isMagazine = it.category === "magazine"
+            const soldOut = isMagazine && stock && stock.remaining <= 0
+            return (
+            <div key={it.id || it.priceId} className={`store-card${soldOut ? " store-card--soldout" : ""}`}>
+              <div className="store-img-wrap">
+                {it.imageUrl ? (
+                  <img className="store-img" src={it.imageUrl} alt={it.title} loading="lazy" />
+                ) : (
+                  <div className="store-img store-img--ph">MIREN</div>
+                )}
+                {soldOut && <div className="store-soldout-badge">SOLD OUT</div>}
+              </div>
 
               <div className="store-body">
                 <div className="store-title">{it.title}</div>
@@ -211,13 +221,20 @@ export default function Store() {
                     {it.unitAmount != null ? formatMoneyCents(it.unitAmount, it.currency) : ""}
                   </div>
 
-                  <button className="btn primary store-btn" onClick={() => addItem(it)} type="button">
-                    Add to cart
+                  <button
+                    className={`btn ${soldOut ? "outline" : "primary"} store-btn`}
+                    onClick={() => !soldOut && addItem(it)}
+                    type="button"
+                    disabled={soldOut}
+                    style={soldOut ? { opacity: 0.5, cursor: "not-allowed" } : {}}
+                  >
+                    {soldOut ? "Sold Out" : "Add to cart"}
                   </button>
                 </div>
               </div>
             </div>
-          ))}
+            )
+          })}
         </div>
       )}
 

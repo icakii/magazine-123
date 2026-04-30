@@ -537,6 +537,7 @@ const [heroVfxUrl, setHeroVfxUrl] = useState("")
   const [users, setUsers] = useState([])
   const [subscriptions, setSubscriptions] = useState([])
   const [magazineStock, setMagazineStock] = useState(null)
+  const [storeOrders, setStoreOrders] = useState([])
 
   const resetMirenArtCodes = async () => {
     const ok = window.confirm(
@@ -614,8 +615,12 @@ const [heroVfxUrl, setHeroVfxUrl] = useState("")
         }
 
         if (activeTab === "orders" || activeTab === "refunds") {
-          const res = await api.get("/admin/magazine-orders")
-          setOrders(Array.isArray(res.data) ? res.data : [])
+          const [magRes, storeRes] = await Promise.all([
+            api.get("/admin/magazine-orders"),
+            api.get("/admin/store/orders").catch(() => ({ data: [] })),
+          ])
+          setOrders(Array.isArray(magRes.data) ? magRes.data : [])
+          setStoreOrders(Array.isArray(storeRes.data) ? storeRes.data : [])
           return
         }
 
@@ -1311,6 +1316,40 @@ isVideoUrl(heroVfxUrl) ? (
 
       {/* ORDERS */}
       {activeTab === "orders" && (
+        <>
+        {/* Store orders from Stripe */}
+        {storeOrders.length > 0 && (
+          <div className="admin-card" style={{ marginBottom: 16 }}>
+            <h3 className="headline">Store поръчки — Stripe ({storeOrders.length})</h3>
+            <div className="list">
+              {storeOrders.map((o) => {
+                const addr = o.shipping_address || {}
+                const addrStr = [addr.line1, addr.city, addr.country].filter(Boolean).join(", ")
+                const total = o.amount_total != null ? (o.amount_total / 100).toFixed(2) + " " + String(o.currency || "").toUpperCase() : "—"
+                return (
+                  <div key={o.id} className="list-row">
+                    <div className="list-main">
+                      <div className="list-title">
+                        {o.full_name || o.shipping_name || "(без име)"} — {o.customer_email}
+                        <span style={{ marginLeft: 8, fontSize: "0.8em", background: "#22c55e", color: "#fff", borderRadius: 4, padding: "1px 6px" }}>paid</span>
+                      </div>
+                      <div className="list-sub text-muted">
+                        📞 {o.customer_phone || "—"} · {addrStr || "—"} · {total}
+                      </div>
+                      <div className="list-sub text-muted" style={{ fontSize: "0.8em" }}>
+                        {(o.line_items || []).map(li => `${li.description} x${li.quantity}`).join(", ")}
+                      </div>
+                      <div className="list-sub text-muted" style={{ fontSize: "0.75em" }}>
+                        {new Date(o.created * 1000).toLocaleString("bg-BG")} · {o.id}
+                      </div>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        )}
+
         <div className="admin-card">
           <h3 className="headline">Поръчки на списания ({orders.length})</h3>
 
@@ -1393,6 +1432,7 @@ isVideoUrl(heroVfxUrl) ? (
             </div>
           )}
         </div>
+        </>
       )}
 
       {/* SUBSCRIPTIONS */}

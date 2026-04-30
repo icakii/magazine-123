@@ -6,7 +6,6 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react"
 import { t, getLang, setLang } from "../lib/i18n"
 import { useAuth } from "../context/AuthContext"
 
-const ADMIN_EMAILS = ["icaki06@gmail.com", "icaki2k@gmail.com", "mirenmagazine@gmail.com", "info@mirenmagazine.com", "info@mirenmagaizne.com"]
 
 export default function NavBar() {
   const navigate = useNavigate()
@@ -30,7 +29,7 @@ export default function NavBar() {
 
   const navRef = useRef(null)
 
-  const isAdmin = !!user?.email && ADMIN_EMAILS.includes(user.email)
+  const isAdmin = !!user?.isAdmin
 
   useEffect(() => {
     function onLangChange(e) {

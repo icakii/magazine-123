@@ -4,6 +4,7 @@ const jwt = require("jsonwebtoken")
 const db = require("../db")
 
 const router = express.Router()
+const { isAdmin } = require("../lib/admins")
 
 const JWT_SECRET = process.env.JWT_SECRET || "super-secret-key-change-this"
 const COOLDOWN_DAYS = 14
@@ -53,6 +54,8 @@ router.get("/user/me", authMiddleware, async (req, res) => {
       instagramUpdatedAt = ig.rows[0]?.instagram_updated_at || null
     } catch {}
 
+    const adminFlag = await isAdmin(rows[0].email).catch(() => false)
+
     res.json({
       email: rows[0].email,
       displayName: rows[0].display_name,
@@ -60,6 +63,7 @@ router.get("/user/me", authMiddleware, async (req, res) => {
       twoFaEnabled: rows[0].two_fa_enabled,
       instagramHandle,
       instagramUpdatedAt,
+      isAdmin: adminFlag,
     })
   } catch (err) {
     res.status(500).json({ error: err.message })

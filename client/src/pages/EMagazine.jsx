@@ -80,7 +80,7 @@ export default function EMagazine() {
   const displayPages = currentIssue ? [currentIssue.coverUrl, ...(currentIssue.pages || [])].filter(Boolean) : []
 
   // Проверка за достъп (Admin винаги има достъп)
-  const isAdmin = user && ["icaki06@gmail.com", "icaki2k@gmail.com", "mirenmagazine@gmail.com"].includes(user.email);
+  const isAdmin = !!user?.isAdmin;
   const showLockScreen = currentIssue?.isLocked && !isAdmin && !isPremium;
 
   // --- НАВИГАЦИЯ (Flip Logic) ---

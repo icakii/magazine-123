@@ -3,18 +3,10 @@ import { useEffect, useMemo, useRef, useState } from "react"
 import { useLocation } from "react-router-dom"
 import { useAuth } from "../context/AuthContext"
 import { api } from "../lib/api"
+import { ADMIN_EMAILS, isAdminEmail } from "../lib/adminEmails"
 
 // София: 1 април 2026, 19:30 (+03:00)
 const TARGET_TS = Date.parse("2026-04-01T19:30:00+03:00")
-
-const ADMIN_EMAILS = [
-  "icaki06@gmail.com",
-  "icaki2k@gmail.com",
-  "mirenmagazine@gmail.com",
-  "icaki@mirenmagazine.com",
-  "info@mirenmagazine.com",
-  "info@mirenmagaizne.com",
-]
 const MAINTENANCE_GATE_ENABLED = true
 
 function pad2(n) {
@@ -33,7 +25,7 @@ function splitMs(ms) {
 export default function MaintenanceGate({ children }) {
   const { user, loading, login, verify2FA, refreshMe } = useAuth()
     const location = useLocation()
-  const isAdmin = !!(user && ADMIN_EMAILS.includes(user.email))
+  const isAdmin = !!user?.isAdmin
 
     if (!MAINTENANCE_GATE_ENABLED) return children
 
@@ -120,7 +112,7 @@ const triedTokenRefreshRef = useRef(false)
       const result = await login({ email: form.email, password: form.password })
 
       // блокираме non-admin (дори да знаят паролата)
-      if (!ADMIN_EMAILS.includes(form.email)) {
+      if (!isAdminEmail(form.email)) {
         try {
           await api.post("/auth/logout")
         } catch {}
@@ -157,7 +149,7 @@ const triedTokenRefreshRef = useRef(false)
     try {
       await verify2FA({ email: form.email, code: form.code })
 
-      if (!ADMIN_EMAILS.includes(form.email)) {
+      if (!isAdminEmail(form.email)) {
         try {
           await api.post("/auth/logout")
         } catch {}

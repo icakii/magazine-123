@@ -25,7 +25,6 @@ const ART_TEXT = {
     registerLocked: "Closed",
   },
 }
-const ADMIN_EMAILS = ["icaki@mirenmagazine.com", "info@mirenmagazine.com"]
 const WEEK_DAY_LABELS = {
   monday: "Monday", tuesday: "Tuesday", wednesday: "Wednesday",
   thursday: "Thursday", friday: "Friday", saturday: "Saturday", sunday: "Sunday",
@@ -85,7 +84,7 @@ export default function Home() {
     return () => { document.body.style.overflow = "" }
   }, [selectedArticle])
 
-  const isAdmin = !!user?.email && ADMIN_EMAILS.includes(user.email)
+  const isAdmin = !!user?.isAdmin
   const canAccessArt = isAdmin
   const artCopy = ART_TEXT[artLang] || ART_TEXT.bg
 

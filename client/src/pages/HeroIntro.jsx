@@ -3,12 +3,6 @@ import { api } from "../lib/api"
 import { t } from "../lib/i18n"
 import { useNavigate } from "react-router-dom"
 
-const ADMIN_EMAILS = [
-  "icaki@mirenmagazine.com",
-  "info@mirenmagazine.com",
-  "info@mirenmagaizne.com",
-]
-
 // ⚠️ смени годината ако трябва
 const RELEASE_UTC_ISO = "2026-04-30T18:00:00+03:00"
 
@@ -63,7 +57,7 @@ export default function HeroIntro() {
       .finally(() => setMeLoaded(true))
   }, [])
 
-  const isAdmin = !!me?.email && ADMIN_EMAILS.includes(me.email)
+  const isAdmin = !!me?.isAdmin
   const released = isReleasedNow()
 
   const getNavOffset = () => {

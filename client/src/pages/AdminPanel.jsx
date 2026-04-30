@@ -6,7 +6,6 @@ import { useAuth } from "../hooks/useAuth"
 import { api } from "../lib/api"
 import Loader from "../components/Loader"
 
-const ADMIN_EMAILS = ["info@mirenmagazine.com"]
 const WEEK_DAYS = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
 const WEEK_DAY_LABELS = {
   monday: "Monday",
@@ -41,9 +40,6 @@ const NEWS_ARTICLE_CATEGORIES = [
   "Other",
 ]
 
-function isAdminEmail(email) {
-  return !!email && ADMIN_EMAILS.includes(email)
-}
 
 async function uploadToCloudinary(file) {
   const fd = new FormData()
@@ -128,8 +124,7 @@ export default function AdminPanel() {
   const [msg, setMsg] = useState("")
   const [busy, setBusy] = useState(false)
 
-  const authedEmail = user?.email || ""
-  const canAccess = !loading && isAdminEmail(authedEmail)
+  const canAccess = !loading && !!user?.isAdmin
 
   const currentCategory = useMemo(() => {
     if (["home", "news", "gallery", "events"].includes(activeTab)) return activeTab

@@ -47,11 +47,11 @@ import "./styles/global.css"
 import "./styles/layout.css"
 import "./styles/animations.css"
 
-const ADMIN_EMAILS = ["icaki@mirenmagazine.com", "info@mirenmagazine.com", "info@mirenmagaizne.com"]
+import { isAdminEmail } from "./lib/adminEmails"
 
 function DevLockedRoute({ sectionName, children }) {
   const { user, loading } = useAuth()
-  const isAdmin = !!user?.email && ADMIN_EMAILS.includes(user.email)
+  const isAdmin = !!user?.isAdmin
 
   if (loading) {
     return (

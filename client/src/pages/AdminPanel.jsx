@@ -559,6 +559,20 @@ const [heroVfxUrl, setHeroVfxUrl] = useState("")
     }
   }
 
+  const sendNewsletterTest = async () => {
+    if (!emailSubject.trim() || !emailBody.trim()) return setMsg("Subject and body are required.")
+    try {
+      setBusy(true)
+      setMsg("")
+      await api.post("/newsletter/send-test", { subject: emailSubject, body: emailBody })
+      setMsg("✅ Тест изпратен до info@mirenmagazine.com")
+    } catch (e) {
+      setMsg(e?.response?.data?.error || "Failed to send test.")
+    } finally {
+      setBusy(false)
+    }
+  }
+
   const sendNewsletter = async () => {
     if (!emailSubject.trim() || !emailBody.trim()) return setMsg("Subject and body are required.")
     try {
@@ -1559,9 +1573,15 @@ isVideoUrl(heroVfxUrl) ? (
               <span>Съдържание (HTML)</span>
               <textarea rows={10} value={emailBody} onChange={(e) => setEmailBody(e.target.value)} />
             </label>
-            <button className="btn primary" onClick={sendNewsletter} disabled={busy} type="button">
-              Изпрати
-            </button>
+            <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 8 }}>
+              <button className="btn primary" onClick={sendNewsletter} disabled={busy} type="button">
+                Изпрати до всички
+              </button>
+              <button className="btn" onClick={sendNewsletterTest} disabled={busy} type="button"
+                style={{ border: "2px solid var(--oxide-red)", color: "var(--oxide-red)", background: "transparent" }}>
+                Изпрати тест → info@mirenmagazine.com
+              </button>
+            </div>
           </div>
 
           <div className="admin-card" style={{ gridColumn: "1 / -1" }}>

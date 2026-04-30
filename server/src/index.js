@@ -1118,6 +1118,24 @@ app.get("/api/newsletter/subscribers", adminMiddleware, async (req, res) => {
   }
 })
 
+app.post("/api/newsletter/send-test", adminMiddleware, async (req, res) => {
+  const { subject, body } = req.body
+  if (!String(subject || "").trim() || !String(body || "").trim()) {
+    return res.status(400).json({ error: "Subject and body are required" })
+  }
+  try {
+    await transporters.newsletter.sendMail({
+      from: `"${EMAIL_ACCOUNTS.newsletter.label}" <${EMAIL_ACCOUNTS.newsletter.user}>`,
+      to: "info@mirenmagazine.com",
+      subject: `[TEST] ${subject}`,
+      html: body,
+    })
+    res.json({ ok: true })
+  } catch (err) {
+    res.status(500).json({ error: "Failed to send test email" })
+  }
+})
+
 app.post("/api/newsletter/send", adminMiddleware, async (req, res) => {
   const { subject, body } = req.body
     if (!String(subject || "").trim() || !String(body || "").trim()) {

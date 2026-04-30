@@ -2676,6 +2676,9 @@ async function initDB() {
     console.log("✅ admins table ready")
     await db.query(`ALTER TABLE store_items ADD COLUMN IF NOT EXISTS quantity INTEGER`)
     console.log("✅ store_items.quantity ready")
+    await db.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS reset_password_token TEXT`)
+    await db.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS reset_password_expires TIMESTAMPTZ`)
+    console.log("✅ users reset_password columns ready")
   } catch (e) {
     console.error("initDB error:", e.message)
   }

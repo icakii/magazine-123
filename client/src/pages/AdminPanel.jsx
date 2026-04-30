@@ -671,7 +671,7 @@ const [heroVfxUrl, setHeroVfxUrl] = useState("")
       <div className="admin-top">
         <h2 className="headline">Admin Panel</h2>
         <p className="subhead">
-          Logged in as: <b>{authedEmail}</b>
+          Logged in as: <b>{user?.email}</b>
         </p>
 
         {msg && (

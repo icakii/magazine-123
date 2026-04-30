@@ -1355,11 +1355,9 @@ isVideoUrl(heroVfxUrl) ? (
                       <div className="list-sub text-muted">
                         📦 {courierLabel}{deliveryLabel ? ` — ${deliveryLabel}` : ""}
                       </div>
-                      {addrStr && (
-                        <div className="list-sub text-muted">
-                          📍 {addrStr}
-                        </div>
-                      )}
+                      <div className="list-sub text-muted">
+                        📍 {addrStr || (o.delivery_type === "locker" ? "До автомат — клиентът ще бъде потърсен на телефона" : "Адресът не е попълнен")}
+                      </div>
                       <div className="list-sub text-muted" style={{ fontSize: "0.85em", marginTop: 4 }}>
                         {(o.line_items || []).map(li => `${li.description} x${li.quantity}`).join(", ")}
                       </div>
@@ -1374,12 +1372,9 @@ isVideoUrl(heroVfxUrl) ? (
           )}
         </div>
 
+        {orders.length > 0 && (
         <div className="admin-card">
           <h3 className="headline">Поръчки на списания ({orders.length})</h3>
-
-          {orders.length === 0 ? (
-            <p className="text-muted">Няма поръчки.</p>
-          ) : (
             <div className="list">
               {orders.map((o) => {
                 const addr = typeof o.shipping_address === "string"
@@ -1454,8 +1449,8 @@ isVideoUrl(heroVfxUrl) ? (
                 )
               })}
             </div>
-          )}
-        </div>
+          </div>
+        )}
         </>
       )}
 

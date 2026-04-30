@@ -4606,17 +4606,30 @@ textarea {
 /* ---------- STORE CARDS ---------- */
 .store-grid {
   gap: 22px !important;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)) !important;
+}
+@media (max-width: 600px) {
+  .store-grid {
+    grid-template-columns: 1fr !important;
+    gap: 16px !important;
+  }
 }
 
 .store-card {
   overflow: hidden !important;
+  width: 100% !important;
 }
 
-/* картинката да не “скача” */
+.store-img-wrap {
+  width: 100% !important;
+  aspect-ratio: 3 / 4 !important;
+}
+
 .store-img {
   display: block !important;
   width: 100% !important;
-  aspect-ratio: 16 / 9 !important;
+  height: 100% !important;
+  aspect-ratio: unset !important;
   object-fit: cover !important;
 }
 

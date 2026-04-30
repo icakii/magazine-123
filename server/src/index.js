@@ -1983,10 +1983,16 @@ const normalizedEmail = normalizeEmail(email)
     const token = crypto.randomBytes(32).toString("hex")
     const expiry = new Date(Date.now() + 3600000)
 
-    await db.query(
-"UPDATE users SET reset_password_token = $1, reset_password_expires = $2 WHERE lower(email) = lower($3)",
+    const { rowCount } = await db.query(
+      "UPDATE users SET reset_password_token = $1, reset_password_expires = $2 WHERE lower(email) = lower($3)",
       [token, expiry, normalizedEmail]
     )
+
+    if (rowCount === 0) {
+      console.warn("RESET REQUEST: no user found for email:", normalizedEmail)
+    } else {
+      console.log("RESET REQUEST: token saved for", normalizedEmail)
+    }
 
     const url = `${APP_URL}/reset-password?token=${token}`
 
@@ -2053,17 +2059,17 @@ app.post("/api/auth/reset-password", async (req, res) => {
 
   try {
     const { rows } = await db.query(
- "SELECT id, reset_password_expires FROM users WHERE reset_password_token = $1",
-       [cleanToken]
+      "SELECT id, reset_password_expires FROM users WHERE reset_password_token = $1",
+      [cleanToken]
     )
     const user = rows[0]
     if (!user) {
-      return res.status(400).json({ error: "Invalid or expired reset token" })
+      return res.status(400).json({ error: "Линкът е невалиден или вече е използван." })
     }
 
-        const expiryTs = user.reset_password_expires ? new Date(user.reset_password_expires).getTime() : 0
+    const expiryTs = user.reset_password_expires ? new Date(user.reset_password_expires).getTime() : 0
     if (!expiryTs || Number.isNaN(expiryTs) || Date.now() > expiryTs) {
-      return res.status(400).json({ error: "Invalid or expired reset token" })
+      return res.status(400).json({ error: "Линкът е изтекъл. Поискай нов." })
     }
 
     const passwordHash = await bcrypt.hash(nextPassword, 10)
@@ -2078,8 +2084,8 @@ app.post("/api/auth/reset-password", async (req, res) => {
 
     return res.json({ ok: true })
   } catch (err) {
-    console.error("RESET PASSWORD ERROR:", err)
-    return res.status(500).json({ error: "Error resetting password." })
+    console.error("RESET PASSWORD ERROR:", err.message, err.stack)
+    return res.status(500).json({ error: "Сървърна грешка: " + err.message })
   }
 })
 

@@ -361,7 +361,7 @@ async function sendGameStreakEndedEmail({ to, gameKey, streak }) {
         <hr style="border:none; border-top:1px solid #eee; margin:18px 0;" />
 
         <p style="margin:0; font-size:12px; color:#666;">
-          If this wasn’t you, you can ignore this email.
+          If this wasn't you, you can ignore this email.
         </p>
       </div>
     `,
@@ -580,7 +580,7 @@ app.post(
 
         // -----------------------------------------------------------
         // ✅ STORE ORDERS EMAIL (mode=payment)
-        // Sends shipping address + phone + “Three names”
+        // Sends shipping address + phone + "Three names"
         // -----------------------------------------------------------
         if (session.payment_status === "paid" && session.mode === "payment") {
           try {
@@ -621,15 +621,15 @@ app.post(
               try {
                 const li = await stripe.checkout.sessions.listLineItems(session.id, { limit: 100 })
                 lineItemsData = li.data || []
-              } catch (liErr) { console.error(“LINE ITEMS ERROR:”, liErr) }
+              } catch (liErr) { console.error("LINE ITEMS ERROR:", liErr) }
 
               const shippingAddr = shipping.address || {}
-              const courierDisplay = courierName === “econt” ? “Econt” : courierName === “speedy” ? “Speedy” : courierName || “”
+              const courierDisplay = courierName === "econt" ? "Econt" : courierName === "speedy" ? "Speedy" : courierName || ""
               const totalStr = ((session.amount_total || 0) / 100).toFixed(2)
-              const currencyStr = String(session.currency || “EUR”).toUpperCase()
+              const currencyStr = String(session.currency || "EUR").toUpperCase()
 
               // Auto-create Speedy waybill
-              if (courierName === “speedy”) {
+              if (courierName === "speedy") {
                 try {
                   const waybill = await createSpeedyWaybill({
                     fullName, customerPhone,
@@ -638,28 +638,28 @@ app.post(
                   })
                   if (waybill) {
                     await db.query(
-                      “UPDATE magazine_orders SET tracking_number = $1 WHERE stripe_session_id = $2”,
+                      "UPDATE magazine_orders SET tracking_number = $1 WHERE stripe_session_id = $2",
                       [waybill, session.id]
                     )
                     if (customerEmail) {
                       await transporters.login.sendMail({
-                        from: `”MIREN Magazine” <${EMAIL_ACCOUNTS.login.user}>`,
+                        from: `"MIREN Magazine" <${EMAIL_ACCOUNTS.login.user}>`,
                         to: customerEmail,
-                        subject: “Пратката ти е на път! 📦 — MIREN Magazine”,
+                        subject: "Пратката ти е на път! 📦 — MIREN Magazine",
                         html: buildTrackingEmail({
-                          fullName, trackingNumber: waybill, courier: “speedy”,
+                          fullName, trackingNumber: waybill, courier: "speedy",
                           trackingUrl: `https://www.speedy.bg/bg/track-shipment/?shipmentNumber=${waybill}`,
                         }),
-                      }).catch(e => console.error(“TRACKING EMAIL ERROR:”, e))
+                      }).catch(e => console.error("TRACKING EMAIL ERROR:", e))
                     }
                   }
                 } catch (speedyErr) {
-                  console.error(“SPEEDY WAYBILL CREATION ERROR:”, speedyErr)
+                  console.error("SPEEDY WAYBILL CREATION ERROR:", speedyErr)
                 }
               }
 
               // Auto-create Econt waybill
-              if (courierName === “econt”) {
+              if (courierName === "econt") {
                 try {
                   const waybill = await createEcontWaybill({
                     fullName, customerPhone,
@@ -668,32 +668,32 @@ app.post(
                   })
                   if (waybill) {
                     await db.query(
-                      “UPDATE magazine_orders SET tracking_number = $1 WHERE stripe_session_id = $2”,
+                      "UPDATE magazine_orders SET tracking_number = $1 WHERE stripe_session_id = $2",
                       [waybill, session.id]
                     )
                     if (customerEmail) {
                       await transporters.login.sendMail({
-                        from: `”MIREN Magazine” <${EMAIL_ACCOUNTS.login.user}>`,
+                        from: `"MIREN Magazine" <${EMAIL_ACCOUNTS.login.user}>`,
                         to: customerEmail,
-                        subject: “Пратката ти е на път! 📦 — MIREN Magazine”,
+                        subject: "Пратката ти е на път! 📦 — MIREN Magazine",
                         html: buildTrackingEmail({
-                          fullName, trackingNumber: waybill, courier: “econt”,
+                          fullName, trackingNumber: waybill, courier: "econt",
                           trackingUrl: `https://www.econt.com/services/track-shipment.html?shipmentNumber=${waybill}`,
                         }),
-                      }).catch(e => console.error(“TRACKING EMAIL ERROR:”, e))
+                      }).catch(e => console.error("TRACKING EMAIL ERROR:", e))
                     }
                   }
                 } catch (econtErr) {
-                  console.error(“ECONT WAYBILL CREATION ERROR:”, econtErr)
+                  console.error("ECONT WAYBILL CREATION ERROR:", econtErr)
                 }
               }
 
               // Send order confirmation to customer
               if (customerEmail) {
                 await transporters.login.sendMail({
-                  from: `”MIREN Magazine” <${EMAIL_ACCOUNTS.login.user}>`,
+                  from: `"MIREN Magazine" <${EMAIL_ACCOUNTS.login.user}>`,
                   to: customerEmail,
-                  subject: “Поръчката ти е потвърдена ✅ — MIREN Magazine”,
+                  subject: "Поръчката ти е потвърдена ✅ — MIREN Magazine",
                   html: buildOrderConfirmationEmail({
                     fullName,
                     customerEmail,
@@ -703,16 +703,16 @@ app.post(
                     addr: shippingAddr,
                     courierDisplay,
                   }),
-                }).catch(e => console.error(“CONFIRMATION EMAIL ERROR:”, e))
+                }).catch(e => console.error("CONFIRMATION EMAIL ERROR:", e))
               }
 
               // Internal order email (plain, for admin)
-              const internalLines = lineItemsData.map(x => `• ${x.description} x${x.quantity}`).join(“\n”)
+              const internalLines = lineItemsData.map(x => `• ${x.description} x${x.quantity}`).join("\n")
               await transporters.login.sendMail({
-                from: `”MIREN Orders” <${EMAIL_ACCOUNTS.login.user}>`,
-                to: “icaki@mirenmagazine.com”,
+                from: `"MIREN Orders" <${EMAIL_ACCOUNTS.login.user}>`,
+                to: "icaki@mirenmagazine.com",
                 subject: `New Order • ${fullName || customerEmail} • ${totalStr} ${currencyStr}`,
-                html: `<pre style=”font-family:monospace;font-size:14px;”>
+                html: `<pre style="font-family:monospace;font-size:14px;">
 Session: ${session.id}
 Email: ${customerEmail}
 Phone: ${customerPhone}
@@ -725,7 +725,9 @@ ${internalLines}
 
 Total: ${totalStr} ${currencyStr}
                 </pre>`,
-              }).catch(e => console.error(“INTERNAL EMAIL ERROR:”, e))
+              }).catch(e => console.error("INTERNAL EMAIL ERROR:", e))
+
+            } // end if magazine
 
           } catch (mailErr) {
             console.error("ORDER EMAIL ERROR:", mailErr)
@@ -1834,7 +1836,7 @@ app.post("/api/auth/register", async (req, res) => {
       </p>
 
       <p style="margin:0 0 10px; font-size:13px; color:#444;">
-        If the button doesn’t work, copy and paste this link:
+        If the button doesn't work, copy and paste this link:
         <br/>
         <span style="word-break:break-all;">${confirmationUrl}</span>
       </p>
@@ -1842,7 +1844,7 @@ app.post("/api/auth/register", async (req, res) => {
       <hr style="border:none; border-top:1px solid #eee; margin:18px 0;" />
 
       <p style="margin:0; font-size:12px; color:#666;">
-        If you didn’t create this account, you can safely ignore this email.
+        If you didn't create this account, you can safely ignore this email.
       </p>
     </div>
   `,
@@ -1970,7 +1972,7 @@ const normalizedEmail = normalizeEmail(email)
       </p>
 
       <p style="margin:0 0 10px; font-size:13px; color:#444;">
-        If the button doesn’t work, copy and paste this link:
+        If the button doesn't work, copy and paste this link:
         <br/>
         <span style="word-break:break-all;">${url}</span>
       </p>
@@ -1978,7 +1980,7 @@ const normalizedEmail = normalizeEmail(email)
       <hr style="border:none; border-top:1px solid #eee; margin:18px 0;" />
 
       <p style="margin:0; font-size:12px; color:#666;">
-        If you didn’t request this, ignore this email — your password won’t change.
+        If you didn't request this, ignore this email — your password won't change.
       </p>
     </div>
   `,
@@ -2071,7 +2073,7 @@ to: normalizedEmail,
       </div>
 
       <p style="margin:0; font-size:12px; color:#666;">
-        If you didn’t request this code, you should change your password immediately.
+        If you didn't request this code, you should change your password immediately.
       </p>
     </div>
   `,
@@ -2125,7 +2127,7 @@ app.post("/api/auth/verify-2fa", async (req, res) => {
               </div>
 
               <p style="margin:0; font-size:12px; color:#666;">
-                If this wasn’t you, reset your password immediately.
+                If this wasn't you, reset your password immediately.
               </p>
             </div>
           `,

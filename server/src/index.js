@@ -2059,7 +2059,7 @@ app.post("/api/auth/reset-password", async (req, res) => {
 
   try {
     const { rows } = await db.query(
-      "SELECT id, reset_password_expires FROM users WHERE reset_password_token = $1",
+      "SELECT email, reset_password_expires FROM users WHERE reset_password_token = $1",
       [cleanToken]
     )
     const user = rows[0]
@@ -2078,8 +2078,8 @@ app.post("/api/auth/reset-password", async (req, res) => {
        SET password_hash = $1,
            reset_password_token = NULL,
            reset_password_expires = NULL
-       WHERE id = $2`,
-      [passwordHash, user.id]
+       WHERE reset_password_token = $2`,
+      [passwordHash, cleanToken]
     )
 
     return res.json({ ok: true })

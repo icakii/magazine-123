@@ -795,13 +795,17 @@ function authMiddleware(req, res, next) {
   }
 }
 
+const { isAdmin: isAdminFromDB, isSuperAdmin, SUPER_ADMIN } = require("./lib/admins")
+
 function adminMiddleware(req, res, next) {
-  authMiddleware(req, res, () => {
-    const adminEmails = ["info@mirenmagazine.com"]
-    if (!adminEmails.includes(req.user.email)) {
-      return res.status(403).json({ error: "Admin access required" })
+  authMiddleware(req, res, async () => {
+    try {
+      const ok = await isAdminFromDB(req.user?.email)
+      if (!ok) return res.status(403).json({ error: "Admin access required" })
+      next()
+    } catch (e) {
+      return res.status(500).json({ error: "Auth check failed" })
     }
-    next()
   })
 }
 
@@ -984,10 +988,78 @@ app.get("/api/fix-db", async (req, res) => {
     await db.query(`ALTER TABLE magazine_orders ADD COLUMN IF NOT EXISTS customer_phone TEXT;`)
     await db.query(`ALTER TABLE event_reminders ADD COLUMN IF NOT EXISTS reminder_sent_at TIMESTAMPTZ;`)
 
+    // admins table
+    await db.query(`
+      CREATE TABLE IF NOT EXISTS admins (
+        email TEXT PRIMARY KEY,
+        added_by TEXT,
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      )
+    `)
+    // seed initial admins
+    const seedAdmins = [
+      "icaki@mirenmagazine.com",
+      "info@mirenmagazine.com",
+      "info@mirenmagaizne.com",
+      "andreivelch@gmail.com",
+      "vlvd@gmail.com",
+    ]
+    for (const e of seedAdmins) {
+      await db.query(
+        `INSERT INTO admins (email, added_by) VALUES ($1, 'system') ON CONFLICT DO NOTHING`,
+        [e]
+      )
+    }
+
     res.send("✅ УСПЕХ! Базата данни е поправена за новите полета.")
   } catch (e) {
     console.error("FIX-DB ERROR:", e)
     res.status(500).send("ГРЕШКА при поправка: " + e.message)
+  }
+})
+
+// ---------------------------------------------------------------
+// 👑 ADMIN MANAGEMENT (only SUPER_ADMIN can modify)
+// ---------------------------------------------------------------
+app.get("/api/admin/admins", adminMiddleware, async (req, res) => {
+  try {
+    const { rows } = await db.query(
+      "SELECT email, added_by, created_at FROM admins ORDER BY created_at ASC"
+    )
+    res.json(rows)
+  } catch (e) {
+    res.status(500).json({ error: "Failed to load admins" })
+  }
+})
+
+app.post("/api/admin/admins", adminMiddleware, async (req, res) => {
+  try {
+    if (!isSuperAdmin(req.user?.email)) {
+      return res.status(403).json({ error: "Only " + SUPER_ADMIN + " can add admins" })
+    }
+    const email = String(req.body?.email || "").trim().toLowerCase()
+    if (!email || !email.includes("@")) return res.status(400).json({ error: "Invalid email" })
+    await db.query(
+      "INSERT INTO admins (email, added_by) VALUES ($1, $2) ON CONFLICT DO NOTHING",
+      [email, req.user.email]
+    )
+    res.json({ ok: true })
+  } catch (e) {
+    res.status(500).json({ error: "Failed to add admin" })
+  }
+})
+
+app.delete("/api/admin/admins/:email", adminMiddleware, async (req, res) => {
+  try {
+    if (!isSuperAdmin(req.user?.email)) {
+      return res.status(403).json({ error: "Only " + SUPER_ADMIN + " can remove admins" })
+    }
+    const email = decodeURIComponent(req.params.email).trim().toLowerCase()
+    if (email === SUPER_ADMIN) return res.status(400).json({ error: "Cannot remove super admin" })
+    await db.query("DELETE FROM admins WHERE email = $1", [email])
+    res.json({ ok: true })
+  } catch (e) {
+    res.status(500).json({ error: "Failed to remove admin" })
   }
 })
 

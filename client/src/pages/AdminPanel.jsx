@@ -30,6 +30,7 @@ const TABS = [
   { key: "subscriptions", label: "Subscriptions" },
   { key: "newsletter", label: "Newsletter" },
   { key: "refunds", label: "⚠️ Refunds" },
+  { key: "admins", label: "Admins" },
 ]
 
 const NEWS_ARTICLE_CATEGORIES = [
@@ -532,6 +533,8 @@ const [heroVfxUrl, setHeroVfxUrl] = useState("")
   // ---------------- STORE/ORDERS/NEWSLETTER loaders ----------------
   const [storeItems, setStoreItems] = useState([])
   const [orders, setOrders] = useState([])
+  const [adminList, setAdminList] = useState([])
+  const [newAdminEmail, setNewAdminEmail] = useState("")
   const [subscribers, setSubscribers] = useState([])
   const [emailSubject, setEmailSubject] = useState("")
   const [emailBody, setEmailBody] = useState("")
@@ -618,6 +621,12 @@ const [heroVfxUrl, setHeroVfxUrl] = useState("")
         if (activeTab === "orders" || activeTab === "refunds") {
           const res = await api.get("/admin/magazine-orders")
           setOrders(Array.isArray(res.data) ? res.data : [])
+          return
+        }
+
+        if (activeTab === "admins") {
+          const res = await api.get("/admin/admins")
+          setAdminList(Array.isArray(res.data) ? res.data : [])
           return
         }
 
@@ -1523,6 +1532,83 @@ isVideoUrl(heroVfxUrl) ? (
               </div>
             )}
           </div>
+        </div>
+      )}
+
+      {/* ADMINS */}
+      {activeTab === "admins" && (
+        <div className="admin-card">
+          <h3 className="headline">Admin права</h3>
+          <p className="text-muted" style={{ marginBottom: 16 }}>
+            Само <strong>info@mirenmagazine.com</strong> може да добавя и маха admin права.
+          </p>
+
+          <div className="list" style={{ marginBottom: 24 }}>
+            {adminList.length === 0 && <p className="text-muted">Няма admins.</p>}
+            {adminList.map((a) => (
+              <div key={a.email} className="list-row">
+                <div className="list-main">
+                  <div className="list-title">{a.email}</div>
+                  <div className="list-sub text-muted">
+                    Добавен от: {a.added_by || "—"} · {a.created_at ? new Date(a.created_at).toLocaleDateString("bg-BG") : ""}
+                  </div>
+                </div>
+                {user?.email === "info@mirenmagazine.com" && a.email !== "info@mirenmagazine.com" && (
+                  <button
+                    className="btn outline"
+                    style={{ color: "#c0392b", borderColor: "#c0392b", fontSize: "0.82em" }}
+                    onClick={async () => {
+                      if (!window.confirm(`Маха admin права на ${a.email}?`)) return
+                      try {
+                        await api.delete(`/admin/admins/${encodeURIComponent(a.email)}`)
+                        setAdminList((prev) => prev.filter((x) => x.email !== a.email))
+                      } catch (e) {
+                        alert("Грешка: " + (e?.response?.data?.error || e.message))
+                      }
+                    }}
+                  >
+                    Махни
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+
+          {user?.email === "info@mirenmagazine.com" && (
+            <div style={{ display: "flex", gap: 10, alignItems: "flex-end" }}>
+              <label className="field" style={{ flex: 1, marginBottom: 0 }}>
+                <span>Нов admin имейл</span>
+                <input
+                  type="email"
+                  value={newAdminEmail}
+                  onChange={(e) => setNewAdminEmail(e.target.value)}
+                  placeholder="email@example.com"
+                />
+              </label>
+              <button
+                className="btn primary"
+                onClick={async () => {
+                  if (!newAdminEmail.trim()) return
+                  try {
+                    await api.post("/admin/admins", { email: newAdminEmail.trim() })
+                    const res = await api.get("/admin/admins")
+                    setAdminList(Array.isArray(res.data) ? res.data : [])
+                    setNewAdminEmail("")
+                  } catch (e) {
+                    alert("Грешка: " + (e?.response?.data?.error || e.message))
+                  }
+                }}
+              >
+                Добави
+              </button>
+            </div>
+          )}
+
+          {user?.email !== "info@mirenmagazine.com" && (
+            <p className="text-muted" style={{ fontSize: "0.88em" }}>
+              Нямаш права да добавяш/махаш admins.
+            </p>
+          )}
         </div>
       )}
     </div>

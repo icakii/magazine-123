@@ -6,16 +6,7 @@ const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY)
 const authMiddleware = require("../middleware/auth.middleware")
 
 const APP_URL = (process.env.APP_URL || "http://localhost:5173").replace(/\/$/, "")
-
-const ADMIN_EMAILS = [
-  "icaki@mirenmagazine.com",
-    "info@mirenmagazine.com",
-  "info@mirenmagaizne.com",
-]
-
-function isAdmin(email) {
-  return ADMIN_EMAILS.includes(email)
-}
+const { isAdmin } = require("../lib/admins")
 
 function toAbsoluteUrl(pathOrUrl, base) {
   // allows "/store?x=1" OR already absolute "https://..."
@@ -85,7 +76,7 @@ router.post("/admin/store/items", authMiddleware, async (req, res) => {
   try {
     const email = req.user?.email
     if (!email) return res.status(401).json({ error: "Unauthorized" })
-    if (!isAdmin(email)) return res.status(403).json({ error: "Admin access required" })
+    if (!await isAdmin(email)) return res.status(403).json({ error: "Admin access required" })
 
     const { title, description, imageUrl, category, priceId, isActive, releaseAt } = req.body || {}
     if (!title || !priceId) return res.status(400).json({ error: "title and priceId required" })
@@ -123,7 +114,7 @@ router.put("/admin/store/items/:id", authMiddleware, async (req, res) => {
   try {
     const email = req.user?.email
     if (!email) return res.status(401).json({ error: "Unauthorized" })
-    if (!isAdmin(email)) return res.status(403).json({ error: "Admin access required" })
+    if (!await isAdmin(email)) return res.status(403).json({ error: "Admin access required" })
 
     const id = Number(req.params.id)
     const { title, description, imageUrl, category, priceId, isActive, releaseAt } = req.body || {}
@@ -162,7 +153,7 @@ router.delete("/admin/store/items/:id", authMiddleware, async (req, res) => {
   try {
     const email = req.user?.email
     if (!email) return res.status(401).json({ error: "Unauthorized" })
-    if (!isAdmin(email)) return res.status(403).json({ error: "Admin access required" })
+    if (!await isAdmin(email)) return res.status(403).json({ error: "Admin access required" })
 
     const id = Number(req.params.id)
     if (!id) return res.status(400).json({ error: "Invalid id" })
@@ -302,7 +293,7 @@ router.get("/admin/store/orders", authMiddleware, async (req, res) => {
   try {
     const email = req.user?.email
     if (!email) return res.status(401).json({ error: "Unauthorized" })
-    if (!isAdmin(email)) return res.status(403).json({ error: "Admin access required" })
+    if (!await isAdmin(email)) return res.status(403).json({ error: "Admin access required" })
 
     const sessions = await stripe.checkout.sessions.list({ limit: 50 })
 

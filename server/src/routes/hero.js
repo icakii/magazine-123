@@ -4,10 +4,7 @@ const router = express.Router()
 const db = require("../db")
 const auth = require("../middleware/auth.middleware")
 
-const ADMIN_EMAILS = ["icaki@mirenmagazine.com", "info@mirenmagazine.com", "info@mirenmagaizne.com"]
-function isAdmin(email) {
-  return !!email && ADMIN_EMAILS.includes(email)
-}
+const { isAdmin } = require("../lib/admins")
 const WEEK_DAYS = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
 
 function normalizeWeekdayKey(raw) {
@@ -122,7 +119,7 @@ router.put("/admin/hero", auth, async (req, res) => {
   try {
     const email = req.user?.email
     if (!email) return res.status(401).json({ error: "Unauthorized" })
-    if (!isAdmin(email)) return res.status(403).json({ error: "Admin access required" })
+    if (!await isAdmin(email)) return res.status(403).json({ error: "Admin access required" })
 
     await ensureHeroSchema()
 

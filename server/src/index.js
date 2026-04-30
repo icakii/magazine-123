@@ -2610,6 +2610,36 @@ cron.schedule("*/5 * * * *", async () => {
 // ---------------------------------------------------------------
 // START SERVER
 // ---------------------------------------------------------------
-app.listen(PORT, () => {
-  console.log(`API running on http://localhost:${PORT}`)
+async function initDB() {
+  try {
+    await db.query(`
+      CREATE TABLE IF NOT EXISTS admins (
+        email TEXT PRIMARY KEY,
+        added_by TEXT,
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      )
+    `)
+    const seedAdmins = [
+      "icaki@mirenmagazine.com",
+      "info@mirenmagazine.com",
+      "info@mirenmagaizne.com",
+      "andreivelch@gmail.com",
+      "vlvd@gmail.com",
+    ]
+    for (const e of seedAdmins) {
+      await db.query(
+        "INSERT INTO admins (email, added_by) VALUES ($1, 'system') ON CONFLICT DO NOTHING",
+        [e]
+      )
+    }
+    console.log("✅ admins table ready")
+  } catch (e) {
+    console.error("initDB error:", e.message)
+  }
+}
+
+initDB().then(() => {
+  app.listen(PORT, () => {
+    console.log(`API running on http://localhost:${PORT}`)
+  })
 })

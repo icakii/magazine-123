@@ -2149,18 +2149,6 @@ app.post("/api/create-magazine-checkout", async (req, res) => {
         {
           shipping_rate_data: {
             type: "fixed_amount",
-            fixed_amount: { amount: 199, currency: "eur" },
-            display_name: "BoxNow — До автомат",
-            metadata: { courier: "boxnow", delivery_type: "locker" },
-            delivery_estimate: {
-              minimum: { unit: "business_day", value: 1 },
-              maximum: { unit: "business_day", value: 2 },
-            },
-          },
-        },
-        {
-          shipping_rate_data: {
-            type: "fixed_amount",
             fixed_amount: { amount: 249, currency: "eur" },
             display_name: "Econt — До автомат (Econt Box)",
             metadata: { courier: "econt", delivery_type: "locker" },
@@ -2200,18 +2188,6 @@ app.post("/api/create-magazine-checkout", async (req, res) => {
             fixed_amount: { amount: 249, currency: "eur" },
             display_name: "Speedy — До автомат (Speedy Box)",
             metadata: { courier: "speedy", delivery_type: "locker" },
-            delivery_estimate: {
-              minimum: { unit: "business_day", value: 1 },
-              maximum: { unit: "business_day", value: 2 },
-            },
-          },
-        },
-        {
-          shipping_rate_data: {
-            type: "fixed_amount",
-            fixed_amount: { amount: 299, currency: "eur" },
-            display_name: "Speedy — До офис",
-            metadata: { courier: "speedy", delivery_type: "office" },
             delivery_estimate: {
               minimum: { unit: "business_day", value: 1 },
               maximum: { unit: "business_day", value: 2 },

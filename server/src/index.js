@@ -124,6 +124,166 @@ const EMAIL_ACCOUNTS = {
   },
 }
 
+const SITE_URL = (process.env.APP_URL || "https://mirenmagazine.com").replace(/\/$/, "")
+
+function buildOrderConfirmationEmail({ fullName, customerEmail, items, total, currency, addr, courierDisplay }) {
+  const itemRows = (items || []).map(it =>
+    `<tr>
+      <td style="padding:8px 0;border-bottom:1px solid #f0ede8;font-size:15px;color:#1e1e1e;">${it.description}</td>
+      <td style="padding:8px 0;border-bottom:1px solid #f0ede8;font-size:15px;color:#1e1e1e;text-align:right;">x${it.quantity}</td>
+    </tr>`
+  ).join("")
+
+  return `<!DOCTYPE html>
+<html lang="bg">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#f7f3ee;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f7f3ee;padding:40px 0;">
+    <tr><td align="center">
+      <table width="580" cellpadding="0" cellspacing="0" style="max-width:580px;width:100%;">
+
+        <!-- Header -->
+        <tr>
+          <td style="background:#9c2a2a;border-radius:16px 16px 0 0;padding:36px 40px;text-align:center;">
+            <a href="${SITE_URL}" style="text-decoration:none;">
+              <div style="font-family:Georgia,serif;font-size:32px;font-weight:900;color:#fff;letter-spacing:0.18em;text-transform:uppercase;">MIREN</div>
+              <div style="color:rgba(255,255,255,0.65);font-size:12px;letter-spacing:0.25em;text-transform:uppercase;margin-top:4px;">Magazine</div>
+            </a>
+          </td>
+        </tr>
+
+        <!-- Body -->
+        <tr>
+          <td style="background:#fff;padding:40px 40px 32px;">
+            <h1 style="margin:0 0 8px;font-size:26px;font-weight:900;color:#1e1e1e;">Благодарим за поръчката! 🎉</h1>
+            <p style="margin:0 0 28px;font-size:16px;color:#555;line-height:1.6;">
+              Здравей ${fullName ? `<strong>${fullName}</strong>` : ""},<br>
+              получихме твоята поръчка и я обработваме. Ще получиш отделен имейл с номер за проследяване веднага след като изпратим пратката.
+            </p>
+
+            <!-- Items -->
+            <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;">
+              <tr>
+                <td colspan="2" style="font-size:11px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:#9c2a2a;padding-bottom:8px;border-bottom:2px solid #9c2a2a;">
+                  Поръчани продукти
+                </td>
+              </tr>
+              ${itemRows}
+              <tr>
+                <td style="padding-top:12px;font-size:16px;font-weight:700;color:#1e1e1e;">Общо</td>
+                <td style="padding-top:12px;font-size:18px;font-weight:900;color:#9c2a2a;text-align:right;">${total} ${currency}</td>
+              </tr>
+            </table>
+
+            <!-- Delivery -->
+            <table width="100%" cellpadding="0" cellspacing="0" style="background:#f7f3ee;border-radius:10px;padding:20px 24px;margin-bottom:32px;">
+              <tr>
+                <td style="font-size:11px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:#9c2a2a;padding-bottom:12px;">Адрес за доставка</td>
+              </tr>
+              <tr>
+                <td style="font-size:15px;color:#1e1e1e;line-height:1.7;">
+                  ${fullName || ""}<br>
+                  ${addr.line1 || ""}${addr.line2 ? ", " + addr.line2 : ""}<br>
+                  ${addr.postal_code || ""} ${addr.city || ""}, ${addr.country || ""}
+                  ${courierDisplay ? `<br><span style="color:#555;font-size:13px;">Куриер: ${courierDisplay}</span>` : ""}
+                </td>
+              </tr>
+            </table>
+
+            <!-- CTA -->
+            <div style="text-align:center;">
+              <a href="${SITE_URL}" style="display:inline-block;background:#9c2a2a;color:#fff;text-decoration:none;font-weight:700;font-size:15px;letter-spacing:0.06em;padding:14px 36px;border-radius:999px;">
+                Посети MIREN →
+              </a>
+            </div>
+          </td>
+        </tr>
+
+        <!-- Footer -->
+        <tr>
+          <td style="background:#1e1e1e;border-radius:0 0 16px 16px;padding:24px 40px;text-align:center;">
+            <p style="margin:0;font-size:12px;color:rgba(255,255,255,0.45);line-height:1.6;">
+              МИРЕН МАГ ЕООД • <a href="${SITE_URL}" style="color:rgba(255,255,255,0.55);text-decoration:none;">mirenmagazine.com</a><br>
+              Получаваш този имейл защото направи поръчка на нашия сайт.
+            </p>
+          </td>
+        </tr>
+
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`
+}
+
+function buildTrackingEmail({ fullName, trackingNumber, courier, trackingUrl }) {
+  const courierLabel = courier === "econt" ? "Econt" : courier === "speedy" ? "Speedy" : courier || "Куриер"
+
+  return `<!DOCTYPE html>
+<html lang="bg">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#f7f3ee;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f7f3ee;padding:40px 0;">
+    <tr><td align="center">
+      <table width="580" cellpadding="0" cellspacing="0" style="max-width:580px;width:100%;">
+
+        <!-- Header -->
+        <tr>
+          <td style="background:#9c2a2a;border-radius:16px 16px 0 0;padding:36px 40px;text-align:center;">
+            <a href="${SITE_URL}" style="text-decoration:none;">
+              <div style="font-family:Georgia,serif;font-size:32px;font-weight:900;color:#fff;letter-spacing:0.18em;text-transform:uppercase;">MIREN</div>
+              <div style="color:rgba(255,255,255,0.65);font-size:12px;letter-spacing:0.25em;text-transform:uppercase;margin-top:4px;">Magazine</div>
+            </a>
+          </td>
+        </tr>
+
+        <!-- Body -->
+        <tr>
+          <td style="background:#fff;padding:40px 40px 32px;">
+            <h1 style="margin:0 0 8px;font-size:26px;font-weight:900;color:#1e1e1e;">Пратката е на път! 📦</h1>
+            <p style="margin:0 0 32px;font-size:16px;color:#555;line-height:1.6;">
+              Здравей ${fullName ? `<strong>${fullName}</strong>` : ""},<br>
+              изпратихме твоя брой на <strong>MIREN Magazine</strong> с <strong>${courierLabel}</strong>. Можеш да проследиш пратката с номера по-долу.
+            </p>
+
+            <!-- Tracking number box -->
+            <div style="background:#f7f3ee;border:2px solid #9c2a2a;border-radius:12px;padding:28px;text-align:center;margin-bottom:32px;">
+              <div style="font-size:11px;font-weight:700;letter-spacing:0.18em;text-transform:uppercase;color:#9c2a2a;margin-bottom:10px;">Номер за проследяване</div>
+              <div style="font-family:Georgia,serif;font-size:30px;font-weight:900;color:#1e1e1e;letter-spacing:0.08em;">${trackingNumber}</div>
+              <div style="margin-top:6px;font-size:13px;color:#888;">Куриер: ${courierLabel}</div>
+            </div>
+
+            <!-- Track CTA -->
+            <div style="text-align:center;margin-bottom:28px;">
+              <a href="${trackingUrl}" style="display:inline-block;background:#1e1e1e;color:#fff;text-decoration:none;font-weight:700;font-size:15px;letter-spacing:0.06em;padding:14px 36px;border-radius:999px;">
+                Проследи пратката →
+              </a>
+            </div>
+
+            <p style="margin:0;font-size:14px;color:#888;line-height:1.6;text-align:center;">
+              Очаквай доставката в рамките на 1–3 работни дни.<br>
+              При въпроси: <a href="mailto:info@mirenmagazine.com" style="color:#9c2a2a;text-decoration:none;">info@mirenmagazine.com</a>
+            </p>
+          </td>
+        </tr>
+
+        <!-- Footer -->
+        <tr>
+          <td style="background:#1e1e1e;border-radius:0 0 16px 16px;padding:24px 40px;text-align:center;">
+            <p style="margin:0;font-size:12px;color:rgba(255,255,255,0.45);line-height:1.6;">
+              МИРЕН МАГ ЕООД • <a href="${SITE_URL}" style="color:rgba(255,255,255,0.55);text-decoration:none;">mirenmagazine.com</a><br>
+              Получаваш този имейл защото направи поръчка на нашия сайт.
+            </p>
+          </td>
+        </tr>
+
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`
+}
+
 function createTransportFor(account) {
   return nodemailer.createTransport({
     host: "smtp.gmail.com",
@@ -456,119 +616,116 @@ app.post(
                 ]
               ).catch((e) => console.error("MAGAZINE ORDER DB ERROR:", e))
 
+              // line items (fetched once, used below)
+              let lineItemsData = []
+              try {
+                const li = await stripe.checkout.sessions.listLineItems(session.id, { limit: 100 })
+                lineItemsData = li.data || []
+              } catch (liErr) { console.error(“LINE ITEMS ERROR:”, liErr) }
+
+              const shippingAddr = shipping.address || {}
+              const courierDisplay = courierName === “econt” ? “Econt” : courierName === “speedy” ? “Speedy” : courierName || “”
+              const totalStr = ((session.amount_total || 0) / 100).toFixed(2)
+              const currencyStr = String(session.currency || “EUR”).toUpperCase()
+
               // Auto-create Speedy waybill
-              if (courierName === "speedy") {
+              if (courierName === “speedy”) {
                 try {
                   const waybill = await createSpeedyWaybill({
-                    fullName,
-                    customerPhone,
-                    shippingAddress: shipping.address || {},
-                    deliveryType,
-                    quantity: qty,
+                    fullName, customerPhone,
+                    shippingAddress: shippingAddr,
+                    deliveryType, quantity: qty,
                   })
                   if (waybill) {
                     await db.query(
-                      "UPDATE magazine_orders SET tracking_number = $1 WHERE stripe_session_id = $2",
+                      “UPDATE magazine_orders SET tracking_number = $1 WHERE stripe_session_id = $2”,
                       [waybill, session.id]
                     )
+                    if (customerEmail) {
+                      await transporters.login.sendMail({
+                        from: `”MIREN Magazine” <${EMAIL_ACCOUNTS.login.user}>`,
+                        to: customerEmail,
+                        subject: “Пратката ти е на път! 📦 — MIREN Magazine”,
+                        html: buildTrackingEmail({
+                          fullName, trackingNumber: waybill, courier: “speedy”,
+                          trackingUrl: `https://www.speedy.bg/bg/track-shipment/?shipmentNumber=${waybill}`,
+                        }),
+                      }).catch(e => console.error(“TRACKING EMAIL ERROR:”, e))
+                    }
                   }
                 } catch (speedyErr) {
-                  console.error("SPEEDY WAYBILL CREATION ERROR:", speedyErr)
+                  console.error(“SPEEDY WAYBILL CREATION ERROR:”, speedyErr)
                 }
               }
 
               // Auto-create Econt waybill
-              if (courierName === "econt") {
+              if (courierName === “econt”) {
                 try {
                   const waybill = await createEcontWaybill({
-                    fullName,
-                    customerPhone,
-                    shippingAddress: shipping.address || {},
-                    deliveryType,
-                    quantity: qty,
+                    fullName, customerPhone,
+                    shippingAddress: shippingAddr,
+                    deliveryType, quantity: qty,
                   })
                   if (waybill) {
                     await db.query(
-                      "UPDATE magazine_orders SET tracking_number = $1 WHERE stripe_session_id = $2",
+                      “UPDATE magazine_orders SET tracking_number = $1 WHERE stripe_session_id = $2”,
                       [waybill, session.id]
                     )
+                    if (customerEmail) {
+                      await transporters.login.sendMail({
+                        from: `”MIREN Magazine” <${EMAIL_ACCOUNTS.login.user}>`,
+                        to: customerEmail,
+                        subject: “Пратката ти е на път! 📦 — MIREN Magazine”,
+                        html: buildTrackingEmail({
+                          fullName, trackingNumber: waybill, courier: “econt”,
+                          trackingUrl: `https://www.econt.com/services/track-shipment.html?shipmentNumber=${waybill}`,
+                        }),
+                      }).catch(e => console.error(“TRACKING EMAIL ERROR:”, e))
+                    }
                   }
                 } catch (econtErr) {
-                  console.error("ECONT WAYBILL CREATION ERROR:", econtErr)
+                  console.error(“ECONT WAYBILL CREATION ERROR:”, econtErr)
                 }
               }
-            }
 
-            const internalOrderInbox = "icaki@mirenmagazine.com"
+              // Send order confirmation to customer
+              if (customerEmail) {
+                await transporters.login.sendMail({
+                  from: `”MIREN Magazine” <${EMAIL_ACCOUNTS.login.user}>`,
+                  to: customerEmail,
+                  subject: “Поръчката ти е потвърдена ✅ — MIREN Magazine”,
+                  html: buildOrderConfirmationEmail({
+                    fullName,
+                    customerEmail,
+                    items: lineItemsData,
+                    total: totalStr,
+                    currency: currencyStr,
+                    addr: shippingAddr,
+                    courierDisplay,
+                  }),
+                }).catch(e => console.error(“CONFIRMATION EMAIL ERROR:”, e))
+              }
 
-            // line items
-            let lines = "(no items)"
-            try {
-              const items = await stripe.checkout.sessions.listLineItems(session.id, {
-                limit: 100,
-              })
-              lines = (items.data || [])
-                .map((x) => `• ${x.description} x${x.quantity}`)
-                .join("<br/>") || "(no items)"
-            } catch (liErr) {
-              console.error("LINE ITEMS ERROR:", liErr)
-            }
-
-            const customer = session.customer_details || {}
-            const shipping = session.shipping_details || {}
-            const addr = shipping.address || {}
-
-            // custom_fields contains your “Three names”
-            const customFields = Array.isArray(session.custom_fields)
-              ? session.custom_fields
-              : []
-            const fullNameField = customFields.find((f) => f?.key === "full_name")
-            const fullName = fullNameField?.text?.value || ""
-
-            const total = ((session.amount_total || 0) / 100).toFixed(2)
-            const currency = String(session.currency || "").toUpperCase()
-
-            const html = `
-              <h2>✅ New Paid Order</h2>
-
-              <p><b>Session:</b> ${session.id}</p>
-              <p><b>Total:</b> ${total} ${currency}</p>
-
-              <hr/>
-
-              <p><b>Three names (Три имена):</b> ${fullName || "(not provided)"}</p>
-              <p><b>Email:</b> ${customer.email || ""}</p>
-              <p><b>Phone:</b> ${customer.phone || ""}</p>
-
-              <p><b>Shipping name:</b> ${shipping.name || ""}</p>
-
-              <p><b>Address:</b><br/>
-                ${addr.line1 || ""}<br/>
-                ${addr.line2 || ""}<br/>
-                ${addr.postal_code || ""} ${addr.city || ""}<br/>
-                ${addr.country || ""}
-              </p>
-
-              <hr/>
-
-              <p><b>Items:</b><br/>${lines}</p>
-            `
-
-            await transporters.login.sendMail({
-              from: `"${EMAIL_ACCOUNTS.login.label}" <${EMAIL_ACCOUNTS.login.user}>`,
-              to: internalOrderInbox,
-              subject: `New Order • ${session.id}`,
-              html,
-            })
-
-                        if (customerEmail) {
+              // Internal order email (plain, for admin)
+              const internalLines = lineItemsData.map(x => `• ${x.description} x${x.quantity}`).join(“\n”)
               await transporters.login.sendMail({
-                from: `"${EMAIL_ACCOUNTS.login.label}" <${EMAIL_ACCOUNTS.login.user}>`,
-                to: customerEmail,
-                subject: `Order confirmation • ${session.id}`,
-                html,
-              })
-            }
+                from: `”MIREN Orders” <${EMAIL_ACCOUNTS.login.user}>`,
+                to: “icaki@mirenmagazine.com”,
+                subject: `New Order • ${fullName || customerEmail} • ${totalStr} ${currencyStr}`,
+                html: `<pre style=”font-family:monospace;font-size:14px;”>
+Session: ${session.id}
+Email: ${customerEmail}
+Phone: ${customerPhone}
+Name: ${fullName}
+Courier: ${courierDisplay} (${deliveryType})
+Address: ${shippingAddr.line1}, ${shippingAddr.city}, ${shippingAddr.country}
+
+Items:
+${internalLines}
+
+Total: ${totalStr} ${currencyStr}
+                </pre>`,
+              }).catch(e => console.error(“INTERNAL EMAIL ERROR:”, e))
 
           } catch (mailErr) {
             console.error("ORDER EMAIL ERROR:", mailErr)

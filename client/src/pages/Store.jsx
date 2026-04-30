@@ -191,6 +191,11 @@ export default function Store() {
 
   return (
     <div className="page">
+      <div className="store-shipping-notice">
+        <span className="store-shipping-notice__icon">📦</span>
+        <span>Поръчките от днешния ден ще бъдат изпратени на <strong>5 май</strong> поради забавяне с печатницата. Благодарим за разбирането!</span>
+      </div>
+
       <div className="store-head">
         <div>
           <h2 className="headline">Store</h2>

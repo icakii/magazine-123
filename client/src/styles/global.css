@@ -3114,6 +3114,26 @@ html[data-theme="dark"] .hamburger .line {
   gap: 16px;
 }
 
+.store-shipping-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  background: #fffbeb;
+  border: 1px solid #f59e0b;
+  border-left: 4px solid #f59e0b;
+  border-radius: 10px;
+  padding: 14px 18px;
+  margin-bottom: 20px;
+  font-size: 0.95rem;
+  color: #78350f;
+  line-height: 1.5;
+}
+.store-shipping-notice__icon {
+  font-size: 1.2rem;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
 .store-grid {
   margin-top: 24px;
   display: grid;

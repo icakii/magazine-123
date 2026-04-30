@@ -33,7 +33,8 @@ router.get("/store/items", async (req, res) => {
               category,
               stripe_price_id AS "priceId",
               is_active AS "isActive",
-              release_at AS "releaseAt"
+              release_at AS "releaseAt",
+              quantity
        FROM store_items
        WHERE is_active = true
        ORDER BY created_at DESC`
@@ -78,12 +79,12 @@ router.post("/admin/store/items", authMiddleware, async (req, res) => {
     if (!email) return res.status(401).json({ error: "Unauthorized" })
     if (!await isAdmin(email)) return res.status(403).json({ error: "Admin access required" })
 
-    const { title, description, imageUrl, category, priceId, isActive, releaseAt } = req.body || {}
+    const { title, description, imageUrl, category, priceId, isActive, releaseAt, quantity } = req.body || {}
     if (!title || !priceId) return res.status(400).json({ error: "title and priceId required" })
 
     const { rows } = await db.query(
-      `INSERT INTO store_items (title, description, image_url, category, stripe_price_id, is_active, release_at)
-       VALUES ($1,$2,$3,$4,$5,$6,$7)
+      `INSERT INTO store_items (title, description, image_url, category, stripe_price_id, is_active, release_at, quantity)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
        RETURNING id,
                  title,
                  description,
@@ -91,7 +92,8 @@ router.post("/admin/store/items", authMiddleware, async (req, res) => {
                  category,
                  stripe_price_id AS "priceId",
                  is_active AS "isActive",
-                 release_at AS "releaseAt"`,
+                 release_at AS "releaseAt",
+                 quantity`,
       [
         title,
         description || "",
@@ -100,6 +102,7 @@ router.post("/admin/store/items", authMiddleware, async (req, res) => {
         priceId,
         isActive !== false,
         releaseAt || null,
+        quantity != null ? Number(quantity) : null,
       ]
     )
 
@@ -117,7 +120,7 @@ router.put("/admin/store/items/:id", authMiddleware, async (req, res) => {
     if (!await isAdmin(email)) return res.status(403).json({ error: "Admin access required" })
 
     const id = Number(req.params.id)
-    const { title, description, imageUrl, category, priceId, isActive, releaseAt } = req.body || {}
+    const { title, description, imageUrl, category, priceId, isActive, releaseAt, quantity } = req.body || {}
     if (!id) return res.status(400).json({ error: "Invalid id" })
 
     await db.query(
@@ -128,8 +131,9 @@ router.put("/admin/store/items/:id", authMiddleware, async (req, res) => {
            category=$4,
            stripe_price_id=$5,
            is_active=$6,
-           release_at=$7
-       WHERE id=$8`,
+           release_at=$7,
+           quantity=$8
+       WHERE id=$9`,
       [
         title,
         description || "",
@@ -138,6 +142,7 @@ router.put("/admin/store/items/:id", authMiddleware, async (req, res) => {
         priceId,
         isActive !== false,
         releaseAt || null,
+        quantity != null ? Number(quantity) : null,
         id,
       ]
     )
@@ -323,6 +328,16 @@ router.get("/admin/store/orders", authMiddleware, async (req, res) => {
         const fullNameField = customFields.find((f) => f?.key === "full_name")
         const fullName = fullNameField?.text?.value || ""
 
+        let courier = ""
+        let deliveryType = ""
+        try {
+          if (s.shipping_cost?.shipping_rate) {
+            const rate = await stripe.shippingRates.retrieve(s.shipping_cost.shipping_rate)
+            courier = rate.metadata?.courier || ""
+            deliveryType = rate.metadata?.delivery_type || ""
+          }
+        } catch {}
+
         return {
           id: s.id,
           created: s.created,
@@ -333,6 +348,8 @@ router.get("/admin/store/orders", authMiddleware, async (req, res) => {
           full_name: fullName,
           shipping_name: shipping?.name || "",
           shipping_address: shipping?.address || null,
+          courier,
+          delivery_type: deliveryType,
           line_items: lineItems,
         }
       })

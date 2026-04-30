@@ -729,6 +729,29 @@ Total: ${totalStr} ${currencyStr}
 
             } // end if magazine
 
+            // -----------------------------------------------------------
+            // ✅ STORE ORDERS (metadata.source === "miren_store")
+            // Reduce stock for each purchased item
+            // -----------------------------------------------------------
+            if (session.metadata?.source === "miren_store") {
+              try {
+                const li = await stripe.checkout.sessions.listLineItems(session.id, { limit: 100 })
+                for (const item of (li.data || [])) {
+                  const priceId = item.price?.id
+                  const qty = item.quantity || 1
+                  if (priceId) {
+                    await db.query(
+                      `UPDATE store_items SET quantity = GREATEST(0, COALESCE(quantity, 0) - $1) WHERE stripe_price_id = $2`,
+                      [qty, priceId]
+                    ).catch(e => console.error("STOCK REDUCE ERROR:", e))
+                  }
+                }
+                console.log("✅ Stock reduced for store order:", session.id)
+              } catch (stockErr) {
+                console.error("STORE STOCK REDUCE ERROR:", stockErr)
+              }
+            }
+
           } catch (mailErr) {
             console.error("ORDER EMAIL ERROR:", mailErr)
           }
@@ -2633,6 +2656,8 @@ async function initDB() {
       )
     }
     console.log("✅ admins table ready")
+    await db.query(`ALTER TABLE store_items ADD COLUMN IF NOT EXISTS quantity INTEGER`)
+    console.log("✅ store_items.quantity ready")
   } catch (e) {
     console.error("initDB error:", e.message)
   }

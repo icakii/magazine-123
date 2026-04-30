@@ -1193,7 +1193,14 @@ isVideoUrl(heroVfxUrl) ? (
                 <div key={it.id || it.priceId}>
                   <div className="list-row">
                     <div className="list-main">
-                      <div className="list-title">{it.title}</div>
+                      <div className="list-title">
+                        {it.title}
+                        {it.quantity != null && (
+                          <span style={{ marginLeft: 10, fontSize: "0.8em", background: it.quantity === 0 ? "#ef4444" : it.quantity < 10 ? "#f59e0b" : "#22c55e", color: "#fff", borderRadius: 4, padding: "1px 8px" }}>
+                            {it.quantity === 0 ? "Изчерпан" : `${it.quantity} бр.`}
+                          </span>
+                        )}
+                      </div>
                       <div className="list-sub text-muted">
                         Price ID: {it.priceId || "—"} • Category: {it.category || "—"}
                       </div>
@@ -1291,6 +1298,9 @@ isVideoUrl(heroVfxUrl) ? (
                         <input type="datetime-local" defaultValue={it.releaseAt ? new Date(new Date(it.releaseAt).getTime()).toISOString().slice(0,16) : ""} id={`si-release-${it.id}`} />
                         <span style={{ fontSize: "0.75em", color: "var(--text-muted)" }}>Остави празно = веднага достъпно</span>
                       </label>
+                      <label className="field"><span>Наличност (бр.)</span>
+                        <input type="number" min="0" defaultValue={it.quantity ?? ""} placeholder="∞ (без лимит)" id={`si-qty-${it.id}`} />
+                      </label>
                       <button className="btn primary" style={{ alignSelf: "flex-start" }} onClick={async () => {
                         const title = document.getElementById(`si-title-${it.id}`)?.value?.trim()
                         const description = document.getElementById(`si-desc-${it.id}`)?.value?.trim()
@@ -1298,10 +1308,12 @@ isVideoUrl(heroVfxUrl) ? (
                         const priceId = document.getElementById(`si-price-${it.id}`)?.value?.trim()
                         const releaseLocal = document.getElementById(`si-release-${it.id}`)?.value
                         const releaseAt = releaseLocal ? new Date(releaseLocal + ':00+03:00').toISOString() : null
+                        const qtyRaw = document.getElementById(`si-qty-${it.id}`)?.value
+                        const quantity = qtyRaw !== "" && qtyRaw != null ? Number(qtyRaw) : null
                         if (!title || !priceId) return alert("Заглавие и Price ID са задължителни")
                         try {
-                          await api.put(`/admin/store/items/${it.id}`, { title, description, imageUrl, category: it.category, priceId, isActive: it.isActive, releaseAt })
-                          setStoreItems((prev) => prev.map((x) => x.id === it.id ? { ...x, title, description, imageUrl, priceId, releaseAt, _editing: false } : x))
+                          await api.put(`/admin/store/items/${it.id}`, { title, description, imageUrl, category: it.category, priceId, isActive: it.isActive, releaseAt, quantity })
+                          setStoreItems((prev) => prev.map((x) => x.id === it.id ? { ...x, title, description, imageUrl, priceId, releaseAt, quantity, _editing: false } : x))
                           alert("Запазено!")
                         } catch(e) { alert("Грешка: " + (e?.response?.data?.error || e.message)) }
                       }}>Запази</button>
@@ -1318,28 +1330,40 @@ isVideoUrl(heroVfxUrl) ? (
       {activeTab === "orders" && (
         <>
         {/* Store orders from Stripe */}
-        {storeOrders.length > 0 && (
-          <div className="admin-card" style={{ marginBottom: 16 }}>
-            <h3 className="headline">Store поръчки — Stripe ({storeOrders.length})</h3>
+        <div className="admin-card" style={{ marginBottom: 16 }}>
+          <h3 className="headline">Store поръчки — Stripe ({storeOrders.length})</h3>
+          {storeOrders.length === 0 ? (
+            <p className="text-muted">Няма store поръчки.</p>
+          ) : (
             <div className="list">
               {storeOrders.map((o) => {
                 const addr = o.shipping_address || {}
-                const addrStr = [addr.line1, addr.city, addr.country].filter(Boolean).join(", ")
+                const addrStr = [addr.line1, addr.line2, addr.city, addr.postal_code, addr.country].filter(Boolean).join(", ")
                 const total = o.amount_total != null ? (o.amount_total / 100).toFixed(2) + " " + String(o.currency || "").toUpperCase() : "—"
+                const courierLabel = o.courier === "econt" ? "Econt" : o.courier === "speedy" ? "Speedy" : o.courier || "—"
+                const deliveryLabel = o.delivery_type === "locker" ? "До автомат" : o.delivery_type === "courier" ? "До адрес" : o.delivery_type || ""
                 return (
                   <div key={o.id} className="list-row">
                     <div className="list-main">
                       <div className="list-title">
-                        {o.full_name || o.shipping_name || "(без име)"} — {o.customer_email}
+                        {o.full_name || o.shipping_name || "(без три имена)"} — {o.customer_email}
                         <span style={{ marginLeft: 8, fontSize: "0.8em", background: "#22c55e", color: "#fff", borderRadius: 4, padding: "1px 6px" }}>paid</span>
                       </div>
                       <div className="list-sub text-muted">
-                        📞 {o.customer_phone || "—"} · {addrStr || "—"} · {total}
+                        📞 {o.customer_phone || "—"} · {total}
                       </div>
-                      <div className="list-sub text-muted" style={{ fontSize: "0.8em" }}>
+                      <div className="list-sub text-muted">
+                        📦 {courierLabel}{deliveryLabel ? ` — ${deliveryLabel}` : ""}
+                      </div>
+                      {addrStr && (
+                        <div className="list-sub text-muted">
+                          📍 {addrStr}
+                        </div>
+                      )}
+                      <div className="list-sub text-muted" style={{ fontSize: "0.85em", marginTop: 4 }}>
                         {(o.line_items || []).map(li => `${li.description} x${li.quantity}`).join(", ")}
                       </div>
-                      <div className="list-sub text-muted" style={{ fontSize: "0.75em" }}>
+                      <div className="list-sub text-muted" style={{ fontSize: "0.75em", marginTop: 2 }}>
                         {new Date(o.created * 1000).toLocaleString("bg-BG")} · {o.id}
                       </div>
                     </div>
@@ -1347,8 +1371,8 @@ isVideoUrl(heroVfxUrl) ? (
                 )
               })}
             </div>
-          </div>
-        )}
+          )}
+        </div>
 
         <div className="admin-card">
           <h3 className="headline">Поръчки на списания ({orders.length})</h3>

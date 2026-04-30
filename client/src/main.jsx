@@ -138,7 +138,7 @@ ReactDOM.createRoot(document.getElementById("root")).render(
             <Route path="/gallery" element={<Gallery />} />
             <Route path="/contact" element={<Contact />} />
             <Route path="/help" element={<Help />} />
-            <Route path="/store" element={<Store />} />
+            <Route path="/store" element={<AuthGuard><Store /></AuthGuard>} />
             <Route path="/opportunities" element={<Opportunities />} />
                         <Route path="/miren-art" element={<MirenArt />} />
             <Route path="/partnership" element={<Navigate to="/opportunities" replace />} />

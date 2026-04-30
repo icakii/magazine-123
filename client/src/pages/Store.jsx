@@ -30,11 +30,19 @@ function normalizeItem(raw) {
       it.stripe_price_id ||
       "",
     isActive: typeof it.isActive === "boolean" ? it.isActive : true,
-
-    // ✅ price info from backend (optional but you already see it in /store/items)
-    unitAmount: typeof it.unitAmount === "number" ? it.unitAmount : null, // cents
+    releaseAt: it.releaseAt || it.release_at || null,
+    unitAmount: typeof it.unitAmount === "number" ? it.unitAmount : null,
     currency: it.currency ? String(it.currency).toUpperCase() : "EUR",
   }
+}
+
+function formatCountdown(ms) {
+  if (ms <= 0) return null
+  const h = Math.floor(ms / 3600000)
+  const m = Math.floor((ms % 3600000) / 60000)
+  const s = Math.floor((ms % 60000) / 1000)
+  if (h > 0) return `${h}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`
+  return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`
 }
 
 export default function Store() {
@@ -44,6 +52,7 @@ export default function Store() {
   const [err, setErr] = useState("")
   const [notice, setNotice] = useState("")
   const [stock, setStock] = useState(null)
+  const [now, setNow] = useState(() => Date.now())
 
   const location = useLocation()
   const navigate = useNavigate()
@@ -64,6 +73,11 @@ export default function Store() {
     return () => {
       document.body.classList.remove("cart-open")
     }
+  }, [])
+
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 1000)
+    return () => clearInterval(id)
   }, [])
 
   useEffect(() => {
@@ -201,6 +215,10 @@ export default function Store() {
           {items.map((it) => {
             const isMagazine = it.category === "magazine"
             const soldOut = isMagazine && stock && stock.remaining <= 0
+            const releaseMs = it.releaseAt ? new Date(it.releaseAt).getTime() - now : 0
+            const notYetReleased = releaseMs > 0
+            const countdown = notYetReleased ? formatCountdown(releaseMs) : null
+            const blocked = soldOut || notYetReleased
             return (
             <div key={it.id || it.priceId} className={`store-card${soldOut ? " store-card--soldout" : ""}`}>
               <div className="store-img-wrap">
@@ -210,6 +228,12 @@ export default function Store() {
                   <div className="store-img store-img--ph">MIREN</div>
                 )}
                 {soldOut && <div className="store-soldout-badge">SOLD OUT</div>}
+                {notYetReleased && !soldOut && (
+                  <div className="store-countdown-badge">
+                    <span className="store-countdown-label">Отваря след</span>
+                    <span className="store-countdown-time">{countdown}</span>
+                  </div>
+                )}
               </div>
 
               <div className="store-body">
@@ -222,13 +246,13 @@ export default function Store() {
                   </div>
 
                   <button
-                    className={`btn ${soldOut ? "outline" : "primary"} store-btn`}
-                    onClick={() => !soldOut && addItem(it)}
+                    className={`btn ${blocked ? "outline" : "primary"} store-btn`}
+                    onClick={() => !blocked && addItem(it)}
                     type="button"
-                    disabled={soldOut}
-                    style={soldOut ? { opacity: 0.5, cursor: "not-allowed" } : {}}
+                    disabled={blocked}
+                    style={blocked ? { opacity: 0.5, cursor: "not-allowed" } : {}}
                   >
-                    {soldOut ? "Sold Out" : "Add to cart"}
+                    {soldOut ? "Sold Out" : notYetReleased ? `Скоро — ${countdown}` : "Add to cart"}
                   </button>
                 </div>
               </div>

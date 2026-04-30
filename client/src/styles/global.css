@@ -3187,6 +3187,34 @@ html[data-theme="dark"] .hamburger .line {
   0%, 100% { opacity: 1; transform: translate(-50%, -50%) rotate(-15deg) scale(1); }
   50% { opacity: 0.75; transform: translate(-50%, -50%) rotate(-15deg) scale(1.05); }
 }
+.store-countdown-badge {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0,0,0,0.55);
+  border-radius: 8px;
+  pointer-events: none;
+  gap: 4px;
+}
+.store-countdown-label {
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  opacity: 0.85;
+}
+.store-countdown-time {
+  color: #fff;
+  font-family: var(--font-display);
+  font-size: 2rem;
+  font-weight: 900;
+  letter-spacing: 0.05em;
+  line-height: 1;
+}
 .store-body{ padding: 14px 14px 16px; }
 .store-title{
   font-family: var(--font-display);

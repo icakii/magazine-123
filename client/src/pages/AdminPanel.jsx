@@ -1213,15 +1213,22 @@ isVideoUrl(heroVfxUrl) ? (
                       <label className="field"><span>Stripe Price ID</span>
                         <input defaultValue={it.priceId} id={`si-price-${it.id}`} />
                       </label>
+                      <label className="field"><span>Отваря в (Sofia time)</span>
+                        <input type="datetime-local" defaultValue={it.releaseAt ? new Date(new Date(it.releaseAt).getTime()).toISOString().slice(0,16) : ""} id={`si-release-${it.id}`} />
+                        <span style={{ fontSize: "0.75em", color: "var(--text-muted)" }}>Остави празно = веднага достъпно</span>
+                      </label>
                       <button className="btn primary" style={{ alignSelf: "flex-start" }} onClick={async () => {
                         const title = document.getElementById(`si-title-${it.id}`)?.value?.trim()
                         const description = document.getElementById(`si-desc-${it.id}`)?.value?.trim()
                         const imageUrl = document.getElementById(`si-img-${it.id}`)?.value?.trim()
                         const priceId = document.getElementById(`si-price-${it.id}`)?.value?.trim()
+                        const releaseLocal = document.getElementById(`si-release-${it.id}`)?.value
+                        // treat datetime-local as Sofia (EEST = UTC+3)
+                        const releaseAt = releaseLocal ? new Date(releaseLocal + ':00+03:00').toISOString() : null
                         if (!title || !priceId) return alert("Заглавие и Price ID са задължителни")
                         try {
-                          await api.put(`/admin/store/items/${it.id}`, { title, description, imageUrl, category: it.category, priceId, isActive: it.isActive })
-                          setStoreItems((prev) => prev.map((x) => x.id === it.id ? { ...x, title, description, imageUrl, priceId, _editing: false } : x))
+                          await api.put(`/admin/store/items/${it.id}`, { title, description, imageUrl, category: it.category, priceId, isActive: it.isActive, releaseAt })
+                          setStoreItems((prev) => prev.map((x) => x.id === it.id ? { ...x, title, description, imageUrl, priceId, releaseAt, _editing: false } : x))
                           alert("Запазено!")
                         } catch(e) { alert("Грешка: " + (e?.response?.data?.error || e.message)) }
                       }}>Запази</button>

@@ -1200,16 +1200,81 @@ isVideoUrl(heroVfxUrl) ? (
                   </div>
 
                   {it._editing && (
-                    <div style={{ marginTop: 8, marginBottom: 8, display: "flex", flexDirection: "column", gap: 8, padding: "12px", background: "var(--bg-muted)", borderRadius: 8 }}>
+                    <div style={{ marginTop: 8, marginBottom: 8, display: "flex", flexDirection: "column", gap: 10, padding: "14px", background: "var(--bg-muted)", borderRadius: 8 }}>
                       <label className="field"><span>Заглавие</span>
                         <input defaultValue={it.title} id={`si-title-${it.id}`} />
                       </label>
                       <label className="field"><span>Описание</span>
                         <input defaultValue={it.description} id={`si-desc-${it.id}`} />
                       </label>
-                      <label className="field"><span>Image URL</span>
-                        <input defaultValue={it.imageUrl} id={`si-img-${it.id}`} />
-                      </label>
+
+                      {/* Image: preview + upload file OR paste URL */}
+                      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                        <span style={{ fontSize: "0.85em", fontWeight: 600 }}>Снимка</span>
+                        {/* preview */}
+                        <div id={`si-preview-wrap-${it.id}`} style={{ display: it.imageUrl ? "block" : "none" }}>
+                          <img
+                            id={`si-preview-${it.id}`}
+                            src={it.imageUrl || ""}
+                            alt=""
+                            style={{ maxHeight: 120, maxWidth: "100%", borderRadius: 6, objectFit: "contain", background: "#eee" }}
+                          />
+                        </div>
+                        {/* URL input */}
+                        <input
+                          defaultValue={it.imageUrl}
+                          id={`si-img-${it.id}`}
+                          placeholder="https://... или качи файл по-долу"
+                          onInput={(e) => {
+                            const preview = document.getElementById(`si-preview-${it.id}`)
+                            const wrap = document.getElementById(`si-preview-wrap-${it.id}`)
+                            if (preview && wrap) {
+                              preview.src = e.target.value
+                              wrap.style.display = e.target.value ? "block" : "none"
+                            }
+                          }}
+                        />
+                        {/* file upload */}
+                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            id={`si-file-${it.id}`}
+                            style={{ display: "none" }}
+                            onChange={async (e) => {
+                              const file = e.target.files?.[0]
+                              if (!file) return
+                              const statusEl = document.getElementById(`si-upload-status-${it.id}`)
+                              if (statusEl) statusEl.textContent = "Качва се..."
+                              try {
+                                const fd = new FormData()
+                                fd.append("file", file)
+                                const res = await api.post("/upload", fd, { headers: { "Content-Type": "multipart/form-data" } })
+                                const url = res?.data?.url || res?.data?.secure_url || ""
+                                const imgInput = document.getElementById(`si-img-${it.id}`)
+                                const preview = document.getElementById(`si-preview-${it.id}`)
+                                const wrap = document.getElementById(`si-preview-wrap-${it.id}`)
+                                if (imgInput) imgInput.value = url
+                                if (preview && wrap) { preview.src = url; wrap.style.display = "block" }
+                                if (statusEl) statusEl.textContent = "Качено!"
+                              } catch(err) {
+                                if (statusEl) statusEl.textContent = "Грешка при качване"
+                                alert("Upload грешка: " + (err?.response?.data?.details || err?.response?.data?.error || err.message))
+                              }
+                            }}
+                          />
+                          <button
+                            type="button"
+                            className="btn outline"
+                            style={{ fontSize: "0.82em" }}
+                            onClick={() => document.getElementById(`si-file-${it.id}`)?.click()}
+                          >
+                            Качи файл
+                          </button>
+                          <span id={`si-upload-status-${it.id}`} style={{ fontSize: "0.8em", color: "var(--text-muted)" }} />
+                        </div>
+                      </div>
+
                       <label className="field"><span>Stripe Price ID</span>
                         <input defaultValue={it.priceId} id={`si-price-${it.id}`} />
                       </label>
@@ -1223,7 +1288,6 @@ isVideoUrl(heroVfxUrl) ? (
                         const imageUrl = document.getElementById(`si-img-${it.id}`)?.value?.trim()
                         const priceId = document.getElementById(`si-price-${it.id}`)?.value?.trim()
                         const releaseLocal = document.getElementById(`si-release-${it.id}`)?.value
-                        // treat datetime-local as Sofia (EEST = UTC+3)
                         const releaseAt = releaseLocal ? new Date(releaseLocal + ':00+03:00').toISOString() : null
                         if (!title || !priceId) return alert("Заглавие и Price ID са задължителни")
                         try {

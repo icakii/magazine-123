@@ -225,7 +225,7 @@ export default function Store() {
                 {it.imageUrl ? (
                   <img className="store-img" src={it.imageUrl} alt={it.title} loading="lazy" />
                 ) : (
-                  <div className="store-img store-img--ph">MIREN</div>
+                  <div className="store-img--ph">MIREN</div>
                 )}
                 {soldOut && <div className="store-soldout-badge">SOLD OUT</div>}
                 {notYetReleased && !soldOut && (

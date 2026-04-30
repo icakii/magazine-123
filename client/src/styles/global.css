@@ -4399,24 +4399,16 @@ body.cart-open{
 }
 
 .admin-card {
-  border: 1px solid rgba(0,0,0,0.18) !important;
+  border: 1px solid rgba(0,0,0,0.25) !important;
   border-radius: 22px !important;
   padding: 18px !important;
-  background: rgba(255,255,255,0.92) !important;
+  background: rgba(255,255,255,0.35) !important;
   backdrop-filter: blur(6px) !important;
-  color: #1a1a1a !important;
 }
-.admin-card .list-title,
-.admin-card .list-sub,
-.admin-card .text-muted,
-.admin-card .mini,
-.admin-card label,
-.admin-card span,
-.admin-card p {
-  color: rgba(30,30,30,0.75) !important;
+.store-desc {
+  color: var(--text) !important;
+  opacity: 0.8 !important;
 }
-.admin-card .list-title { color: #1a1a1a !important; font-weight: 900 !important; }
-.admin-card .headline { color: #1a1a1a !important; }
 
 .admin-stat {
   display: flex;

@@ -277,6 +277,7 @@ export default function Home() {
                       onToggleLike={toggleHomeLike} onToggleSave={toggleHomeSave}
                       onComment={a => setHomeCommentPopup(a)}
                       onLikersOpen={id => setHomeLikersPopup(id)}
+                      onRead={!isLocked ? a => setSelectedArticle(a) : null}
                     />
                   </div>
                 )

@@ -1172,6 +1172,21 @@ isVideoUrl(heroVfxUrl) ? (
                       </div>
                     </div>
                     <div className="list-actions">
+                      {currentCategory === "news" && (
+                        <button
+                          className="btn ghost" type="button" disabled={busy}
+                          style={{ color: a.homeFeatured ? "var(--oxide-red, #c46a4a)" : undefined, borderColor: a.homeFeatured ? "var(--oxide-red, #c46a4a)" : undefined }}
+                          onClick={async () => {
+                            try {
+                              const r = await api.patch(`/admin/articles/${a.id}/home-featured`)
+                              setArticles(prev => prev.map(x => x.id === a.id ? { ...x, homeFeatured: r.data.homeFeatured } : x))
+                            } catch {}
+                          }}
+                          title={a.homeFeatured ? "Remove from Home featured" : "Add to Home featured"}
+                        >
+                          {a.homeFeatured ? "★ Home" : "☆ Home"}
+                        </button>
+                      )}
                       <button className="btn ghost" type="button" onClick={() => startEditArticle(a)}>
                         Edit
                       </button>

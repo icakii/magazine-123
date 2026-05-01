@@ -5,13 +5,14 @@ import { createPortal } from "react-dom"
 import { api } from "../lib/api"
 import { useAuth } from "../context/AuthContext"
 import { useNavigate } from "react-router-dom"
+import { CommentConversation, LikersPopup, ArticleActionBar } from "../components/ArticleSocial"
 
 const CATEGORIES = ["All", "Fashion", "Art", "Music", "Photography", "Other"]
 const SORTS = [
   { key: "newest", label: "Newest" },
   { key: "oldest", label: "Oldest" },
-  { key: "likes", label: "❤️ Liked" },
-  { key: "comments", label: "💬 Discussed" },
+  { key: "likes", label: "Most liked" },
+  { key: "comments", label: "Most discussed" },
 ]
 
 function categorySlug(cat) {
@@ -20,120 +21,71 @@ function categorySlug(cat) {
   return allowed.has(s) ? s : "other"
 }
 
-/* ── Comment conversation popup ── */
-function CommentConversation({ article, user, navigate, onClose, onCommentAdded }) {
-  const [comments, setComments] = useState([])
-  const [text, setText] = useState("")
-  const [posting, setPosting] = useState(false)
-  const [err, setErr] = useState("")
-  const bottomRef = useRef()
-  const textareaRef = useRef()
+/* ── Sort dropdown ── */
+function SortDropdown({ sort, setSort }) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef()
+  const currentLabel = SORTS.find(s => s.key === sort)?.label || "Sort"
 
   useEffect(() => {
-    api.get(`/articles/${article.id}/comments`).then(r => setComments(r.data || [])).catch(() => {})
-    setTimeout(() => textareaRef.current?.focus(), 100)
-  }, [article.id])
+    function handler(e) { if (ref.current && !ref.current.contains(e.target)) setOpen(false) }
+    if (open) document.addEventListener("mousedown", handler)
+    return () => document.removeEventListener("mousedown", handler)
+  }, [open])
 
-  async function post(e) {
-    e.preventDefault()
-    if (!user) return navigate("/login")
-    if (!text.trim() || posting) return
-    setPosting(true); setErr("")
-    try {
-      const res = await api.post(`/articles/${article.id}/comments`, { content: text.trim() })
-      const newComment = res.data
-      setComments(prev => [...prev, newComment])
-      setText("")
-      onCommentAdded(article.id)
-      setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: "smooth" }), 80)
-    } catch (e) {
-      setErr(e?.response?.data?.error || "Грешка при изпращане.")
-    } finally { setPosting(false) }
-  }
-
-  return createPortal(
-    <div
-      style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center", padding: "1rem" }}
-      onClick={onClose}
-    >
-      <div
-        style={{ background: "var(--bg, #111)", borderRadius: 20, width: "100%", maxWidth: 500, height: "min(600px, 90vh)", display: "flex", flexDirection: "column", overflow: "hidden", boxShadow: "0 20px 60px rgba(0,0,0,0.5)" }}
-        onClick={e => e.stopPropagation()}
+  return (
+    <div ref={ref} style={{ position: "relative" }}>
+      <button
+        type="button"
+        onClick={() => setOpen(o => !o)}
+        style={{
+          display: "flex", alignItems: "center", gap: 7, padding: "7px 16px",
+          borderRadius: 999, border: "1.5px solid",
+          borderColor: open ? "var(--oxide-red, #c46a4a)" : "rgba(255,255,255,0.12)",
+          background: open ? "rgba(196,106,74,0.12)" : "rgba(255,255,255,0.04)",
+          color: open ? "var(--oxide-red, #c46a4a)" : "var(--text)",
+          fontSize: "0.82rem", fontWeight: 600, cursor: "pointer", transition: "all 0.15s",
+          whiteSpace: "nowrap",
+        }}
       >
-        {/* header */}
-        <div style={{ padding: "16px 18px 12px", borderBottom: "1px solid rgba(255,255,255,0.07)", display: "flex", alignItems: "center", gap: 10 }}>
-          <div style={{ flex: 1 }}>
-            <div style={{ fontWeight: 800, fontSize: "0.95rem", color: "var(--text)", lineHeight: 1.2 }}>💬 Коментари</div>
-            <div style={{ fontSize: "0.75rem", color: "var(--text)", opacity: 0.4, marginTop: 2 }}>{article.title?.slice(0,45)}{article.title?.length > 45 ? "…" : ""}</div>
-          </div>
-          <button onClick={onClose} style={{ background: "rgba(255,255,255,0.08)", border: "none", borderRadius: "50%", width: 30, height: 30, color: "var(--text)", cursor: "pointer", fontSize: "1rem", display: "flex", alignItems: "center", justifyContent: "center" }}>×</button>
-        </div>
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="6" y1="12" x2="18" y2="12"/><line x1="9" y1="18" x2="15" y2="18"/></svg>
+        {currentLabel}
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ transition: "transform 0.2s", transform: open ? "rotate(180deg)" : "rotate(0deg)" }}><polyline points="6 9 12 15 18 9"/></svg>
+      </button>
 
-        {/* messages */}
-        <div style={{ flex: 1, overflowY: "auto", padding: "14px 16px", display: "flex", flexDirection: "column", gap: 14 }}>
-          {comments.length === 0 && (
-            <div style={{ textAlign: "center", marginTop: "3rem", color: "var(--text)", opacity: 0.35 }}>
-              <div style={{ fontSize: "2.5rem", marginBottom: 8 }}>💬</div>
-              <div style={{ fontSize: "0.88rem" }}>Бъди първият, който коментира.</div>
-            </div>
-          )}
-          {comments.map(c => (
-            <div key={c.id} style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
-              <div style={{ width: 32, height: 32, borderRadius: "50%", background: "var(--oxide-red, #c46a4a)", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: "0.82rem", flexShrink: 0, marginTop: 2 }}>
-                {(c.display_name || c.username || "?")[0].toUpperCase()}
-              </div>
-              <div style={{ flex: 1 }}>
-                <div style={{ background: "rgba(255,255,255,0.05)", borderRadius: "0 14px 14px 14px", padding: "9px 13px" }}>
-                  <div style={{ fontWeight: 700, fontSize: "0.78rem", color: "var(--oxide-red, #c46a4a)", marginBottom: 3 }}>
-                    {c.display_name || c.username || "Потребител"}
-                  </div>
-                  <p style={{ margin: 0, fontSize: "0.88rem", color: "var(--text)", lineHeight: 1.55, wordBreak: "break-word" }}>{c.content}</p>
-                </div>
-                <div style={{ fontSize: "0.7rem", color: "var(--text)", opacity: 0.35, marginTop: 3, paddingLeft: 4 }}>{new Date(c.created_at).toLocaleDateString("bg-BG")}</div>
-              </div>
-            </div>
-          ))}
-          <div ref={bottomRef} />
-        </div>
-
-        {/* input */}
-        <div style={{ padding: "10px 14px 14px", borderTop: "1px solid rgba(255,255,255,0.06)" }}>
-          {user ? (
-            <form onSubmit={post} style={{ display: "flex", gap: 8, alignItems: "flex-end" }}>
-              <div style={{ width: 32, height: 32, borderRadius: "50%", background: "var(--oxide-red, #c46a4a)", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: "0.82rem", flexShrink: 0, marginBottom: 2 }}>
-                {(user.displayName || user.email || "?")[0].toUpperCase()}
-              </div>
-              <textarea
-                ref={textareaRef}
-                value={text}
-                onChange={e => setText(e.target.value)}
-                onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); post(e) } }}
-                placeholder="Напиши коментар... (Enter за изпращане)"
-                rows={1}
-                maxLength={600}
-                style={{ flex: 1, background: "rgba(255,255,255,0.07)", border: "1.5px solid rgba(255,255,255,0.1)", borderRadius: 20, padding: "9px 14px", color: "var(--text)", fontSize: "0.88rem", fontFamily: "inherit", outline: "none", resize: "none", lineHeight: 1.5, transition: "border-color 0.15s" }}
-                onFocus={e => e.target.style.borderColor = "var(--oxide-red, #c46a4a)"}
-                onBlur={e => e.target.style.borderColor = "rgba(255,255,255,0.1)"}
-                onInput={e => { e.target.style.height = "auto"; e.target.style.height = Math.min(e.target.scrollHeight, 120) + "px" }}
-              />
-              <button
-                type="submit"
-                disabled={posting || !text.trim()}
-                style={{ width: 36, height: 36, borderRadius: "50%", border: "none", background: text.trim() ? "var(--oxide-red, #c46a4a)" : "rgba(255,255,255,0.08)", color: "#fff", cursor: text.trim() ? "pointer" : "not-allowed", display: "flex", alignItems: "center", justifyContent: "center", transition: "background 0.15s", flexShrink: 0 }}
-              >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-              </button>
-            </form>
-          ) : (
-            <button onClick={() => navigate("/login")} style={{ width: "100%", padding: "11px", borderRadius: 12, border: "1.5px solid rgba(255,255,255,0.1)", background: "transparent", color: "var(--text)", cursor: "pointer", fontWeight: 600, fontSize: "0.9rem" }}>
-              Влез за да коментираш
-            </button>
-          )}
-          {err && <p style={{ color: "#ef4444", fontSize: "0.78rem", margin: "6px 0 0 44px" }}>{err}</p>}
-        </div>
+      <div style={{
+        position: "absolute", top: "calc(100% + 8px)", left: 0, minWidth: 180,
+        background: "var(--bg, #111)", borderRadius: 14,
+        border: "1.5px solid rgba(255,255,255,0.1)",
+        boxShadow: "0 12px 40px rgba(0,0,0,0.4)",
+        overflow: "hidden", zIndex: 200,
+        opacity: open ? 1 : 0,
+        transform: open ? "translateY(0) scale(1)" : "translateY(-8px) scale(0.97)",
+        pointerEvents: open ? "auto" : "none",
+        transition: "opacity 0.18s ease, transform 0.18s ease",
+        transformOrigin: "top left",
+      }}>
+        {SORTS.map((s, i) => (
+          <button
+            key={s.key} type="button"
+            onClick={() => { setSort(s.key); setOpen(false) }}
+            style={{
+              width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between",
+              gap: 8, padding: "10px 14px", background: "transparent", border: "none",
+              borderBottom: i < SORTS.length - 1 ? "1px solid rgba(255,255,255,0.05)" : "none",
+              color: sort === s.key ? "var(--oxide-red, #c46a4a)" : "var(--text)",
+              fontWeight: sort === s.key ? 700 : 500, fontSize: "0.87rem",
+              cursor: "pointer", textAlign: "left",
+            }}
+            onMouseEnter={e => e.currentTarget.style.background = "rgba(255,255,255,0.05)"}
+            onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+          >
+            {s.label}
+            {sort === s.key && <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>}
+          </button>
+        ))}
       </div>
-    </div>,
-    document.body
+    </div>
   )
 }
 
@@ -180,7 +132,7 @@ function ArticleModal({ article, onClose, user, navigate, statsMap, onStatsUpdat
           </button>
           <button onClick={() => { onClose(); onOpenComments(article) }} type="button" style={{ display: "flex", alignItems: "center", gap: 7, padding: "9px 18px", borderRadius: 999, border: "none", background: "rgba(255,255,255,0.07)", color: "var(--text)", cursor: "pointer", fontWeight: 600, fontSize: "0.9rem", transition: "all 0.15s" }}>
             <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-            {st.comments_count || 0} Коментари
+            {st.comments_count || 0} Comments
           </button>
         </div>
       </div>
@@ -191,12 +143,14 @@ function ArticleModal({ article, onClose, user, navigate, statsMap, onStatsUpdat
 
 export default function News() {
   const { user, hasSubscription } = useAuth()
+  const isAdmin = user?.isAdmin
   const [articles, setArticles] = useState([])
   const [statsMap, setStatsMap] = useState({})
   const [filter, setFilter] = useState("All")
   const [sort, setSort] = useState("newest")
   const [selectedArticle, setSelectedArticle] = useState(null)
   const [commentPopup, setCommentPopup] = useState(null)
+  const [likersPopup, setLikersPopup] = useState(null)
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -214,9 +168,9 @@ export default function News() {
   }, [])
 
   useEffect(() => {
-    document.body.style.overflow = selectedArticle || commentPopup ? "hidden" : ""
+    document.body.style.overflow = selectedArticle || commentPopup || likersPopup ? "hidden" : ""
     return () => { document.body.style.overflow = "" }
-  }, [selectedArticle, commentPopup])
+  }, [selectedArticle, commentPopup, likersPopup])
 
   function updateStats(id, updater) {
     setStatsMap(prev => ({ ...prev, [id]: updater(prev[id] || {}) }))
@@ -263,19 +217,15 @@ export default function News() {
     <div className="page">
       <h2 className="headline">News</h2>
 
-      {/* Category pills */}
-      <div className="news-cat-toolbar" role="tablist">
-        {CATEGORIES.map(cat => (
-          <button key={cat} type="button" role="tab" aria-selected={filter === cat} onClick={() => setFilter(cat)}
-            className={`news-cat-pill news-cat-pill--${categorySlug(cat)} ${filter === cat ? "is-active" : ""}`}>{cat}</button>
-        ))}
-      </div>
-
-      {/* Sort bar */}
-      <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: "1.5rem" }}>
-        {SORTS.map(s => (
-          <button key={s.key} type="button" onClick={() => setSort(s.key)} style={{ padding: "6px 16px", borderRadius: 999, border: "1.5px solid", borderColor: sort === s.key ? "var(--oxide-red, #c46a4a)" : "rgba(255,255,255,0.12)", background: sort === s.key ? "rgba(196,106,74,0.15)" : "rgba(255,255,255,0.04)", color: sort === s.key ? "var(--oxide-red, #c46a4a)" : "var(--text)", fontSize: "0.82rem", fontWeight: sort === s.key ? 700 : 500, cursor: "pointer", transition: "all 0.15s" }}>{s.label}</button>
-        ))}
+      {/* toolbar */}
+      <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: "1.5rem" }}>
+        <div className="news-cat-toolbar" role="tablist" style={{ flex: 1, margin: 0 }}>
+          {CATEGORIES.map(cat => (
+            <button key={cat} type="button" role="tab" aria-selected={filter === cat} onClick={() => setFilter(cat)}
+              className={`news-cat-pill news-cat-pill--${categorySlug(cat)} ${filter === cat ? "is-active" : ""}`}>{cat}</button>
+          ))}
+        </div>
+        <SortDropdown sort={sort} setSort={setSort} />
       </div>
 
       {/* Cards */}
@@ -293,11 +243,10 @@ export default function News() {
               onClick={() => !isLocked && setSelectedArticle(article)}
             >
               {article.isPremium && (
-                <div style={{ position: "absolute", top: 10, right: 10, background: "var(--oxide-red)", color: "#fff", padding: "2px 8px", borderRadius: 4, fontWeight: 700, zIndex: 4, fontSize: "0.78rem" }}>🔒 Premium</div>
+                <div style={{ position: "absolute", top: 10, right: 10, background: "var(--oxide-red)", color: "#fff", padding: "2px 8px", borderRadius: 4, fontWeight: 700, zIndex: 4, fontSize: "0.78rem" }}>Premium</div>
               )}
               {isLocked && (
                 <div style={{ position: "absolute", inset: 0, background: "color-mix(in srgb, var(--bg) 72%, transparent)", backdropFilter: "blur(5px)", zIndex: 3, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", borderRadius: 8 }}>
-                  <span style={{ fontSize: "3rem" }}>🔒</span>
                   <h3>Premium Content</h3>
                   <button className="btn primary" style={{ marginTop: 10 }} onClick={() => navigate("/subscriptions")} type="button">Subscribe</button>
                 </div>
@@ -316,40 +265,13 @@ export default function News() {
               </div>
               <p style={{ flex: 1, fontSize: "0.9rem", margin: "0 0 14px", opacity: 0.8, lineHeight: 1.55 }}>{article.excerpt}</p>
 
-              {/* bottom action bar — only here, no duplicate above */}
-              <div style={{ display: "flex", gap: 6, alignItems: "center", borderTop: "1px solid rgba(255,255,255,0.07)", paddingTop: 10, marginTop: "auto" }} onClick={e => e.stopPropagation()}>
-                <button
-                  type="button"
-                  onClick={e => toggleLike(e, article)}
-                  style={{ display: "flex", alignItems: "center", gap: 5, padding: "7px 14px", borderRadius: 999, border: "none", background: st.user_liked ? "rgba(239,68,68,0.18)" : "rgba(255,255,255,0.06)", color: st.user_liked ? "#ef4444" : "var(--text)", cursor: "pointer", fontSize: "0.85rem", fontWeight: 600, transition: "all 0.15s" }}
-                >
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill={st.user_liked ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
-                  {st.likes || 0}
-                </button>
-                <button
-                  type="button"
-                  onClick={e => toggleSave(e, article)}
-                  style={{ display: "flex", alignItems: "center", gap: 5, padding: "7px 14px", borderRadius: 999, border: "none", background: st.user_saved ? "rgba(99,102,241,0.18)" : "rgba(255,255,255,0.06)", color: st.user_saved ? "#818cf8" : "var(--text)", cursor: "pointer", fontSize: "0.85rem", fontWeight: 600, transition: "all 0.15s" }}
-                >
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill={st.user_saved ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
-                  {st.saves || 0}
-                </button>
-                <button
-                  type="button"
-                  onClick={e => { e.stopPropagation(); setCommentPopup(article) }}
-                  style={{ display: "flex", alignItems: "center", gap: 5, padding: "7px 14px", borderRadius: 999, border: "none", background: "rgba(255,255,255,0.06)", color: "var(--text)", cursor: "pointer", fontSize: "0.85rem", fontWeight: 600, transition: "all 0.15s" }}
-                >
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-                  {st.comments_count || 0}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setSelectedArticle(article)}
-                  style={{ marginLeft: "auto", padding: "7px 16px", borderRadius: 999, border: "1.5px solid rgba(255,255,255,0.12)", background: "transparent", color: "var(--text)", cursor: "pointer", fontSize: "0.82rem", fontWeight: 600, transition: "all 0.15s" }}
-                >
-                  Прочети →
-                </button>
-              </div>
+              <ArticleActionBar
+                article={article} st={st} user={user} navigate={navigate}
+                onToggleLike={toggleLike} onToggleSave={toggleSave}
+                onComment={a => setCommentPopup(a)}
+                onRead={a => setSelectedArticle(a)}
+                onLikersOpen={id => setLikersPopup(id)}
+              />
             </div>
           )
         })}
@@ -361,14 +283,13 @@ export default function News() {
 
       {commentPopup && (
         <CommentConversation
-          article={commentPopup}
-          user={user}
-          navigate={navigate}
-          onClose={() => setCommentPopup(null)}
-          statsMap={statsMap}
+          article={commentPopup} user={user} navigate={navigate}
+          onClose={() => setCommentPopup(null)} isAdmin={isAdmin}
           onCommentAdded={id => updateStats(id, s => ({ ...s, comments_count: (s.comments_count || 0) + 1 }))}
         />
       )}
+
+      {likersPopup !== null && <LikersPopup articleId={likersPopup} onClose={() => setLikersPopup(null)} />}
     </div>
   )
 }

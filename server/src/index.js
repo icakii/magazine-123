@@ -950,6 +950,9 @@ app.get("/api/fix-db", async (req, res) => {
     await db.query(
       `ALTER TABLE articles ADD COLUMN IF NOT EXISTS reminder_enabled BOOLEAN DEFAULT FALSE;`
     )
+    await db.query(
+      `ALTER TABLE articles ADD COLUMN IF NOT EXISTS home_featured BOOLEAN DEFAULT FALSE;`
+    )
 
     await db.query(`
       CREATE TABLE IF NOT EXISTS magazine_issues (
@@ -1326,6 +1329,22 @@ app.put("/api/admin/users/:email/ban", adminMiddleware, async (req, res) => {
     const { banned } = req.body
     await db.query(`UPDATE users SET is_banned=$1 WHERE lower(email)=lower($2)`, [!!banned, req.params.email])
     res.json({ ok: true })
+  } catch (e) { res.status(500).json({ error: e.message }) }
+})
+
+// Who liked an article
+app.get("/api/articles/:id/likers", async (req, res) => {
+  try {
+    const { rows } = await db.query(
+      `SELECT u.display_name, u.pfp_url,
+              (SELECT plan FROM subscriptions WHERE email=u.email ORDER BY id DESC LIMIT 1) as plan
+       FROM article_likes l
+       JOIN users u ON lower(u.email) = lower(l.user_email)
+       WHERE l.article_id=$1
+       ORDER BY l.created_at DESC`,
+      [Number(req.params.id)]
+    )
+    res.json(rows)
   } catch (e) { res.status(500).json({ error: e.message }) }
 })
 
@@ -1765,7 +1784,7 @@ app.delete("/api/magazines/:id", adminMiddleware, async (req, res) => {
 // ---------------------------------------------------------------
 app.get("/api/articles", async (req, res) => {
   try {
-    const { category } = req.query
+    const { category, featured } = req.query
     let query = `
       SELECT a.*,
         COALESCE(r.reminder_count, 0)::int AS reminder_count
@@ -1778,7 +1797,9 @@ app.get("/api/articles", async (req, res) => {
     `
     const params = []
 
-    if (category) {
+    if (featured === "home") {
+      query += " WHERE (a.home_featured = true OR a.category = 'home')"
+    } else if (category) {
       query += " WHERE a.category = $1"
       params.push(category)
     }
@@ -1802,6 +1823,7 @@ app.get("/api/articles", async (req, res) => {
       price: row.price || null,
       link: row.link || null,
       reminderCount: row.reminder_count || 0,
+      homeFeatured: row.home_featured || false,
     }))
 
     res.json(mappedRows)
@@ -1886,6 +1908,26 @@ app.delete("/api/articles/:id", adminMiddleware, async (req, res) => {
     console.error("DELETE /api/articles/:id error:", err)
     res.status(500).json({ error: err.message })
   }
+})
+
+// Toggle home_featured for an article
+app.patch("/api/admin/articles/:id/home-featured", adminMiddleware, async (req, res) => {
+  try {
+    const { rows } = await db.query(
+      `UPDATE articles SET home_featured = NOT COALESCE(home_featured, false) WHERE id = $1 RETURNING id, home_featured`,
+      [Number(req.params.id)]
+    )
+    if (!rows[0]) return res.status(404).json({ error: "Not found" })
+    res.json({ ok: true, homeFeatured: rows[0].home_featured })
+  } catch (e) { res.status(500).json({ error: e.message }) }
+})
+
+// Admin delete a comment
+app.delete("/api/admin/comments/:id", adminMiddleware, async (req, res) => {
+  try {
+    await db.query("DELETE FROM article_comments WHERE id = $1", [Number(req.params.id)])
+    res.json({ ok: true })
+  } catch (e) { res.status(500).json({ error: e.message }) }
 })
 
 
@@ -2966,6 +3008,7 @@ async function initDB() {
     await db.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS pfp_url TEXT`)
     await db.query(`ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS started_at TIMESTAMPTZ`)
     await db.query(`ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS ended_at TIMESTAMPTZ`)
+    await db.query(`ALTER TABLE articles ADD COLUMN IF NOT EXISTS home_featured BOOLEAN DEFAULT FALSE`)
     console.log("✅ social + writer tables ready")
   } catch (e) {
     console.error("initDB error:", e.message)

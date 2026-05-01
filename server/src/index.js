@@ -1173,6 +1173,40 @@ app.get("/api/user/saved", authMiddleware, async (req, res) => {
     res.json(rows.map(r => r.article_id))
   } catch (e) { res.status(500).json({ error: e.message }) }
 })
+app.get("/api/user/liked-articles", authMiddleware, async (req, res) => {
+  try {
+    const { rows } = await db.query(
+      `SELECT a.* FROM articles a
+       INNER JOIN article_likes l ON l.article_id = a.id
+       WHERE lower(l.user_email) = lower($1)
+       ORDER BY l.created_at DESC`,
+      [req.user.email]
+    )
+    res.json(rows)
+  } catch (e) { res.status(500).json({ error: e.message }) }
+})
+app.get("/api/user/saved-articles", authMiddleware, async (req, res) => {
+  try {
+    const { rows } = await db.query(
+      `SELECT a.* FROM articles a
+       INNER JOIN article_saves s ON s.article_id = a.id
+       WHERE lower(s.user_email) = lower($1)
+       ORDER BY s.created_at DESC`,
+      [req.user.email]
+    )
+    res.json(rows)
+  } catch (e) { res.status(500).json({ error: e.message }) }
+})
+app.get("/api/user/orders", authMiddleware, async (req, res) => {
+  try {
+    const { rows } = await db.query(
+      `SELECT id, full_name, shipping_address, quantity, amount_total, currency, status, created_at, courier, shipping_type, tracking_number
+       FROM magazine_orders WHERE lower(customer_email)=lower($1) ORDER BY created_at DESC`,
+      [req.user.email]
+    )
+    res.json(rows)
+  } catch (e) { res.status(500).json({ error: e.message }) }
+})
 
 // Comments
 app.get("/api/articles/:id/comments", async (req, res) => {

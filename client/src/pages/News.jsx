@@ -88,7 +88,7 @@ function ArticleModal({ article, onClose, user, navigate }) {
     setPosting(true)
     setCommentErr("")
     try {
-      const res = await api.post(`/articles/${article.id}/comments`, { text: commentText.trim() })
+      const res = await api.post(`/articles/${article.id}/comments`, { content: commentText.trim() })
       setComments((prev) => [res.data, ...prev])
       setStats((s) => ({ ...s, comments_count: s.comments_count + 1 }))
       setCommentText("")
@@ -182,7 +182,7 @@ function ArticleModal({ article, onClose, user, navigate }) {
                     <span className="comment-name">{c.display_name || c.username || "Потребител"}</span>
                     <span className="comment-time text-muted">{new Date(c.created_at).toLocaleDateString("bg-BG")}</span>
                   </div>
-                  <p className="comment-text">{c.text}</p>
+                  <p className="comment-text">{c.content}</p>
                 </div>
               </div>
             ))}

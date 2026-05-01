@@ -208,6 +208,14 @@ export default function NavBar() {
             {t("home")}
           </Link>
 
+          <Link className="drawer-item drawer-item--store" to="/store" onClick={closeDrawer}>
+            🛒 {t("store")}
+          </Link>
+
+          <Link className="drawer-item drawer-item--write" to="/write" onClick={closeDrawer}>
+            ✍️ {t("write")}
+          </Link>
+
           <Link className="drawer-item" to="/e-magazine" onClick={closeDrawer}>
             {t("emag")}
           </Link>
@@ -220,10 +228,6 @@ export default function NavBar() {
 
           <Link className="drawer-item" to="/gallery" onClick={closeDrawer}>
             {t("gallery")}
-          </Link>
-
-          <Link className="drawer-item" to="/store" onClick={closeDrawer}>
-            {t("store")}
           </Link>
 
           <Link className="drawer-item" to="/subscriptions" onClick={closeDrawer}>

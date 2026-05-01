@@ -1118,6 +1118,194 @@ app.get("/api/newsletter/subscribers", adminMiddleware, async (req, res) => {
   }
 })
 
+// ---------------------------------------------------------------
+// ❤️ LIKES / SAVES / COMMENTS / WRITE
+// ---------------------------------------------------------------
+
+// Likes
+app.post("/api/articles/:id/like", authMiddleware, async (req, res) => {
+  try {
+    const email = req.user.email
+    const id = Number(req.params.id)
+    await db.query(`INSERT INTO article_likes (user_email, article_id) VALUES ($1,$2) ON CONFLICT DO NOTHING`, [email, id])
+    const { rows } = await db.query(`SELECT COUNT(*) FROM article_likes WHERE article_id=$1`, [id])
+    res.json({ ok: true, count: Number(rows[0].count) })
+  } catch (e) { res.status(500).json({ error: e.message }) }
+})
+app.delete("/api/articles/:id/like", authMiddleware, async (req, res) => {
+  try {
+    const email = req.user.email
+    const id = Number(req.params.id)
+    await db.query(`DELETE FROM article_likes WHERE user_email=$1 AND article_id=$2`, [email, id])
+    const { rows } = await db.query(`SELECT COUNT(*) FROM article_likes WHERE article_id=$1`, [id])
+    res.json({ ok: true, count: Number(rows[0].count) })
+  } catch (e) { res.status(500).json({ error: e.message }) }
+})
+
+// Saves
+app.post("/api/articles/:id/save", authMiddleware, async (req, res) => {
+  try {
+    const email = req.user.email
+    const id = Number(req.params.id)
+    await db.query(`INSERT INTO article_saves (user_email, article_id) VALUES ($1,$2) ON CONFLICT DO NOTHING`, [email, id])
+    res.json({ ok: true })
+  } catch (e) { res.status(500).json({ error: e.message }) }
+})
+app.delete("/api/articles/:id/save", authMiddleware, async (req, res) => {
+  try {
+    const email = req.user.email
+    const id = Number(req.params.id)
+    await db.query(`DELETE FROM article_saves WHERE user_email=$1 AND article_id=$2`, [email, id])
+    res.json({ ok: true })
+  } catch (e) { res.status(500).json({ error: e.message }) }
+})
+
+// User's liked + saved articles
+app.get("/api/user/liked", authMiddleware, async (req, res) => {
+  try {
+    const { rows } = await db.query(`SELECT article_id FROM article_likes WHERE user_email=$1`, [req.user.email])
+    res.json(rows.map(r => r.article_id))
+  } catch (e) { res.status(500).json({ error: e.message }) }
+})
+app.get("/api/user/saved", authMiddleware, async (req, res) => {
+  try {
+    const { rows } = await db.query(`SELECT article_id FROM article_saves WHERE user_email=$1`, [req.user.email])
+    res.json(rows.map(r => r.article_id))
+  } catch (e) { res.status(500).json({ error: e.message }) }
+})
+
+// Comments
+app.get("/api/articles/:id/comments", async (req, res) => {
+  try {
+    const id = Number(req.params.id)
+    const { rows } = await db.query(
+      `SELECT c.id, c.article_id, c.user_email, c.parent_id, c.content, c.created_at,
+              u.display_name, u.pfp_url
+       FROM article_comments c
+       LEFT JOIN users u ON lower(u.email) = lower(c.user_email)
+       WHERE c.article_id = $1
+       ORDER BY c.created_at ASC`,
+      [id]
+    )
+    res.json(rows)
+  } catch (e) { res.status(500).json({ error: e.message }) }
+})
+app.post("/api/articles/:id/comments", authMiddleware, async (req, res) => {
+  try {
+    const email = req.user.email
+    const id = Number(req.params.id)
+    const { content, parent_id } = req.body || {}
+    if (!content?.trim()) return res.status(400).json({ error: "Content required" })
+    const userRow = await db.query(`SELECT is_banned FROM users WHERE lower(email)=lower($1)`, [email])
+    if (userRow.rows[0]?.is_banned) return res.status(403).json({ error: "You are banned from commenting." })
+    const recent = await db.query(
+      `SELECT COUNT(*) FROM article_comments WHERE user_email=$1 AND created_at > NOW() - INTERVAL '60 seconds'`,
+      [email]
+    )
+    if (Number(recent.rows[0].count) >= 3) return res.status(429).json({ error: "Не може да изпращаш толкова много коментари." })
+    const { rows } = await db.query(
+      `INSERT INTO article_comments (article_id, user_email, parent_id, content) VALUES ($1,$2,$3,$4) RETURNING *`,
+      [id, email, parent_id || null, content.trim()]
+    )
+    const userInfo = await db.query(`SELECT display_name, pfp_url FROM users WHERE lower(email)=lower($1)`, [email])
+    res.json({ ...rows[0], display_name: userInfo.rows[0]?.display_name, pfp_url: userInfo.rows[0]?.pfp_url })
+  } catch (e) { res.status(500).json({ error: e.message }) }
+})
+
+// Article stats (likes + comments count)
+app.get("/api/articles/:id/stats", async (req, res) => {
+  try {
+    const id = Number(req.params.id)
+    const [likes, comments] = await Promise.all([
+      db.query(`SELECT COUNT(*) FROM article_likes WHERE article_id=$1`, [id]),
+      db.query(`SELECT COUNT(*) FROM article_comments WHERE article_id=$1`, [id]),
+    ])
+    res.json({ likes: Number(likes.rows[0].count), comments: Number(comments.rows[0].count) })
+  } catch (e) { res.status(500).json({ error: e.message }) }
+})
+
+// Writer submission
+app.post("/api/write/submit", authMiddleware, async (req, res) => {
+  try {
+    const email = req.user.email
+    const banned = await db.query(`SELECT is_banned FROM users WHERE lower(email)=lower($1)`, [email])
+    if (banned.rows[0]?.is_banned) return res.status(403).json({ error: "You are banned." })
+    const { title, body, author_name, cover_url, end_url } = req.body || {}
+    if (!title?.trim() || !body?.trim() || !author_name?.trim()) return res.status(400).json({ error: "Title, body and author name required." })
+    const { rows } = await db.query(
+      `INSERT INTO writer_submissions (title, body, author_email, author_name, cover_url, end_url)
+       VALUES ($1,$2,$3,$4,$5,$6) RETURNING id`,
+      [title.trim(), body.trim(), email, author_name.trim(), cover_url || null, end_url || null]
+    )
+    res.json({ ok: true, id: rows[0].id })
+  } catch (e) { res.status(500).json({ error: e.message }) }
+})
+
+// Admin — list writer submissions
+app.get("/api/admin/writers", adminMiddleware, async (req, res) => {
+  try {
+    const { rows } = await db.query(`SELECT * FROM writer_submissions ORDER BY created_at DESC`)
+    res.json(rows)
+  } catch (e) { res.status(500).json({ error: e.message }) }
+})
+// Admin — update submission status
+app.put("/api/admin/writers/:id", adminMiddleware, async (req, res) => {
+  try {
+    const { status, admin_note, title, body, author_name } = req.body || {}
+    await db.query(
+      `UPDATE writer_submissions SET status=$1, admin_note=$2, title=COALESCE($3,title), body=COALESCE($4,body), author_name=COALESCE($5,author_name) WHERE id=$6`,
+      [status, admin_note || null, title || null, body || null, author_name || null, Number(req.params.id)]
+    )
+    // If approved → publish as article
+    if (status === "approved") {
+      const { rows } = await db.query(`SELECT * FROM writer_submissions WHERE id=$1`, [Number(req.params.id)])
+      const s = rows[0]
+      if (s) {
+        await db.query(
+          `INSERT INTO articles (title, content, image_url, author, category, is_premium, time)
+           VALUES ($1,$2,$3,$4,'community',false,NOW()::text) ON CONFLICT DO NOTHING`,
+          [s.title, s.body, s.cover_url || "", s.author_name]
+        ).catch(() => {})
+      }
+    }
+    res.json({ ok: true })
+  } catch (e) { res.status(500).json({ error: e.message }) }
+})
+
+// Admin — ban/unban user
+app.put("/api/admin/users/:email/ban", adminMiddleware, async (req, res) => {
+  try {
+    const { banned } = req.body
+    await db.query(`UPDATE users SET is_banned=$1 WHERE lower(email)=lower($2)`, [!!banned, req.params.email])
+    res.json({ ok: true })
+  } catch (e) { res.status(500).json({ error: e.message }) }
+})
+
+// Profile mini-info (for comment popups)
+app.get("/api/user/profile/:displayName", async (req, res) => {
+  try {
+    const { rows } = await db.query(
+      `SELECT display_name, pfp_url, instagram_handle, is_banned,
+              (SELECT plan FROM subscriptions WHERE email=u.email ORDER BY id DESC LIMIT 1) as plan
+       FROM users u WHERE lower(display_name)=lower($1)`,
+      [req.params.displayName]
+    )
+    if (!rows[0]) return res.status(404).json({ error: "Not found" })
+    res.json(rows[0])
+  } catch (e) { res.status(500).json({ error: e.message }) }
+})
+
+// Upload PFP
+app.post("/api/user/pfp", authMiddleware, async (req, res) => {
+  try {
+    const { pfp_url } = req.body || {}
+    if (!pfp_url) return res.status(400).json({ error: "pfp_url required" })
+    await db.query(`UPDATE users SET pfp_url=$1 WHERE lower(email)=lower($2)`, [pfp_url, req.user.email])
+    res.json({ ok: true })
+  } catch (e) { res.status(500).json({ error: e.message }) }
+})
+
+// ---------------------------------------------------------------
 app.post("/api/newsletter/send-test", adminMiddleware, async (req, res) => {
   const { subject, body } = req.body
   if (!String(subject || "").trim() || !String(body || "").trim()) {
@@ -2685,6 +2873,52 @@ async function initDB() {
     await db.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS reset_password_token TEXT`)
     await db.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS reset_password_expires TIMESTAMPTZ`)
     console.log("✅ users reset_password columns ready")
+
+    await db.query(`
+      CREATE TABLE IF NOT EXISTS article_likes (
+        user_email TEXT NOT NULL,
+        article_id INTEGER NOT NULL,
+        created_at TIMESTAMPTZ DEFAULT NOW(),
+        PRIMARY KEY (user_email, article_id)
+      )
+    `)
+    await db.query(`
+      CREATE TABLE IF NOT EXISTS article_saves (
+        user_email TEXT NOT NULL,
+        article_id INTEGER NOT NULL,
+        created_at TIMESTAMPTZ DEFAULT NOW(),
+        PRIMARY KEY (user_email, article_id)
+      )
+    `)
+    await db.query(`
+      CREATE TABLE IF NOT EXISTS article_comments (
+        id SERIAL PRIMARY KEY,
+        article_id INTEGER NOT NULL,
+        user_email TEXT NOT NULL,
+        parent_id INTEGER REFERENCES article_comments(id) ON DELETE CASCADE,
+        content TEXT NOT NULL,
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      )
+    `)
+    await db.query(`
+      CREATE TABLE IF NOT EXISTS writer_submissions (
+        id SERIAL PRIMARY KEY,
+        title TEXT NOT NULL,
+        body TEXT NOT NULL,
+        author_email TEXT NOT NULL,
+        author_name TEXT NOT NULL,
+        cover_url TEXT,
+        end_url TEXT,
+        status TEXT DEFAULT 'pending',
+        admin_note TEXT,
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      )
+    `)
+    await db.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS is_banned BOOLEAN DEFAULT FALSE`)
+    await db.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS pfp_url TEXT`)
+    await db.query(`ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS started_at TIMESTAMPTZ`)
+    await db.query(`ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS ended_at TIMESTAMPTZ`)
+    console.log("✅ social + writer tables ready")
   } catch (e) {
     console.error("initDB error:", e.message)
   }

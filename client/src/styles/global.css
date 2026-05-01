@@ -6417,6 +6417,100 @@ html[data-theme="dark"] .maintenance-loading {
   [class*="orb"] {
     animation: none !important;
   }
+/* ===== WRITE PAGE ===== */
+.write-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.4rem;
+}
+.write-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+.write-label {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--text);
+  opacity: 0.85;
+  letter-spacing: 0.02em;
+}
+.write-input {
+  background: var(--card-bg, rgba(255,255,255,0.08));
+  border: 1.5px solid var(--border, rgba(0,0,0,0.12));
+  border-radius: 12px;
+  padding: 0.75rem 1rem;
+  color: var(--text);
+  font-size: 1rem;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.18s;
+  width: 100%;
+  box-sizing: border-box;
+}
+.write-input:focus {
+  border-color: var(--accent, #a78bfa);
+}
+.write-textarea {
+  resize: vertical;
+  min-height: 260px;
+  line-height: 1.7;
+}
+.write-char-count {
+  align-self: flex-end;
+}
+.write-images-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.2rem;
+}
+@media (max-width: 540px) {
+  .write-images-row {
+    grid-template-columns: 1fr;
+  }
+}
+.write-img-field {
+  gap: 0.5rem;
+}
+.write-img-drop {
+  width: 100%;
+  aspect-ratio: 4/3;
+  border-radius: 14px;
+  border: 2px dashed var(--border, rgba(0,0,0,0.18));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 0.9rem;
+  color: var(--text);
+  opacity: 0.6;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  transition: opacity 0.2s, border-color 0.2s;
+  overflow: hidden;
+}
+.write-img-drop:hover {
+  opacity: 0.85;
+  border-color: var(--accent, #a78bfa);
+}
+.write-footer {
+  display: flex;
+  align-items: center;
+  gap: 1.2rem;
+  flex-wrap: wrap;
+  margin-top: 0.5rem;
+}
+.write-premium-note {
+  flex: 1;
+  font-size: 0.82rem;
+  color: var(--text);
+  opacity: 0.6;
+  font-style: italic;
+  min-width: 200px;
+}
+/* ===== END WRITE PAGE ===== */
+
   * {
     transition-duration: 0.01ms !important;
     animation-duration: 0.01ms !important;

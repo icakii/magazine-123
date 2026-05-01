@@ -26,6 +26,7 @@ import Events from "./pages/Events"
 import WordGameArchive from "./pages/WGArchive"
 import ResetPassword from "./pages/ResetPassword"
 import Store from "./pages/Store"
+import Write from "./pages/Write"
 import Opportunities from "./pages/Opportunities"
 import MirenArt from "./pages/MirenArt"
 // Компоненти
@@ -139,6 +140,7 @@ ReactDOM.createRoot(document.getElementById("root")).render(
             <Route path="/contact" element={<Contact />} />
             <Route path="/help" element={<Help />} />
             <Route path="/store" element={<AuthGuard><Store /></AuthGuard>} />
+            <Route path="/write" element={<AuthGuard><Write /></AuthGuard>} />
             <Route path="/opportunities" element={<Opportunities />} />
                         <Route path="/miren-art" element={<MirenArt />} />
             <Route path="/partnership" element={<Navigate to="/opportunities" replace />} />

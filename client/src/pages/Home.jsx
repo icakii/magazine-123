@@ -253,6 +253,59 @@ export default function Home() {
           ) : null}
         </section>
 
+        {/* ── Write Your Own Article ── */}
+        <section className="home-section">
+          <div style={{
+            borderRadius: 20,
+            padding: "36px 32px",
+            background: "linear-gradient(135deg, rgba(196,106,74,0.12) 0%, rgba(160,82,45,0.08) 100%)",
+            border: "1.5px solid rgba(196,106,74,0.25)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 24,
+            flexWrap: "wrap",
+          }}>
+            <div style={{ flex: 1, minWidth: 220 }}>
+              <div style={{ fontSize: "2rem", marginBottom: 8 }}>✍️</div>
+              <h3 style={{ fontWeight: 900, fontSize: "1.5rem", color: "var(--text)", marginBottom: 8, lineHeight: 1.2 }}>
+                {artLang === "bg" ? "Публикувай твоята статия" : "Publish Your Article"}
+              </h3>
+              <p style={{ color: "var(--text)", opacity: 0.6, fontSize: "0.95rem", lineHeight: 1.6, margin: 0 }}>
+                {artLang === "bg"
+                  ? "Сподели историята си с общността на MIREN. Одобрените статии се публикуват в News."
+                  : "Share your story with the MIREN community. Approved articles get published in News."}
+              </p>
+              <div style={{ display: "flex", gap: 8, marginTop: 14, flexWrap: "wrap", fontSize: "0.82rem", color: "var(--text)", opacity: 0.45 }}>
+                <span>🌸 Безплатно за всички</span>
+                <span>·</span>
+                <span>⭐ Premium → в хартиеното списание</span>
+              </div>
+            </div>
+            <a
+              href="/write"
+              style={{
+                display: "inline-block",
+                padding: "14px 32px",
+                borderRadius: 999,
+                background: "linear-gradient(135deg, var(--oxide-red, #c46a4a), #a0522d)",
+                color: "#fff",
+                fontWeight: 800,
+                fontSize: "1rem",
+                textDecoration: "none",
+                boxShadow: "0 4px 20px rgba(196,106,74,0.35)",
+                whiteSpace: "nowrap",
+                flexShrink: 0,
+                transition: "transform 0.15s, box-shadow 0.15s",
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = "0 8px 28px rgba(196,106,74,0.5)" }}
+              onMouseLeave={(e) => { e.currentTarget.style.transform = ""; e.currentTarget.style.boxShadow = "0 4px 20px rgba(196,106,74,0.35)" }}
+            >
+              {artLang === "bg" ? "Напиши статия" : "Write an Article"}
+            </a>
+          </div>
+        </section>
+
         {/* ── Welcome card (flip) ── */}
         <section className="home-section">
           <div

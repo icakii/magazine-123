@@ -38,7 +38,7 @@ function daysBetween(a, b) {
 router.get("/user/me", authMiddleware, async (req, res) => {
   try {
     const { rows } = await db.query(
-      "SELECT email, display_name, last_username_change, two_fa_enabled FROM users WHERE email = $1",
+      "SELECT email, display_name, last_username_change, two_fa_enabled, pfp_url FROM users WHERE email = $1",
       [req.user.email]
     )
     if (!rows[0]) return res.status(404).json({ error: "User not found" })
@@ -61,6 +61,7 @@ router.get("/user/me", authMiddleware, async (req, res) => {
       displayName: rows[0].display_name,
       lastUsernameChange: rows[0].last_username_change,
       twoFaEnabled: rows[0].two_fa_enabled,
+      pfp_url: rows[0].pfp_url || null,
       instagramHandle,
       instagramUpdatedAt,
       isAdmin: adminFlag,

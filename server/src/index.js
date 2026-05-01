@@ -1306,6 +1306,20 @@ app.put("/api/admin/writers/:id", adminMiddleware, async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }) }
 })
 
+// Public — latest approved community articles (for home page block)
+app.get("/api/community/articles", async (req, res) => {
+  try {
+    const limit = Math.min(Number(req.query.limit) || 2, 10)
+    const { rows } = await db.query(
+      `SELECT id, title, author_name, cover_url, created_at
+       FROM writer_submissions WHERE status='approved'
+       ORDER BY created_at DESC LIMIT $1`,
+      [limit]
+    )
+    res.json(rows)
+  } catch (e) { res.status(500).json({ error: e.message }) }
+})
+
 // Admin — ban/unban user
 app.put("/api/admin/users/:email/ban", adminMiddleware, async (req, res) => {
   try {

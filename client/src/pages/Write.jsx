@@ -15,7 +15,6 @@ const RULES_BG = [
   "Топ писателите получават специални награди между релийзовете.",
   "С изпращането на статията се съгласяваш с правилата и условията на MIREN.",
 ]
-
 const RULES_EN = [
   "Content must be original and written by you.",
   "Publishing offensive, discriminatory, or explicit content is prohibited.",
@@ -29,30 +28,126 @@ const RULES_EN = [
   "By submitting, you agree to MIREN's rules and terms.",
 ]
 
+const S = {
+  page: { maxWidth: 720, margin: "0 auto", padding: "0 0 4rem" },
+  header: { marginBottom: "2.5rem" },
+  title: { fontSize: "2.4rem", fontWeight: 900, color: "var(--text)", marginBottom: "0.5rem", lineHeight: 1.15 },
+  subtitle: { fontSize: "1rem", color: "var(--text)", opacity: 0.6, marginBottom: "1.25rem" },
+  rulesRow: { display: "flex", alignItems: "center", gap: "1rem", flexWrap: "wrap" },
+  rulesBtn: {
+    display: "inline-flex", alignItems: "center", gap: 6,
+    padding: "8px 18px", borderRadius: 999, border: "1.5px solid var(--border, rgba(0,0,0,0.15))",
+    background: "transparent", color: "var(--text)", cursor: "pointer", fontSize: "0.85rem", fontWeight: 600,
+    transition: "border-color 0.15s",
+  },
+  note: { fontSize: "0.8rem", color: "var(--text)", opacity: 0.5, fontStyle: "italic" },
+  form: { display: "flex", flexDirection: "column", gap: "1.6rem" },
+  field: { display: "flex", flexDirection: "column", gap: "0.5rem" },
+  label: { fontSize: "0.82rem", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--text)", opacity: 0.5 },
+  input: {
+    background: "transparent",
+    border: "none",
+    borderBottom: "2px solid var(--border, rgba(255,255,255,0.15))",
+    borderRadius: 0,
+    padding: "10px 0",
+    color: "var(--text)",
+    fontSize: "1rem",
+    fontFamily: "inherit",
+    outline: "none",
+    width: "100%",
+    transition: "border-color 0.2s",
+  },
+  textarea: {
+    background: "rgba(255,255,255,0.04)",
+    border: "1.5px solid var(--border, rgba(255,255,255,0.1))",
+    borderRadius: 14,
+    padding: "1rem 1.1rem",
+    color: "var(--text)",
+    fontSize: "0.98rem",
+    fontFamily: "inherit",
+    lineHeight: 1.75,
+    outline: "none",
+    resize: "vertical",
+    minHeight: 260,
+    width: "100%",
+    boxSizing: "border-box",
+    transition: "border-color 0.2s",
+  },
+  charCount: { fontSize: "0.75rem", color: "var(--text)", opacity: 0.35, textAlign: "right" },
+  imgRow: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1.2rem" },
+  imgBox: (hasImg) => ({
+    aspectRatio: "4/3",
+    borderRadius: 16,
+    border: hasImg ? "none" : "2px dashed var(--border, rgba(255,255,255,0.15))",
+    background: hasImg ? "transparent" : "rgba(255,255,255,0.03)",
+    display: "flex", alignItems: "center", justifyContent: "center",
+    cursor: "pointer", overflow: "hidden", position: "relative",
+    transition: "border-color 0.2s, background 0.2s",
+  }),
+  imgPreview: { width: "100%", height: "100%", objectFit: "cover", display: "block" },
+  imgPlaceholder: { display: "flex", flexDirection: "column", alignItems: "center", gap: 8, color: "var(--text)", opacity: 0.35 },
+  removeBtn: {
+    marginTop: 8, background: "transparent", border: "none",
+    color: "var(--text)", opacity: 0.4, cursor: "pointer", fontSize: "0.78rem", textAlign: "center",
+    transition: "opacity 0.15s",
+  },
+  divider: { height: 1, background: "var(--border, rgba(255,255,255,0.08))", margin: "0.4rem 0" },
+  footer: { display: "flex", alignItems: "center", gap: "1.5rem", flexWrap: "wrap", paddingTop: "0.5rem" },
+  premNote: { flex: 1, fontSize: "0.8rem", color: "var(--text)", opacity: 0.45, fontStyle: "italic", minWidth: 180 },
+  submitBtn: {
+    padding: "14px 40px", borderRadius: 999, border: "none",
+    background: "linear-gradient(135deg, var(--oxide-red, #c46a4a), #a0522d)",
+    color: "#fff", fontWeight: 800, fontSize: "1rem", cursor: "pointer",
+    boxShadow: "0 4px 20px rgba(196,106,74,0.35)",
+    transition: "transform 0.15s, box-shadow 0.15s",
+    letterSpacing: "0.02em",
+  },
+}
+
 function RulesModal({ onClose }) {
   const lang = document.documentElement.lang || "bg"
   const rules = lang === "en" ? RULES_EN : RULES_BG
-
   return (
-    <div className="modal-backdrop" onClick={onClose}>
+    <div
+      style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)", zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center", padding: "1rem" }}
+      onClick={onClose}
+    >
       <div
-        className="modal-content"
+        style={{ background: "var(--bg, #111)", borderRadius: 20, padding: "2rem", maxWidth: 500, width: "100%", maxHeight: "78vh", display: "flex", flexDirection: "column", position: "relative" }}
         onClick={(e) => e.stopPropagation()}
-        style={{ maxWidth: 520, maxHeight: "75vh", display: "flex", flexDirection: "column" }}
       >
-        <button className="modal-close" onClick={onClose} type="button">×</button>
-        <h2 className="headline" style={{ fontSize: "1.5rem", marginBottom: "1rem" }}>
-          {t("write_rules_title")}
-        </h2>
-        <ol style={{ overflowY: "auto", paddingLeft: "1.25rem", flex: 1, lineHeight: 1.7, color: "var(--text)" }}>
-          {rules.map((rule, i) => (
-            <li key={i} style={{ marginBottom: "0.6rem" }}>{rule}</li>
-          ))}
+        <button onClick={onClose} style={{ position: "absolute", top: 14, right: 16, background: "none", border: "none", fontSize: "1.5rem", cursor: "pointer", color: "var(--text)", lineHeight: 1 }}>×</button>
+        <h3 style={{ fontWeight: 900, fontSize: "1.3rem", marginBottom: "1.25rem", color: "var(--text)" }}>{t("write_rules_title")}</h3>
+        <ol style={{ overflowY: "auto", paddingLeft: "1.3rem", flex: 1, lineHeight: 1.8, color: "var(--text)", opacity: 0.85, fontSize: "0.92rem" }}>
+          {rules.map((rule, i) => <li key={i} style={{ marginBottom: "0.6rem" }}>{rule}</li>)}
         </ol>
-        <button className="btn primary" onClick={onClose} style={{ marginTop: "1.25rem" }} type="button">
-          OK
-        </button>
+        <button
+          onClick={onClose}
+          style={{ marginTop: "1.5rem", padding: "12px", borderRadius: 12, border: "none", background: "var(--oxide-red, #c46a4a)", color: "#fff", fontWeight: 700, cursor: "pointer", fontSize: "0.95rem" }}
+        >OK</button>
       </div>
+    </div>
+  )
+}
+
+function ImagePicker({ label, file, preview, onPick, onRemove }) {
+  const ref = useRef()
+  return (
+    <div style={S.field}>
+      <span style={S.label}>{label}</span>
+      <div style={S.imgBox(!!preview)} onClick={() => ref.current?.click()}>
+        {preview
+          ? <img src={preview} alt="" style={S.imgPreview} />
+          : (
+            <div style={S.imgPlaceholder}>
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+              <span style={{ fontSize: "0.8rem" }}>Качи снимка</span>
+            </div>
+          )
+        }
+      </div>
+      <input ref={ref} type="file" accept="image/*" style={{ display: "none" }} onChange={onPick} />
+      {preview && <button type="button" style={S.removeBtn} onClick={onRemove}>✕ Премахни</button>}
     </div>
   )
 }
@@ -60,7 +155,7 @@ function RulesModal({ onClose }) {
 export default function Write() {
   const { user } = useAuth()
 
-  const [authorName, setAuthorName] = useState(user?.display_name || user?.username || "")
+  const [authorName, setAuthorName] = useState(user?.display_name || user?.displayName || user?.username || "")
   const [title, setTitle] = useState("")
   const [body, setBody] = useState("")
   const [coverFile, setCoverFile] = useState(null)
@@ -71,9 +166,6 @@ export default function Write() {
   const [success, setSuccess] = useState(false)
   const [error, setError] = useState("")
   const [showRules, setShowRules] = useState(false)
-
-  const coverRef = useRef()
-  const endRef = useRef()
 
   function handleImageChange(e, setFile, setPreview) {
     const file = e.target.files?.[0]
@@ -86,38 +178,23 @@ export default function Write() {
 
   async function uploadImage(file) {
     const form = new FormData()
-    form.append("image", file)
-    const res = await api.post("/upload", form, {
-      headers: { "Content-Type": "multipart/form-data" },
-    })
-    return res.data?.url || res.data?.imageUrl || ""
+    form.append("file", file)
+    const res = await api.post("/upload", form, { headers: { "Content-Type": "multipart/form-data" } })
+    return res.data?.secure_url || res.data?.url || ""
   }
 
   async function handleSubmit(e) {
     e.preventDefault()
     setError("")
-
     if (!title.trim()) return setError("Моля въведи заглавие.")
-    if (!body.trim() || body.trim().length < 80)
-      return setError("Съдържанието трябва да е поне 80 знака.")
+    if (!body.trim() || body.trim().length < 80) return setError("Съдържанието трябва да е поне 80 знака.")
     if (!authorName.trim()) return setError("Моля въведи своето име.")
-
     setSubmitting(true)
     try {
-      let coverUrl = ""
-      let endUrl = ""
-
+      let coverUrl = "", endUrl = ""
       if (coverFile) coverUrl = await uploadImage(coverFile)
       if (endFile) endUrl = await uploadImage(endFile)
-
-      await api.post("/write/submit", {
-        author_name: authorName.trim(),
-        title: title.trim(),
-        body: body.trim(),
-        cover_url: coverUrl,
-        end_url: endUrl,
-      })
-
+      await api.post("/write/submit", { author_name: authorName.trim(), title: title.trim(), body: body.trim(), cover_url: coverUrl, end_url: endUrl })
       setSuccess(true)
     } catch (err) {
       setError(err?.response?.data?.error || "Грешка при изпращане. Опитай отново.")
@@ -129,25 +206,13 @@ export default function Write() {
   if (success) {
     return (
       <div className="page">
-        <div className="card" style={{ maxWidth: 600, margin: "0 auto", textAlign: "center", padding: "3rem 2rem" }}>
-          <div style={{ fontSize: "3.5rem", marginBottom: "1rem" }}>✅</div>
-          <h2 className="headline" style={{ fontSize: "1.8rem" }}>{t("write_success")}</h2>
-          <p style={{ color: "var(--text)", opacity: 0.75, marginTop: "0.75rem" }}>
-            {t("write_premium_note")}
-          </p>
+        <div style={{ maxWidth: 560, margin: "4rem auto", textAlign: "center" }}>
+          <div style={{ fontSize: "5rem", marginBottom: "1rem" }}>✅</div>
+          <h2 style={{ fontSize: "2rem", fontWeight: 900, color: "var(--text)", marginBottom: "0.75rem" }}>{t("write_success")}</h2>
+          <p style={{ color: "var(--text)", opacity: 0.55, fontSize: "0.95rem", lineHeight: 1.65 }}>{t("write_premium_note")}</p>
           <button
-            className="btn primary"
-            style={{ marginTop: "2rem" }}
-            onClick={() => {
-              setSuccess(false)
-              setTitle("")
-              setBody("")
-              setAuthorName(user?.display_name || user?.username || "")
-              setCoverFile(null)
-              setCoverPreview(null)
-              setEndFile(null)
-              setEndPreview(null)
-            }}
+            style={{ ...S.submitBtn, marginTop: "2rem" }}
+            onClick={() => { setSuccess(false); setTitle(""); setBody(""); setAuthorName(user?.displayName || ""); setCoverFile(null); setCoverPreview(null); setEndFile(null); setEndPreview(null) }}
           >
             Напиши нова статия
           </button>
@@ -159,166 +224,101 @@ export default function Write() {
   return (
     <div className="page">
       {showRules && <RulesModal onClose={() => setShowRules(false)} />}
+      <div style={S.page}>
 
-      <div style={{ maxWidth: 680, margin: "0 auto" }}>
-        <div style={{ marginBottom: "2rem" }}>
-          <h1 className="headline" style={{ fontSize: "2.2rem", marginBottom: "0.5rem" }}>
-            {t("write_title")}
-          </h1>
-          <p className="subhead" style={{ marginBottom: "1rem" }}>
-            {t("write_subtitle")}
-          </p>
-          <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap", alignItems: "center" }}>
-            <button
-              className="btn ghost"
-              onClick={() => setShowRules(true)}
-              type="button"
-              style={{ fontSize: "0.85rem" }}
-            >
+        {/* Header */}
+        <div style={S.header}>
+          <h1 style={S.title}>{t("write_title")}</h1>
+          <p style={S.subtitle}>{t("write_subtitle")}</p>
+          <div style={S.rulesRow}>
+            <button style={S.rulesBtn} onClick={() => setShowRules(true)} type="button">
               📋 {t("write_rules_btn")}
             </button>
-            <span
-              className="write-note"
-              style={{
-                fontSize: "0.8rem",
-                color: "var(--text)",
-                opacity: 0.65,
-                fontStyle: "italic",
-              }}
-            >
-              {t("write_leaderboard_note")}
-            </span>
+            <span style={S.note}>🏆 {t("write_leaderboard_note")}</span>
           </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="write-form">
-          <div className="write-field">
-            <label className="write-label" htmlFor="write-author">
-              {t("write_name_label")}
-            </label>
+        <form onSubmit={handleSubmit} style={S.form}>
+
+          {/* Author */}
+          <div style={S.field}>
+            <label style={S.label}>{t("write_name_label")}</label>
             <input
-              id="write-author"
-              className="write-input"
+              style={S.input}
               type="text"
               value={authorName}
               onChange={(e) => setAuthorName(e.target.value)}
               placeholder="Иван Иванов"
               maxLength={80}
-              required
+              onFocus={(e) => { e.target.style.borderBottomColor = "var(--oxide-red, #c46a4a)" }}
+              onBlur={(e) => { e.target.style.borderBottomColor = "var(--border, rgba(255,255,255,0.15))" }}
             />
           </div>
 
-          <div className="write-field">
-            <label className="write-label" htmlFor="write-title">
-              {t("write_title_label")}
-            </label>
+          {/* Title */}
+          <div style={S.field}>
+            <label style={S.label}>{t("write_title_label")}</label>
             <input
-              id="write-title"
-              className="write-input"
+              style={S.input}
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Заглавие на статията..."
               maxLength={160}
-              required
+              onFocus={(e) => { e.target.style.borderBottomColor = "var(--oxide-red, #c46a4a)" }}
+              onBlur={(e) => { e.target.style.borderBottomColor = "var(--border, rgba(255,255,255,0.15))" }}
             />
           </div>
 
-          <div className="write-field">
-            <label className="write-label" htmlFor="write-body">
-              {t("write_body_label")}
-            </label>
+          {/* Body */}
+          <div style={S.field}>
+            <label style={S.label}>{t("write_body_label")}</label>
             <textarea
-              id="write-body"
-              className="write-input write-textarea"
+              style={S.textarea}
               value={body}
               onChange={(e) => setBody(e.target.value)}
               placeholder="Напиши съдържанието на статията тук..."
               rows={14}
-              required
+              onFocus={(e) => { e.target.style.borderColor = "var(--oxide-red, #c46a4a)" }}
+              onBlur={(e) => { e.target.style.borderColor = "var(--border, rgba(255,255,255,0.1))" }}
             />
-            <span className="write-char-count" style={{ fontSize: "0.78rem", color: "var(--text)", opacity: 0.5 }}>
-              {body.length} знака
-            </span>
+            <span style={S.charCount}>{body.length} знака</span>
           </div>
 
-          <div className="write-images-row">
-            <div className="write-field write-img-field">
-              <label className="write-label">{t("write_cover_label")}</label>
-              <div
-                className="write-img-drop"
-                onClick={() => coverRef.current?.click()}
-                style={coverPreview ? { backgroundImage: `url(${coverPreview})` } : {}}
-              >
-                {!coverPreview && <span>+ Качи снимка</span>}
-              </div>
-              <input
-                ref={coverRef}
-                type="file"
-                accept="image/*"
-                style={{ display: "none" }}
-                onChange={(e) => handleImageChange(e, setCoverFile, setCoverPreview)}
-              />
-              {coverPreview && (
-                <button
-                  type="button"
-                  className="btn ghost"
-                  style={{ marginTop: "0.4rem", fontSize: "0.8rem" }}
-                  onClick={() => { setCoverFile(null); setCoverPreview(null) }}
-                >
-                  Премахни
-                </button>
-              )}
-            </div>
-
-            <div className="write-field write-img-field">
-              <label className="write-label">{t("write_end_label")}</label>
-              <div
-                className="write-img-drop"
-                onClick={() => endRef.current?.click()}
-                style={endPreview ? { backgroundImage: `url(${endPreview})` } : {}}
-              >
-                {!endPreview && <span>+ Качи снимка</span>}
-              </div>
-              <input
-                ref={endRef}
-                type="file"
-                accept="image/*"
-                style={{ display: "none" }}
-                onChange={(e) => handleImageChange(e, setEndFile, setEndPreview)}
-              />
-              {endPreview && (
-                <button
-                  type="button"
-                  className="btn ghost"
-                  style={{ marginTop: "0.4rem", fontSize: "0.8rem" }}
-                  onClick={() => { setEndFile(null); setEndPreview(null) }}
-                >
-                  Премахни
-                </button>
-              )}
-            </div>
+          {/* Images */}
+          <div style={{ ...S.imgRow, ...(window.innerWidth < 540 ? { gridTemplateColumns: "1fr" } : {}) }}>
+            <ImagePicker
+              label={t("write_cover_label")}
+              preview={coverPreview}
+              onPick={(e) => handleImageChange(e, setCoverFile, setCoverPreview)}
+              onRemove={() => { setCoverFile(null); setCoverPreview(null) }}
+            />
+            <ImagePicker
+              label={t("write_end_label")}
+              preview={endPreview}
+              onPick={(e) => handleImageChange(e, setEndFile, setEndPreview)}
+              onRemove={() => { setEndFile(null); setEndPreview(null) }}
+            />
           </div>
 
-          {error && (
-            <p style={{ color: "var(--error, #e53935)", marginBottom: "0.75rem", fontWeight: 500 }}>
-              {error}
-            </p>
-          )}
+          <div style={S.divider} />
 
-          <div className="write-footer">
-            <p className="write-premium-note">
-              ⭐ {t("write_premium_note")}
-            </p>
+          {error && <p style={{ color: "#ef4444", fontWeight: 600, fontSize: "0.9rem", margin: 0 }}>{error}</p>}
+
+          {/* Footer */}
+          <div style={S.footer}>
+            <p style={S.premNote}>⭐ {t("write_premium_note")}</p>
             <button
-              className="btn primary"
+              style={{ ...S.submitBtn, opacity: submitting ? 0.6 : 1, cursor: submitting ? "not-allowed" : "pointer" }}
               type="submit"
               disabled={submitting}
-              style={{ minWidth: 200 }}
+              onMouseEnter={(e) => { if (!submitting) { e.target.style.transform = "translateY(-2px)"; e.target.style.boxShadow = "0 8px 28px rgba(196,106,74,0.5)" } }}
+              onMouseLeave={(e) => { e.target.style.transform = ""; e.target.style.boxShadow = "0 4px 20px rgba(196,106,74,0.35)" }}
             >
               {submitting ? t("write_submitting") : t("write_submit")}
             </button>
           </div>
+
         </form>
       </div>
     </div>

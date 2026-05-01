@@ -245,40 +245,74 @@ export default function Profile() {
   const initials = displayName[0]?.toUpperCase() || "?"
   const plan = subs?.[0]?.plan || "free"
 
+  const planGradient =
+    plan === "yearly" ? "linear-gradient(135deg,#f59e0b,#ef4444)"
+    : plan === "monthly" ? "linear-gradient(135deg,#3b82f6,#6366f1)"
+    : "rgba(150,150,150,0.18)"
+  const planColor = plan === "free" ? "var(--text)" : "#fff"
+
   return (
     <div className="page profile-page">
       <h2 className="headline">{t("profile")}</h2>
 
       {/* Avatar + name header */}
-      <div className="profile-hero">
-        <div className="profile-avatar-wrap" onClick={() => pfpInputRef.current?.click()} title="Смени снимката">
+      <div style={{ display: "flex", alignItems: "center", gap: "1.5rem", marginBottom: "2rem", flexWrap: "wrap" }}>
+        {/* Avatar */}
+        <div
+          style={{ position: "relative", width: 88, height: 88, borderRadius: "50%", cursor: "pointer", flexShrink: 0, overflow: "hidden" }}
+          onClick={() => pfpInputRef.current?.click()}
+          title="Смени снимката"
+        >
           {pfpUrl
-            ? <img src={pfpUrl} alt="PFP" className="profile-avatar-img" />
-            : <div className="profile-avatar-placeholder">{initials}</div>
+            ? <img src={pfpUrl} alt="PFP" style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: "50%", display: "block" }} />
+            : (
+              <div style={{ width: "100%", height: "100%", borderRadius: "50%", background: "var(--oxide-red, #c46a4a)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "2.4rem", fontWeight: 900, color: "#fff" }}>
+                {initials}
+              </div>
+            )
           }
-          <div className="profile-avatar-overlay">
+          {/* hover overlay */}
+          <div
+            className="profile-pfp-overlay"
+            style={{ position: "absolute", inset: 0, borderRadius: "50%", background: "rgba(0,0,0,0.55)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1.5rem", opacity: 0, transition: "opacity 0.18s" }}
+            onMouseEnter={(e) => { e.currentTarget.style.opacity = 1 }}
+            onMouseLeave={(e) => { e.currentTarget.style.opacity = 0 }}
+          >
             {pfpUploading ? "⏳" : "📷"}
           </div>
         </div>
         <input ref={pfpInputRef} type="file" accept="image/*" style={{ display: "none" }} onChange={handlePfpUpload} />
 
-        <div className="profile-hero-info">
-          <div className="profile-hero-name">{displayName}</div>
-          <div className="profile-hero-email text-muted">{user.email}</div>
-          <span className={planBadgeClass(plan)}>
+        {/* Info */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          <div style={{ fontSize: "1.55rem", fontWeight: 900, color: "var(--text)", lineHeight: 1.1 }}>{displayName}</div>
+          <div style={{ fontSize: "0.86rem", color: "var(--text)", opacity: 0.5 }}>{user.email}</div>
+          <span style={{
+            display: "inline-block", padding: "4px 14px", borderRadius: 999,
+            background: planGradient, color: planColor,
+            fontSize: "0.78rem", fontWeight: 700, letterSpacing: "0.04em",
+            width: "fit-content", marginTop: 2,
+          }}>
             {currentPlan} {planSuffix(plan)}
           </span>
         </div>
       </div>
 
       {/* Tab bar */}
-      <div className="profile-tabs">
+      <div style={{ display: "flex", gap: 0, marginBottom: "1.75rem", borderBottom: "1.5px solid var(--border, rgba(255,255,255,0.1))" }}>
         {PROFILE_TABS.map((tb) => (
           <button
             key={tb.key}
             type="button"
-            className={`profile-tab${activeTab === tb.key ? " profile-tab--active" : ""}`}
             onClick={() => { setActiveTab(tb.key); setMsg({ type: "", text: "" }) }}
+            style={{
+              background: "transparent", border: "none", padding: "11px 18px",
+              fontSize: "0.88rem", fontWeight: 600, cursor: "pointer",
+              color: activeTab === tb.key ? "var(--oxide-red, #c46a4a)" : "var(--text)",
+              opacity: activeTab === tb.key ? 1 : 0.5,
+              borderBottom: activeTab === tb.key ? "2.5px solid var(--oxide-red, #c46a4a)" : "2.5px solid transparent",
+              marginBottom: "-1.5px", transition: "opacity 0.15s, color 0.15s",
+            }}
           >
             {tb.label}
           </button>

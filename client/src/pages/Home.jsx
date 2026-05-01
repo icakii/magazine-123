@@ -74,6 +74,7 @@ export default function Home() {
   const [artLang, setArtLang] = useState(() => getLang())
   const [welcomeFlipped, setWelcomeFlipped] = useState(false)
   const [reminderIds, setReminderIds] = useState(new Set())
+  const [communityArticles, setCommunityArticles] = useState([])
 
   useEffect(() => {
     if (selectedArticle) {
@@ -143,10 +144,11 @@ export default function Home() {
     ;(async () => {
       try {
         setLoading(true)
-        const [homeRes, eventsRes, galleryRes] = await Promise.all([
+        const [homeRes, eventsRes, galleryRes, communityRes] = await Promise.all([
           api.get("/articles", { params: { category: "home" } }),
           api.get("/articles", { params: { category: "events" } }),
           api.get("/articles", { params: { category: "gallery" } }),
+          api.get("/community/articles", { params: { limit: 2 } }).catch(() => ({ data: [] })),
         ])
         if (alive) {
           setArticles(Array.isArray(homeRes.data) ? homeRes.data : [])
@@ -156,6 +158,7 @@ export default function Home() {
             .slice(0, 4)
           setUpcomingEvents(upcoming)
           setGalleryItems((Array.isArray(galleryRes.data) ? galleryRes.data : []).slice(0, 4))
+          setCommunityArticles(Array.isArray(communityRes.data) ? communityRes.data : [])
         }
       } catch {
         if (alive) setArticles([])
@@ -440,6 +443,29 @@ export default function Home() {
             </div>
           </div>
         </section>
+
+        {/* ── Community Writers (admin-only for now) ── */}
+        {isAdmin && communityArticles.length > 0 && (
+          <section className="home-section">
+            <h2 className="home-section-title" style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              ✍️ {artLang === "bg" ? "От общността" : "From the Community"}
+              <span style={{ fontSize: "0.72rem", fontWeight: 600, padding: "3px 10px", borderRadius: 999, background: "rgba(196,106,74,0.15)", color: "var(--oxide-red, #c46a4a)", marginLeft: 4 }}>ADMIN</span>
+            </h2>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px,1fr))", gap: 16 }}>
+              {communityArticles.map((a) => (
+                <div key={a.id} className="card" style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                  {a.cover_url && (
+                    <img src={a.cover_url} alt={a.title} style={{ width: "100%", height: 180, objectFit: "cover", borderRadius: 10 }} />
+                  )}
+                  <div style={{ fontWeight: 700, fontSize: "1rem", color: "var(--text)" }}>{a.title}</div>
+                  <div style={{ fontSize: "0.82rem", color: "var(--text)", opacity: 0.5 }}>
+                    ✍️ {a.author_name} · {new Date(a.created_at).toLocaleDateString("bg-BG")}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
 
         {/* ── Work / Partnership ── */}
         <section className="home-section">

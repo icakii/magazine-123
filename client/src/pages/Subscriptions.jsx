@@ -126,105 +126,79 @@ export default function Subscriptions() {
     )
   }
 
-  const borderFor = (plan) => {
-    if (current === plan) return "2px solid rgba(107, 123, 78, 0.55)" // olive-ish
-    return "2px solid var(--nav-border)"
-  }
-
-  const badgeClass = (plan) => {
-    if (plan === "monthly") return "plan-badge plan-badge--monthly"
-    if (plan === "yearly") return "plan-badge plan-badge--yearly"
-    return "plan-badge"
-  }
-
   const PlanCard = ({ plan, title, price, highlight }) => {
     const isCurrent = current === plan
     const isPaid = plan === "monthly" || plan === "yearly"
+    const isYearly = plan === "yearly"
+    const isMonthly = plan === "monthly"
+
+    const cardClass = [
+      "sub-card",
+      isMonthly ? "sub-card--monthly" : "",
+      isYearly ? "sub-card--yearly" : "",
+      isCurrent && isMonthly ? "sub-card--monthly-active" : "",
+      isCurrent && isYearly ? "sub-card--yearly-active" : "",
+    ].filter(Boolean).join(" ")
+
+    const icon = isYearly ? "👑" : isMonthly ? "⭐" : "🌿"
 
     return (
-      <div
-        className="card"
-        style={{
-          flex: 1,
-          minWidth: 260,
-          padding: 24,
-          borderRadius: 16,
-          border: borderFor(plan),
-          background: "var(--bg-muted)",
-          display: "flex",
-          flexDirection: "column",
-          gap: 12,
-          position: "relative",
-          overflow: "hidden",
-        }}
-      >
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
-          <div style={{ fontWeight: 900, fontSize: "1.12rem", color: highlight ? "var(--oxide-red)" : "var(--text)" }}>
-            {title}
+      <div className={cardClass}>
+        {/* animated glow ring for paid plans */}
+        {isPaid && <div className="sub-card-glow" />}
+
+        {/* floating particles for yearly */}
+        {isYearly && (
+          <div className="sub-particles" aria-hidden>
+            {["✦","✧","✦","✧","✦"].map((s, i) => (
+              <span key={i} className={`sub-particle sub-particle--${i}`}>{s}</span>
+            ))}
           </div>
-
-          <span className={badgeClass(plan)}>
-            <span className="plan-name">
-              {plan === "free"
-                ? tt("plan_badge_free", "Free")
-                : plan === "monthly"
-                ? tt("plan_badge_monthly", "Monthly")
-                : tt("plan_badge_yearly", "Yearly")}
-            </span>
-          </span>
-        </div>
-
-        <div className="card-muted" style={{ fontSize: "0.95rem" }}>
-          {price}
-        </div>
-
-        {isPaid && Benefits}
-
-        <div style={{ flex: 1 }} />
-
-        {plan === "free" ? (
-          <button className="btn ghost" disabled style={{ width: "100%" }}>
-            {isCurrent ? tt("plan_current", "Current plan") : tt("plan_choose", "Choose plan")}
-          </button>
-           ) : isCurrent ? (
-          <div style={{ display: "grid", gap: 8 }}>
-            <button className="btn ghost" disabled style={{ width: "100%" }}>
-              {tt("plan_current", "Current plan")}
-            </button>
-            <button
-              className="btn"
-              onClick={() => cancelSubscription(false)}
-              disabled={cancelLoading}
-              style={{ width: "100%" }}
-            >
-              {cancelLoading
-                ? tt("cancel_loading", "Cancelling...")
-                : tt("cancel_at_period_end", "Cancel at period end")}
-            </button>
-            <button
-              className="btn"
-              onClick={() => cancelSubscription(true)}
-              disabled={cancelLoading}
-              style={{ width: "100%", opacity: 0.88 }}
-            >
-              {cancelLoading
-                ? tt("cancel_loading", "Cancelling...")
-                : tt("cancel_now", "Cancel now")}
-            </button>
-          </div>
-        ) : (
-          <button
-            className="btn primary"
-            onClick={() => activate(plan)}
-            style={{ width: "100%" }}
-            disabled={loadingPlan === plan || cancelLoading}
-          >
-            {loadingPlan === plan
-              ? tt("plan_loading", "Loading...")
-              
-              : tt("plan_choose", "Choose plan")}
-          </button>
         )}
+
+        <div className="sub-card-inner">
+          <div className="sub-card-header">
+            <span className="sub-card-icon">{icon}</span>
+            <div>
+              <div className="sub-card-title">{title}</div>
+              <div className="sub-card-price">{price}</div>
+            </div>
+            {isCurrent && <span className="sub-current-pill">✓ Активен</span>}
+          </div>
+
+          {isPaid && Benefits}
+
+          <div style={{ flex: 1 }} />
+
+          <div className="sub-card-actions">
+            {plan === "free" ? (
+              <button className="btn ghost sub-btn" disabled style={{ width: "100%" }}>
+                {isCurrent ? tt("plan_current", "Текущ план") : tt("plan_choose", "Избери план")}
+              </button>
+            ) : isCurrent ? (
+              <>
+                <button className="btn ghost sub-btn" disabled style={{ width: "100%" }}>
+                  {tt("plan_current", "Текущ план")}
+                </button>
+                <button className="btn sub-btn sub-btn--cancel" onClick={() => cancelSubscription(false)} disabled={cancelLoading} style={{ width: "100%" }}>
+                  {cancelLoading ? tt("cancel_loading", "Отменя се...") : tt("cancel_at_period_end", "Отмени в края на периода")}
+                </button>
+                <button className="btn sub-btn sub-btn--cancel" onClick={() => cancelSubscription(true)} disabled={cancelLoading} style={{ width: "100%", opacity: 0.75 }}>
+                  {cancelLoading ? tt("cancel_loading", "Отменя се...") : tt("cancel_now", "Отмени веднага")}
+                </button>
+              </>
+            ) : (
+              <button
+                className={`btn sub-btn ${isYearly ? "sub-btn--yearly" : "sub-btn--monthly"}`}
+                onClick={() => activate(plan)}
+                style={{ width: "100%" }}
+                disabled={loadingPlan === plan || cancelLoading}
+              >
+                {loadingPlan === plan ? tt("plan_loading", "Зарежда...") : tt("plan_choose", "Избери план")}
+              </button>
+            )}
+          </div>
+        </div>
       </div>
     )
   }
@@ -234,16 +208,7 @@ export default function Subscriptions() {
       <h2 className="headline">{tt("subscriptions", "Subscriptions")}</h2>
       <p className="subhead">{tt("subscriptions_subhead", "Choose a plan that fits you.")}</p>
 
-      <div
-        style={{
-          display: "flex",
-          gap: 16,
-          marginTop: 24,
-          justifyContent: "space-between",
-          alignItems: "stretch",
-          flexWrap: "wrap",
-        }}
-      >
+      <div className="sub-cards-row">
         <PlanCard
           plan="free"
           title={tt("plan_free", "Free")}

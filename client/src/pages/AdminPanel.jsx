@@ -28,6 +28,7 @@ const TABS = [
   { key: "orders", label: "Orders" },
   { key: "subscriptions", label: "Subscriptions" },
   { key: "newsletter", label: "Newsletter" },
+  { key: "writers", label: "✍️ Writers" },
   { key: "refunds", label: "⚠️ Refunds" },
   { key: "admins", label: "Admins" },
 ]
@@ -538,6 +539,9 @@ const [heroVfxUrl, setHeroVfxUrl] = useState("")
   const [subscriptions, setSubscriptions] = useState([])
   const [magazineStock, setMagazineStock] = useState(null)
   const [storeOrders, setStoreOrders] = useState([])
+  const [writers, setWriters] = useState([])
+  const [writerFilter, setWriterFilter] = useState("pending")
+  const [expandedWriter, setExpandedWriter] = useState(null)
 
   const resetMirenArtCodes = async () => {
     const ok = window.confirm(
@@ -653,6 +657,12 @@ const [heroVfxUrl, setHeroVfxUrl] = useState("")
         if (activeTab === "users") {
           const res = await api.get("/admin/users")
           setUsers(Array.isArray(res.data) ? res.data : [])
+          return
+        }
+
+        if (activeTab === "writers") {
+          const res = await api.get("/admin/writers")
+          setWriters(Array.isArray(res.data) ? res.data : [])
           return
         }
 
@@ -1605,6 +1615,139 @@ isVideoUrl(heroVfxUrl) ? (
                 ))}
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* WRITERS */}
+      {activeTab === "writers" && (
+        <div className="admin-card">
+          <h3 className="headline">Писатели — Submissions</h3>
+          <p className="text-muted" style={{ marginBottom: 16 }}>
+            Прегледай, одобри или отхвърли изпратените статии.
+          </p>
+
+          <div style={{ display: "flex", gap: 8, marginBottom: 20, flexWrap: "wrap" }}>
+            {["pending", "approved", "rejected"].map((f) => (
+              <button
+                key={f}
+                type="button"
+                className={`tab ${writerFilter === f ? "tab--on" : ""}`}
+                onClick={() => setWriterFilter(f)}
+              >
+                {f === "pending" ? "⏳ Чакащи" : f === "approved" ? "✅ Одобрени" : "❌ Отхвърлени"}
+              </button>
+            ))}
+          </div>
+
+          {writers.filter((w) => w.status === writerFilter).length === 0 && (
+            <p className="text-muted">Няма submissions.</p>
+          )}
+
+          <div className="list">
+            {writers
+              .filter((w) => w.status === writerFilter)
+              .map((w) => {
+                const isExpanded = expandedWriter === w.id
+                return (
+                  <div key={w.id} className="admin-card" style={{ marginBottom: 16 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 8 }}>
+                      <div style={{ flex: 1, minWidth: 200 }}>
+                        <div style={{ fontWeight: 700, fontSize: "1.05rem", color: "var(--text)", marginBottom: 4 }}>
+                          {w.title}
+                        </div>
+                        <div className="text-muted" style={{ fontSize: "0.85rem" }}>
+                          ✍️ {w.author_name} &nbsp;·&nbsp; 👤 {w.user_email || w.user_id} &nbsp;·&nbsp; 📅 {new Date(w.created_at).toLocaleDateString("bg-BG")}
+                        </div>
+                        <div className="text-muted" style={{ fontSize: "0.82rem", marginTop: 4 }}>
+                          {w.body?.slice(0, 120)}{w.body?.length > 120 ? "…" : ""}
+                        </div>
+                      </div>
+                      <div style={{ display: "flex", gap: 6, flexShrink: 0, alignItems: "center" }}>
+                        <button
+                          type="button"
+                          className="btn ghost"
+                          style={{ fontSize: "0.82rem" }}
+                          onClick={() => setExpandedWriter(isExpanded ? null : w.id)}
+                        >
+                          {isExpanded ? "Скрий" : "Прочети"}
+                        </button>
+                        {w.status !== "approved" && (
+                          <button
+                            type="button"
+                            className="btn primary"
+                            style={{ fontSize: "0.82rem" }}
+                            onClick={async () => {
+                              try {
+                                await api.put(`/admin/writers/${w.id}`, { status: "approved" })
+                                setWriters((prev) => prev.map((x) => x.id === w.id ? { ...x, status: "approved" } : x))
+                                setMsg("✅ Одобрено и публикувано в News!")
+                              } catch (e) {
+                                setMsg(e?.response?.data?.error || "Грешка при одобрение.")
+                              }
+                            }}
+                          >
+                            ✅ Одобри
+                          </button>
+                        )}
+                        {w.status !== "rejected" && (
+                          <button
+                            type="button"
+                            className="btn outline"
+                            style={{ fontSize: "0.82rem", color: "#c0392b", borderColor: "#c0392b" }}
+                            onClick={async () => {
+                              if (!window.confirm("Отхвърли тази статия?")) return
+                              try {
+                                await api.put(`/admin/writers/${w.id}`, { status: "rejected" })
+                                setWriters((prev) => prev.map((x) => x.id === w.id ? { ...x, status: "rejected" } : x))
+                                setMsg("🗑️ Отхвърлено.")
+                              } catch (e) {
+                                setMsg(e?.response?.data?.error || "Грешка.")
+                              }
+                            }}
+                          >
+                            ❌ Отхвърли
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    {isExpanded && (
+                      <div style={{ marginTop: 16, borderTop: "1px solid var(--border, rgba(0,0,0,0.1))", paddingTop: 16 }}>
+                        {w.cover_url && (
+                          <img
+                            src={w.cover_url}
+                            alt="Cover"
+                            style={{ width: "100%", maxHeight: 320, objectFit: "cover", borderRadius: 10, marginBottom: 14 }}
+                          />
+                        )}
+                        <p style={{ color: "var(--text)", lineHeight: 1.75, whiteSpace: "pre-wrap", marginBottom: 14 }}>
+                          {w.body}
+                        </p>
+                        {w.end_url && (
+                          <img
+                            src={w.end_url}
+                            alt="End image"
+                            style={{ width: "100%", maxHeight: 320, objectFit: "cover", borderRadius: 10 }}
+                          />
+                        )}
+                        <div style={{ marginTop: 12, display: "flex", gap: 8, flexWrap: "wrap" }}>
+                          {w.cover_url && (
+                            <a href={w.cover_url} target="_blank" rel="noreferrer" className="btn ghost" style={{ fontSize: "0.8rem" }}>
+                              ⬇️ Cover
+                            </a>
+                          )}
+                          {w.end_url && (
+                            <a href={w.end_url} target="_blank" rel="noreferrer" className="btn ghost" style={{ fontSize: "0.8rem" }}>
+                              ⬇️ End image
+                            </a>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
           </div>
         </div>
       )}

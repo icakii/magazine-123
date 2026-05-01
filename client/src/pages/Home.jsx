@@ -90,7 +90,6 @@ export default function Home() {
     return () => { document.body.style.overflow = "" }
   }, [selectedArticle])
 
-  const isAdmin = !!user?.isAdmin
   const canAccessArt = isAdmin
   const artCopy = ART_TEXT[artLang] || ART_TEXT.bg
 

@@ -20,124 +20,116 @@ function categorySlug(cat) {
   return allowed.has(s) ? s : "other"
 }
 
-function HeartIcon({ filled, size = 16 }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill={filled ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
-    </svg>
-  )
-}
-function BookmarkIcon({ filled, size = 16 }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill={filled ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
-    </svg>
-  )
-}
-function CommentIcon({ size = 16 }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-    </svg>
-  )
-}
-
-/* ── Comment popup ── */
-function CommentPopup({ article, user, navigate, onClose, statsMap, onStatsUpdate }) {
+/* ── Comment conversation popup ── */
+function CommentConversation({ article, user, navigate, onClose, onCommentAdded }) {
   const [comments, setComments] = useState([])
   const [text, setText] = useState("")
   const [posting, setPosting] = useState(false)
   const [err, setErr] = useState("")
+  const bottomRef = useRef()
   const textareaRef = useRef()
 
   useEffect(() => {
     api.get(`/articles/${article.id}/comments`).then(r => setComments(r.data || [])).catch(() => {})
-    setTimeout(() => textareaRef.current?.focus(), 80)
+    setTimeout(() => textareaRef.current?.focus(), 100)
   }, [article.id])
 
   async function post(e) {
     e.preventDefault()
     if (!user) return navigate("/login")
-    if (!text.trim()) return
+    if (!text.trim() || posting) return
     setPosting(true); setErr("")
     try {
       const res = await api.post(`/articles/${article.id}/comments`, { content: text.trim() })
-      setComments(prev => [res.data, ...prev])
-      onStatsUpdate(article.id, s => ({ ...s, comments_count: (s.comments_count || 0) + 1 }))
+      const newComment = res.data
+      setComments(prev => [...prev, newComment])
       setText("")
+      onCommentAdded(article.id)
+      setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: "smooth" }), 80)
     } catch (e) {
       setErr(e?.response?.data?.error || "Грешка при изпращане.")
-    } finally {
-      setPosting(false) }
+    } finally { setPosting(false) }
   }
 
   return createPortal(
     <div
-      style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.65)", zIndex: 9999, display: "flex", alignItems: "flex-end", justifyContent: "center", padding: "0 0 0 0" }}
+      style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center", padding: "1rem" }}
       onClick={onClose}
     >
       <div
-        style={{ background: "var(--bg, #111)", borderRadius: "20px 20px 0 0", width: "100%", maxWidth: 580, maxHeight: "70vh", display: "flex", flexDirection: "column", overflow: "hidden", boxShadow: "0 -8px 40px rgba(0,0,0,0.4)" }}
+        style={{ background: "var(--bg, #111)", borderRadius: 20, width: "100%", maxWidth: 500, height: "min(600px, 90vh)", display: "flex", flexDirection: "column", overflow: "hidden", boxShadow: "0 20px 60px rgba(0,0,0,0.5)" }}
         onClick={e => e.stopPropagation()}
       >
-        {/* drag handle */}
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 20px 12px" }}>
-          <div>
-            <div style={{ width: 36, height: 4, borderRadius: 99, background: "rgba(255,255,255,0.15)", margin: "0 auto 10px" }} />
-            <span style={{ fontWeight: 700, fontSize: "0.95rem", color: "var(--text)" }}>
-              Коментари · {article.title?.slice(0, 30)}{article.title?.length > 30 ? "…" : ""}
-            </span>
+        {/* header */}
+        <div style={{ padding: "16px 18px 12px", borderBottom: "1px solid rgba(255,255,255,0.07)", display: "flex", alignItems: "center", gap: 10 }}>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontWeight: 800, fontSize: "0.95rem", color: "var(--text)", lineHeight: 1.2 }}>💬 Коментари</div>
+            <div style={{ fontSize: "0.75rem", color: "var(--text)", opacity: 0.4, marginTop: 2 }}>{article.title?.slice(0,45)}{article.title?.length > 45 ? "…" : ""}</div>
           </div>
-          <button onClick={onClose} style={{ background: "none", border: "none", color: "var(--text)", opacity: 0.5, fontSize: "1.4rem", cursor: "pointer", lineHeight: 1 }}>×</button>
+          <button onClick={onClose} style={{ background: "rgba(255,255,255,0.08)", border: "none", borderRadius: "50%", width: 30, height: 30, color: "var(--text)", cursor: "pointer", fontSize: "1rem", display: "flex", alignItems: "center", justifyContent: "center" }}>×</button>
         </div>
 
-        {/* comment list */}
-        <div style={{ flex: 1, overflowY: "auto", padding: "0 20px 12px" }}>
-          {comments.length === 0 && <p style={{ color: "var(--text)", opacity: 0.4, fontSize: "0.88rem", textAlign: "center", margin: "1.5rem 0" }}>Все още няма коментари.</p>}
+        {/* messages */}
+        <div style={{ flex: 1, overflowY: "auto", padding: "14px 16px", display: "flex", flexDirection: "column", gap: 14 }}>
+          {comments.length === 0 && (
+            <div style={{ textAlign: "center", marginTop: "3rem", color: "var(--text)", opacity: 0.35 }}>
+              <div style={{ fontSize: "2.5rem", marginBottom: 8 }}>💬</div>
+              <div style={{ fontSize: "0.88rem" }}>Бъди първият, който коментира.</div>
+            </div>
+          )}
           {comments.map(c => (
-            <div key={c.id} style={{ display: "flex", gap: 10, marginBottom: 14 }}>
-              <div style={{ width: 34, height: 34, borderRadius: "50%", background: "var(--oxide-red, #c46a4a)", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: "0.9rem", flexShrink: 0 }}>
+            <div key={c.id} style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
+              <div style={{ width: 32, height: 32, borderRadius: "50%", background: "var(--oxide-red, #c46a4a)", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: "0.82rem", flexShrink: 0, marginTop: 2 }}>
                 {(c.display_name || c.username || "?")[0].toUpperCase()}
               </div>
               <div style={{ flex: 1 }}>
-                <div style={{ display: "flex", gap: 8, alignItems: "baseline", marginBottom: 2 }}>
-                  <span style={{ fontWeight: 700, fontSize: "0.85rem", color: "var(--text)" }}>{c.display_name || c.username || "Потребител"}</span>
-                  <span style={{ fontSize: "0.75rem", color: "var(--text)", opacity: 0.4 }}>{new Date(c.created_at).toLocaleDateString("bg-BG")}</span>
+                <div style={{ background: "rgba(255,255,255,0.05)", borderRadius: "0 14px 14px 14px", padding: "9px 13px" }}>
+                  <div style={{ fontWeight: 700, fontSize: "0.78rem", color: "var(--oxide-red, #c46a4a)", marginBottom: 3 }}>
+                    {c.display_name || c.username || "Потребител"}
+                  </div>
+                  <p style={{ margin: 0, fontSize: "0.88rem", color: "var(--text)", lineHeight: 1.55, wordBreak: "break-word" }}>{c.content}</p>
                 </div>
-                <p style={{ margin: 0, fontSize: "0.9rem", color: "var(--text)", opacity: 0.85, lineHeight: 1.5, wordBreak: "break-word" }}>{c.content}</p>
+                <div style={{ fontSize: "0.7rem", color: "var(--text)", opacity: 0.35, marginTop: 3, paddingLeft: 4 }}>{new Date(c.created_at).toLocaleDateString("bg-BG")}</div>
               </div>
             </div>
           ))}
+          <div ref={bottomRef} />
         </div>
 
-        {/* input bar */}
-        <div style={{ borderTop: "1px solid rgba(255,255,255,0.07)", padding: "12px 16px" }}>
+        {/* input */}
+        <div style={{ padding: "10px 14px 14px", borderTop: "1px solid rgba(255,255,255,0.06)" }}>
           {user ? (
-            <form onSubmit={post} style={{ display: "flex", gap: 10, alignItems: "flex-end" }}>
+            <form onSubmit={post} style={{ display: "flex", gap: 8, alignItems: "flex-end" }}>
+              <div style={{ width: 32, height: 32, borderRadius: "50%", background: "var(--oxide-red, #c46a4a)", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: "0.82rem", flexShrink: 0, marginBottom: 2 }}>
+                {(user.displayName || user.email || "?")[0].toUpperCase()}
+              </div>
               <textarea
                 ref={textareaRef}
                 value={text}
                 onChange={e => setText(e.target.value)}
-                placeholder="Напиши коментар..."
+                onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); post(e) } }}
+                placeholder="Напиши коментар... (Enter за изпращане)"
                 rows={1}
                 maxLength={600}
-                style={{ flex: 1, background: "rgba(255,255,255,0.06)", border: "1.5px solid rgba(255,255,255,0.1)", borderRadius: 12, padding: "10px 14px", color: "var(--text)", fontSize: "0.9rem", fontFamily: "inherit", outline: "none", resize: "none", lineHeight: 1.5 }}
-                onInput={e => { e.target.style.height = "auto"; e.target.style.height = Math.min(e.target.scrollHeight, 100) + "px" }}
+                style={{ flex: 1, background: "rgba(255,255,255,0.07)", border: "1.5px solid rgba(255,255,255,0.1)", borderRadius: 20, padding: "9px 14px", color: "var(--text)", fontSize: "0.88rem", fontFamily: "inherit", outline: "none", resize: "none", lineHeight: 1.5, transition: "border-color 0.15s" }}
+                onFocus={e => e.target.style.borderColor = "var(--oxide-red, #c46a4a)"}
+                onBlur={e => e.target.style.borderColor = "rgba(255,255,255,0.1)"}
+                onInput={e => { e.target.style.height = "auto"; e.target.style.height = Math.min(e.target.scrollHeight, 120) + "px" }}
               />
               <button
                 type="submit"
                 disabled={posting || !text.trim()}
-                style={{ padding: "10px 18px", borderRadius: 12, border: "none", background: "var(--oxide-red, #c46a4a)", color: "#fff", fontWeight: 700, fontSize: "0.88rem", cursor: posting ? "not-allowed" : "pointer", opacity: posting || !text.trim() ? 0.5 : 1, flexShrink: 0 }}
+                style={{ width: 36, height: 36, borderRadius: "50%", border: "none", background: text.trim() ? "var(--oxide-red, #c46a4a)" : "rgba(255,255,255,0.08)", color: "#fff", cursor: text.trim() ? "pointer" : "not-allowed", display: "flex", alignItems: "center", justifyContent: "center", transition: "background 0.15s", flexShrink: 0 }}
               >
-                {posting ? "…" : "Изпрати"}
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
               </button>
             </form>
           ) : (
-            <button onClick={() => navigate("/login")} style={{ width: "100%", padding: "12px", borderRadius: 12, border: "1.5px solid rgba(255,255,255,0.1)", background: "transparent", color: "var(--text)", cursor: "pointer", fontWeight: 600, fontSize: "0.9rem" }}>
+            <button onClick={() => navigate("/login")} style={{ width: "100%", padding: "11px", borderRadius: 12, border: "1.5px solid rgba(255,255,255,0.1)", background: "transparent", color: "var(--text)", cursor: "pointer", fontWeight: 600, fontSize: "0.9rem" }}>
               Влез за да коментираш
             </button>
           )}
-          {err && <p style={{ color: "#ef4444", fontSize: "0.8rem", margin: "6px 0 0" }}>{err}</p>}
+          {err && <p style={{ color: "#ef4444", fontSize: "0.78rem", margin: "6px 0 0 44px" }}>{err}</p>}
         </div>
       </div>
     </div>,
@@ -145,7 +137,7 @@ function CommentPopup({ article, user, navigate, onClose, statsMap, onStatsUpdat
   )
 }
 
-/* ── Article modal (no comments, just like/save) ── */
+/* ── Article read modal ── */
 function ArticleModal({ article, onClose, user, navigate, statsMap, onStatsUpdate, onOpenComments }) {
   const st = statsMap[article.id] || {}
 
@@ -156,9 +148,7 @@ function ArticleModal({ article, onClose, user, navigate, statsMap, onStatsUpdat
     try {
       if (liked) await api.delete(`/articles/${article.id}/like`)
       else await api.post(`/articles/${article.id}/like`)
-    } catch {
-      onStatsUpdate(article.id, s => ({ ...s, likes: liked ? s.likes + 1 : s.likes - 1, user_liked: liked }))
-    }
+    } catch { onStatsUpdate(article.id, s => ({ ...s, likes: liked ? s.likes + 1 : s.likes - 1, user_liked: liked })) }
   }
 
   async function toggleSave() {
@@ -168,102 +158,34 @@ function ArticleModal({ article, onClose, user, navigate, statsMap, onStatsUpdat
     try {
       if (saved) await api.delete(`/articles/${article.id}/save`)
       else await api.post(`/articles/${article.id}/save`)
-    } catch {
-      onStatsUpdate(article.id, s => ({ ...s, saves: saved ? s.saves + 1 : s.saves - 1, user_saved: saved }))
-    }
+    } catch { onStatsUpdate(article.id, s => ({ ...s, saves: saved ? s.saves + 1 : s.saves - 1, user_saved: saved })) }
   }
 
   return createPortal(
     <div className="modal-backdrop" onClick={onClose}>
-      <div className="modal-content" style={{ maxWidth: 680, maxHeight: "88vh", overflowY: "auto", display: "flex", flexDirection: "column" }} onClick={e => e.stopPropagation()}>
+      <div className="modal-content" style={{ maxWidth: 680, maxHeight: "88vh", overflowY: "auto" }} onClick={e => e.stopPropagation()}>
         <button className="modal-close" onClick={onClose} type="button">×</button>
         <h2 style={{ marginBottom: 4 }}>{article.title}</h2>
-        <p style={{ fontSize: "0.85rem", color: "var(--text)", opacity: 0.5, marginBottom: "1rem" }}>
-          {new Date(article.date).toLocaleDateString()} · {article.author}
-        </p>
+        <p style={{ fontSize: "0.85rem", color: "var(--text)", opacity: 0.5, marginBottom: "1rem" }}>{new Date(article.date).toLocaleDateString()} · {article.author}</p>
         {article.imageUrl && <img src={article.imageUrl} style={{ width: "100%", borderRadius: 10, marginBottom: 16 }} alt="" />}
-        <div className="modal-text" style={{ marginBottom: 20 }}>{article.text}</div>
-
-        {/* social bar */}
-        <div style={{ display: "flex", gap: 6, alignItems: "center", borderTop: "1px solid rgba(255,255,255,0.08)", paddingTop: 14 }}>
-          <button
-            type="button"
-            onClick={toggleLike}
-            style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 16px", borderRadius: 999, border: "none", background: st.user_liked ? "rgba(239,68,68,0.15)" : "rgba(255,255,255,0.06)", color: st.user_liked ? "#ef4444" : "var(--text)", cursor: "pointer", fontWeight: 600, fontSize: "0.88rem", transition: "all 0.15s" }}
-          >
-            <HeartIcon filled={st.user_liked} size={17} /> {st.likes || 0}
+        <div className="modal-text" style={{ marginBottom: 24 }}>{article.text}</div>
+        <div style={{ display: "flex", gap: 8, borderTop: "1px solid rgba(255,255,255,0.08)", paddingTop: 14 }}>
+          <button onClick={toggleLike} type="button" style={{ display: "flex", alignItems: "center", gap: 7, padding: "9px 18px", borderRadius: 999, border: "none", background: st.user_liked ? "rgba(239,68,68,0.18)" : "rgba(255,255,255,0.07)", color: st.user_liked ? "#ef4444" : "var(--text)", cursor: "pointer", fontWeight: 600, fontSize: "0.9rem", transition: "all 0.15s" }}>
+            <svg width="17" height="17" viewBox="0 0 24 24" fill={st.user_liked ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+            {st.likes || 0}
           </button>
-          <button
-            type="button"
-            onClick={toggleSave}
-            style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 16px", borderRadius: 999, border: "none", background: st.user_saved ? "rgba(99,102,241,0.15)" : "rgba(255,255,255,0.06)", color: st.user_saved ? "#818cf8" : "var(--text)", cursor: "pointer", fontWeight: 600, fontSize: "0.88rem", transition: "all 0.15s" }}
-          >
-            <BookmarkIcon filled={st.user_saved} size={17} /> {st.saves || 0}
+          <button onClick={toggleSave} type="button" style={{ display: "flex", alignItems: "center", gap: 7, padding: "9px 18px", borderRadius: 999, border: "none", background: st.user_saved ? "rgba(99,102,241,0.18)" : "rgba(255,255,255,0.07)", color: st.user_saved ? "#818cf8" : "var(--text)", cursor: "pointer", fontWeight: 600, fontSize: "0.9rem", transition: "all 0.15s" }}>
+            <svg width="17" height="17" viewBox="0 0 24 24" fill={st.user_saved ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+            {st.saves || 0}
           </button>
-          <button
-            type="button"
-            onClick={() => onOpenComments(article)}
-            style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 16px", borderRadius: 999, border: "none", background: "rgba(255,255,255,0.06)", color: "var(--text)", cursor: "pointer", fontWeight: 600, fontSize: "0.88rem", transition: "all 0.15s" }}
-          >
-            <CommentIcon size={17} /> {st.comments_count || 0} Коментари
+          <button onClick={() => { onClose(); onOpenComments(article) }} type="button" style={{ display: "flex", alignItems: "center", gap: 7, padding: "9px 18px", borderRadius: 999, border: "none", background: "rgba(255,255,255,0.07)", color: "var(--text)", cursor: "pointer", fontWeight: 600, fontSize: "0.9rem", transition: "all 0.15s" }}>
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+            {st.comments_count || 0} Коментари
           </button>
         </div>
       </div>
     </div>,
     document.body
-  )
-}
-
-/* ── Card social hover buttons ── */
-function CardSocial({ article, user, navigate, statsMap, onStatsUpdate, onOpenComments }) {
-  const st = statsMap[article.id] || {}
-
-  async function toggleLike(e) {
-    e.stopPropagation()
-    if (!user) return navigate("/login")
-    const liked = st.user_liked
-    onStatsUpdate(article.id, s => ({ ...s, likes: liked ? s.likes - 1 : s.likes + 1, user_liked: !liked }))
-    try {
-      if (liked) await api.delete(`/articles/${article.id}/like`)
-      else await api.post(`/articles/${article.id}/like`)
-    } catch {
-      onStatsUpdate(article.id, s => ({ ...s, likes: liked ? s.likes + 1 : s.likes - 1, user_liked: liked }))
-    }
-  }
-
-  async function toggleSave(e) {
-    e.stopPropagation()
-    if (!user) return navigate("/login")
-    const saved = st.user_saved
-    onStatsUpdate(article.id, s => ({ ...s, saves: saved ? s.saves - 1 : s.saves + 1, user_saved: !saved }))
-    try {
-      if (saved) await api.delete(`/articles/${article.id}/save`)
-      else await api.post(`/articles/${article.id}/save`)
-    } catch {
-      onStatsUpdate(article.id, s => ({ ...s, saves: saved ? s.saves + 1 : s.saves - 1, user_saved: saved }))
-    }
-  }
-
-  return (
-    <div className="card-social-hover">
-      <button className={`card-social-btn${st.user_liked ? " card-social-btn--liked" : ""}`} onClick={toggleLike} title="Like" type="button">
-        <HeartIcon filled={st.user_liked} size={15} />
-        <span>{st.likes || 0}</span>
-      </button>
-      <button className={`card-social-btn${st.user_saved ? " card-social-btn--saved" : ""}`} onClick={toggleSave} title="Save" type="button">
-        <BookmarkIcon filled={st.user_saved} size={15} />
-        <span>{st.saves || 0}</span>
-      </button>
-      <button
-        className="card-social-btn"
-        type="button"
-        title="Comment"
-        onClick={e => { e.stopPropagation(); onOpenComments(article) }}
-      >
-        <CommentIcon size={15} />
-        <span>{st.comments_count || 0}</span>
-      </button>
-    </div>
   )
 }
 
@@ -300,6 +222,34 @@ export default function News() {
     setStatsMap(prev => ({ ...prev, [id]: updater(prev[id] || {}) }))
   }
 
+  async function toggleLike(e, article) {
+    e.stopPropagation()
+    if (!user) return navigate("/login")
+    const st = statsMap[article.id] || {}
+    const liked = st.user_liked
+    updateStats(article.id, s => ({ ...s, likes: liked ? (s.likes||0) - 1 : (s.likes||0) + 1, user_liked: !liked }))
+    try {
+      if (liked) await api.delete(`/articles/${article.id}/like`)
+      else await api.post(`/articles/${article.id}/like`)
+    } catch {
+      updateStats(article.id, s => ({ ...s, likes: liked ? (s.likes||0) + 1 : (s.likes||0) - 1, user_liked: liked }))
+    }
+  }
+
+  async function toggleSave(e, article) {
+    e.stopPropagation()
+    if (!user) return navigate("/login")
+    const st = statsMap[article.id] || {}
+    const saved = st.user_saved
+    updateStats(article.id, s => ({ ...s, saves: saved ? (s.saves||0) - 1 : (s.saves||0) + 1, user_saved: !saved }))
+    try {
+      if (saved) await api.delete(`/articles/${article.id}/save`)
+      else await api.post(`/articles/${article.id}/save`)
+    } catch {
+      updateStats(article.id, s => ({ ...s, saves: saved ? (s.saves||0) + 1 : (s.saves||0) - 1, user_saved: saved }))
+    }
+  }
+
   const filtered = filter === "All" ? articles : articles.filter(a => a.articleCategory === filter)
   const sorted = [...filtered].sort((a, b) => {
     if (sort === "newest") return new Date(b.date) - new Date(a.date)
@@ -316,33 +266,19 @@ export default function News() {
       {/* Category pills */}
       <div className="news-cat-toolbar" role="tablist">
         {CATEGORIES.map(cat => (
-          <button
-            key={cat} type="button" role="tab" aria-selected={filter === cat}
-            onClick={() => setFilter(cat)}
-            className={`news-cat-pill news-cat-pill--${categorySlug(cat)} ${filter === cat ? "is-active" : ""}`}
-          >{cat}</button>
+          <button key={cat} type="button" role="tab" aria-selected={filter === cat} onClick={() => setFilter(cat)}
+            className={`news-cat-pill news-cat-pill--${categorySlug(cat)} ${filter === cat ? "is-active" : ""}`}>{cat}</button>
         ))}
       </div>
 
       {/* Sort bar */}
       <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: "1.5rem" }}>
         {SORTS.map(s => (
-          <button
-            key={s.key} type="button"
-            onClick={() => setSort(s.key)}
-            style={{
-              padding: "6px 16px", borderRadius: 999, border: "1.5px solid",
-              borderColor: sort === s.key ? "var(--oxide-red, #c46a4a)" : "rgba(255,255,255,0.12)",
-              background: sort === s.key ? "rgba(196,106,74,0.15)" : "rgba(255,255,255,0.04)",
-              color: sort === s.key ? "var(--oxide-red, #c46a4a)" : "var(--text)",
-              fontSize: "0.82rem", fontWeight: sort === s.key ? 700 : 500,
-              cursor: "pointer", transition: "all 0.15s",
-            }}
-          >{s.label}</button>
+          <button key={s.key} type="button" onClick={() => setSort(s.key)} style={{ padding: "6px 16px", borderRadius: 999, border: "1.5px solid", borderColor: sort === s.key ? "var(--oxide-red, #c46a4a)" : "rgba(255,255,255,0.12)", background: sort === s.key ? "rgba(196,106,74,0.15)" : "rgba(255,255,255,0.04)", color: sort === s.key ? "var(--oxide-red, #c46a4a)" : "var(--text)", fontSize: "0.82rem", fontWeight: sort === s.key ? 700 : 500, cursor: "pointer", transition: "all 0.15s" }}>{s.label}</button>
         ))}
       </div>
 
-      {/* Cards grid */}
+      {/* Cards */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: 20 }}>
         {sorted.map(article => {
           const isLocked = article.isPremium && !hasSubscription
@@ -353,15 +289,12 @@ export default function News() {
             <div
               key={article.id}
               className="card news-card"
-              style={{ position: "relative", display: "flex", flexDirection: "column", cursor: isLocked ? "default" : "pointer" }}
+              style={{ position: "relative", display: "flex", flexDirection: "column", cursor: isLocked ? "default" : "pointer", overflow: "hidden" }}
               onClick={() => !isLocked && setSelectedArticle(article)}
             >
               {article.isPremium && (
-                <div style={{ position: "absolute", top: 10, right: 10, background: "var(--oxide-red)", color: "#fff", padding: "2px 8px", borderRadius: 4, fontWeight: 700, zIndex: 2, fontSize: "0.78rem" }}>
-                  🔒 Premium
-                </div>
+                <div style={{ position: "absolute", top: 10, right: 10, background: "var(--oxide-red)", color: "#fff", padding: "2px 8px", borderRadius: 4, fontWeight: 700, zIndex: 4, fontSize: "0.78rem" }}>🔒 Premium</div>
               )}
-
               {isLocked && (
                 <div style={{ position: "absolute", inset: 0, background: "color-mix(in srgb, var(--bg) 72%, transparent)", backdropFilter: "blur(5px)", zIndex: 3, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", borderRadius: 8 }}>
                   <span style={{ fontSize: "3rem" }}>🔒</span>
@@ -371,31 +304,51 @@ export default function News() {
               )}
 
               {article.imageUrl && (
-                <div style={{ position: "relative", overflow: "hidden", borderRadius: 8, marginBottom: 12 }}>
-                  <img src={article.imageUrl} alt={article.title} style={{ width: "100%", height: 200, objectFit: "cover", display: "block", transition: "transform 0.3s" }} />
-                  {/* hover social overlay on image */}
-                  {!isLocked && (
-                    <CardSocial article={article} user={user} navigate={navigate} statsMap={statsMap} onStatsUpdate={updateStats} onOpenComments={setCommentPopup} />
-                  )}
-                </div>
+                <img src={article.imageUrl} alt={article.title} style={{ width: "100%", height: 200, objectFit: "cover", borderRadius: 8, marginBottom: 12, display: "block" }} />
               )}
 
-              <h3 style={{ margin: "0 0 4px", fontSize: "1.05rem" }}>{article.title}</h3>
+              <h3 style={{ margin: "0 0 4px", fontSize: "1.05rem", lineHeight: 1.3 }}>{article.title}</h3>
               <p style={{ fontSize: "0.82rem", color: "var(--text)", opacity: 0.5, margin: "0 0 8px" }}>
                 {new Date(article.date).toLocaleDateString()} · {article.author}
               </p>
-
               <div style={{ marginBottom: 10 }}>
                 <span className={`article-category-tag article-category-tag--${tagSlug}`}>{article.articleCategory}</span>
               </div>
+              <p style={{ flex: 1, fontSize: "0.9rem", margin: "0 0 14px", opacity: 0.8, lineHeight: 1.55 }}>{article.excerpt}</p>
 
-              <p style={{ flex: 1, fontSize: "0.9rem", margin: "0 0 12px", opacity: 0.8 }}>{article.excerpt}</p>
-
-              {/* stats row at bottom */}
-              <div style={{ display: "flex", gap: 14, alignItems: "center", opacity: 0.5, fontSize: "0.8rem", color: "var(--text)", marginTop: "auto" }}>
-                <span style={{ display: "flex", alignItems: "center", gap: 4 }}><HeartIcon filled={st.user_liked} /> {st.likes || 0}</span>
-                <span style={{ display: "flex", alignItems: "center", gap: 4 }}><CommentIcon /> {st.comments_count || 0}</span>
-                <span style={{ display: "flex", alignItems: "center", gap: 4 }}><BookmarkIcon filled={st.user_saved} /> {st.saves || 0}</span>
+              {/* bottom action bar — only here, no duplicate above */}
+              <div style={{ display: "flex", gap: 6, alignItems: "center", borderTop: "1px solid rgba(255,255,255,0.07)", paddingTop: 10, marginTop: "auto" }} onClick={e => e.stopPropagation()}>
+                <button
+                  type="button"
+                  onClick={e => toggleLike(e, article)}
+                  style={{ display: "flex", alignItems: "center", gap: 5, padding: "7px 14px", borderRadius: 999, border: "none", background: st.user_liked ? "rgba(239,68,68,0.18)" : "rgba(255,255,255,0.06)", color: st.user_liked ? "#ef4444" : "var(--text)", cursor: "pointer", fontSize: "0.85rem", fontWeight: 600, transition: "all 0.15s" }}
+                >
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill={st.user_liked ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+                  {st.likes || 0}
+                </button>
+                <button
+                  type="button"
+                  onClick={e => toggleSave(e, article)}
+                  style={{ display: "flex", alignItems: "center", gap: 5, padding: "7px 14px", borderRadius: 999, border: "none", background: st.user_saved ? "rgba(99,102,241,0.18)" : "rgba(255,255,255,0.06)", color: st.user_saved ? "#818cf8" : "var(--text)", cursor: "pointer", fontSize: "0.85rem", fontWeight: 600, transition: "all 0.15s" }}
+                >
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill={st.user_saved ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+                  {st.saves || 0}
+                </button>
+                <button
+                  type="button"
+                  onClick={e => { e.stopPropagation(); setCommentPopup(article) }}
+                  style={{ display: "flex", alignItems: "center", gap: 5, padding: "7px 14px", borderRadius: 999, border: "none", background: "rgba(255,255,255,0.06)", color: "var(--text)", cursor: "pointer", fontSize: "0.85rem", fontWeight: 600, transition: "all 0.15s" }}
+                >
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                  {st.comments_count || 0}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSelectedArticle(article)}
+                  style={{ marginLeft: "auto", padding: "7px 16px", borderRadius: 999, border: "1.5px solid rgba(255,255,255,0.12)", background: "transparent", color: "var(--text)", cursor: "pointer", fontSize: "0.82rem", fontWeight: 600, transition: "all 0.15s" }}
+                >
+                  Прочети →
+                </button>
               </div>
             </div>
           )
@@ -403,25 +356,17 @@ export default function News() {
       </div>
 
       {selectedArticle && (
-        <ArticleModal
-          article={selectedArticle}
-          onClose={() => setSelectedArticle(null)}
-          user={user}
-          navigate={navigate}
-          statsMap={statsMap}
-          onStatsUpdate={updateStats}
-          onOpenComments={(a) => { setSelectedArticle(null); setCommentPopup(a) }}
-        />
+        <ArticleModal article={selectedArticle} onClose={() => setSelectedArticle(null)} user={user} navigate={navigate} statsMap={statsMap} onStatsUpdate={updateStats} onOpenComments={a => { setSelectedArticle(null); setCommentPopup(a) }} />
       )}
 
       {commentPopup && (
-        <CommentPopup
+        <CommentConversation
           article={commentPopup}
           user={user}
           navigate={navigate}
           onClose={() => setCommentPopup(null)}
           statsMap={statsMap}
-          onStatsUpdate={updateStats}
+          onCommentAdded={id => updateStats(id, s => ({ ...s, comments_count: (s.comments_count || 0) + 1 }))}
         />
       )}
     </div>

@@ -6658,6 +6658,53 @@ html[data-theme="dark"] .maintenance-loading {
   line-height: 1.55;
   word-break: break-word;
 }
+/* card hover social overlay */
+.news-card { transition: transform 0.2s; }
+.news-card:hover { transform: translateY(-2px); }
+
+.card-social-hover {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  display: flex;
+  gap: 6px;
+  padding: 10px 12px;
+  background: linear-gradient(to top, rgba(0,0,0,0.72) 0%, transparent 100%);
+  opacity: 0;
+  transition: opacity 0.2s;
+  pointer-events: none;
+}
+.news-card:hover .card-social-hover,
+.home-featured-card:hover .card-social-hover {
+  opacity: 1;
+  pointer-events: auto;
+}
+.card-social-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: none;
+  background: rgba(255,255,255,0.15);
+  backdrop-filter: blur(8px);
+  color: #fff;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, transform 0.12s;
+}
+.card-social-btn:hover {
+  background: rgba(255,255,255,0.28);
+  transform: scale(1.06);
+}
+.card-social-btn--liked {
+  background: rgba(239,68,68,0.55) !important;
+  color: #fff;
+}
+.card-social-btn--saved {
+  background: rgba(99,102,241,0.55) !important;
+  color: #fff;
+}
 /* ===== END NEWS SOCIAL ===== */
 
 /* ===== PROFILE REDESIGN ===== */

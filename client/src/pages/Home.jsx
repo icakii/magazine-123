@@ -75,6 +75,11 @@ export default function Home() {
   const [welcomeFlipped, setWelcomeFlipped] = useState(false)
   const [reminderIds, setReminderIds] = useState(new Set())
   const [communityArticles, setCommunityArticles] = useState([])
+  const [homeStatsMap, setHomeStatsMap] = useState({})
+  const [homeCommentPopup, setHomeCommentPopup] = useState(null)
+  const [homeComments, setHomeComments] = useState([])
+  const [homeCommentText, setHomeCommentText] = useState("")
+  const [homeCommentPosting, setHomeCommentPosting] = useState(false)
 
   useEffect(() => {
     if (selectedArticle) {
@@ -151,7 +156,13 @@ export default function Home() {
           api.get("/community/articles", { params: { limit: 2 } }).catch(() => ({ data: [] })),
         ])
         if (alive) {
-          setArticles(Array.isArray(homeRes.data) ? homeRes.data : [])
+          const homeArticles = Array.isArray(homeRes.data) ? homeRes.data : []
+          setArticles(homeArticles)
+          homeArticles.forEach(a => {
+            api.get(`/articles/${a.id}/stats`).then(r => {
+              setHomeStatsMap(prev => ({ ...prev, [a.id]: r.data || {} }))
+            }).catch(() => {})
+          })
           const today = new Date().toISOString().slice(0, 10)
           const upcoming = (Array.isArray(eventsRes.data) ? eventsRes.data : [])
             .filter((e) => e.date >= today)
@@ -219,11 +230,36 @@ export default function Home() {
             <div className="home-featured-grid">
               {featured.map((f) => {
                 const isLocked = !!f.isPremium && !hasSubscription
+                const st = homeStatsMap[f.id] || {}
+
+                async function toggleHomeLike(e) {
+                  e.stopPropagation()
+                  if (!user) return navigate("/login")
+                  const liked = st.user_liked
+                  setHomeStatsMap(prev => ({ ...prev, [f.id]: { ...prev[f.id], likes: liked ? (st.likes||0)-1 : (st.likes||0)+1, user_liked: !liked } }))
+                  try {
+                    if (liked) await api.delete(`/articles/${f.id}/like`)
+                    else await api.post(`/articles/${f.id}/like`)
+                  } catch {
+                    setHomeStatsMap(prev => ({ ...prev, [f.id]: { ...prev[f.id], likes: liked ? (st.likes||0)+1 : (st.likes||0)-1, user_liked: liked } }))
+                  }
+                }
+                async function toggleHomeSave(e) {
+                  e.stopPropagation()
+                  if (!user) return navigate("/login")
+                  const saved = st.user_saved
+                  setHomeStatsMap(prev => ({ ...prev, [f.id]: { ...prev[f.id], saves: saved ? (st.saves||0)-1 : (st.saves||0)+1, user_saved: !saved } }))
+                  try {
+                    if (saved) await api.delete(`/articles/${f.id}/save`)
+                    else await api.post(`/articles/${f.id}/save`)
+                  } catch {
+                    setHomeStatsMap(prev => ({ ...prev, [f.id]: { ...prev[f.id], saves: saved ? (st.saves||0)+1 : (st.saves||0)-1, user_saved: saved } }))
+                  }
+                }
+
                 return (
                   <div key={f.id} className="home-featured-card glass-card">
-                    {f.isPremium && (
-                      <div className="featured-premium-badge">🔒 Premium</div>
-                    )}
+                    {f.isPremium && <div className="featured-premium-badge">🔒 Premium</div>}
                     {isLocked && (
                       <div className="featured-lock-overlay">
                         <span>🔒</span>
@@ -232,17 +268,32 @@ export default function Home() {
                       </div>
                     )}
                     {f.imageUrl && (
-                      <img src={f.imageUrl} className="home-featured-img" alt={f.title} loading="lazy" />
+                      <div style={{ position: "relative", overflow: "hidden" }}>
+                        <img src={f.imageUrl} className="home-featured-img" alt={f.title} loading="lazy" />
+                        {!isLocked && (
+                          <div className="card-social-hover">
+                            <button className={`card-social-btn${st.user_liked ? " card-social-btn--liked" : ""}`} onClick={toggleHomeLike} title="Like" type="button">
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill={st.user_liked ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+                              <span>{st.likes || 0}</span>
+                            </button>
+                            <button className={`card-social-btn${st.user_saved ? " card-social-btn--saved" : ""}`} onClick={toggleHomeSave} title="Save" type="button">
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill={st.user_saved ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+                              <span>{st.saves || 0}</span>
+                            </button>
+                            <button className="card-social-btn" type="button" title="Comment"
+                              onClick={e => { e.stopPropagation(); setHomeCommentPopup(f); setHomeComments([]); setHomeCommentText(""); api.get(`/articles/${f.id}/comments`).then(r => setHomeComments(r.data||[])).catch(()=>{}) }}
+                            >
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                              <span>{st.comments_count || 0}</span>
+                            </button>
+                          </div>
+                        )}
+                      </div>
                     )}
                     <div className="home-featured-body">
                       <h3 className="home-featured-title">{f.title}</h3>
                       {f.excerpt && <p className="home-featured-excerpt">{f.excerpt}</p>}
-                      <button
-                        className="btn outline home-featured-btn"
-                        onClick={() => !isLocked && setSelectedArticle(f)}
-                        disabled={isLocked}
-                        type="button"
-                      >
+                      <button className="btn outline home-featured-btn" onClick={() => !isLocked && setSelectedArticle(f)} disabled={isLocked} type="button">
                         {t("read_more")}
                       </button>
                     </div>
@@ -581,6 +632,75 @@ export default function Home() {
               <img src={selectedArticle.imageUrl} style={{ width: "100%", borderRadius: 8, marginBottom: 20 }} alt={selectedArticle.title} />
             )}
             <div className="modal-text">{selectedArticle.text}</div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* Home comment popup (bottom sheet) */}
+      {homeCommentPopup && createPortal(
+        <div
+          style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.65)", zIndex: 9999, display: "flex", alignItems: "flex-end", justifyContent: "center" }}
+          onClick={() => setHomeCommentPopup(null)}
+        >
+          <div
+            style={{ background: "var(--bg, #111)", borderRadius: "20px 20px 0 0", width: "100%", maxWidth: 580, maxHeight: "70vh", display: "flex", flexDirection: "column", overflow: "hidden", boxShadow: "0 -8px 40px rgba(0,0,0,0.4)" }}
+            onClick={e => e.stopPropagation()}
+          >
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 20px 12px" }}>
+              <span style={{ fontWeight: 700, fontSize: "0.95rem", color: "var(--text)" }}>
+                💬 {homeCommentPopup.title?.slice(0, 36)}{homeCommentPopup.title?.length > 36 ? "…" : ""}
+              </span>
+              <button onClick={() => setHomeCommentPopup(null)} style={{ background: "none", border: "none", color: "var(--text)", opacity: 0.5, fontSize: "1.4rem", cursor: "pointer", lineHeight: 1 }}>×</button>
+            </div>
+            <div style={{ flex: 1, overflowY: "auto", padding: "0 20px 12px" }}>
+              {homeComments.length === 0 && <p style={{ color: "var(--text)", opacity: 0.4, fontSize: "0.88rem", textAlign: "center", margin: "1.5rem 0" }}>Все още няма коментари.</p>}
+              {homeComments.map(c => (
+                <div key={c.id} style={{ display: "flex", gap: 10, marginBottom: 14 }}>
+                  <div style={{ width: 34, height: 34, borderRadius: "50%", background: "var(--oxide-red, #c46a4a)", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: "0.9rem", flexShrink: 0 }}>
+                    {(c.display_name || "?")[0].toUpperCase()}
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ display: "flex", gap: 8, alignItems: "baseline", marginBottom: 2 }}>
+                      <span style={{ fontWeight: 700, fontSize: "0.85rem", color: "var(--text)" }}>{c.display_name || "Потребител"}</span>
+                      <span style={{ fontSize: "0.75rem", color: "var(--text)", opacity: 0.4 }}>{new Date(c.created_at).toLocaleDateString("bg-BG")}</span>
+                    </div>
+                    <p style={{ margin: 0, fontSize: "0.9rem", color: "var(--text)", opacity: 0.85, lineHeight: 1.5 }}>{c.content}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div style={{ borderTop: "1px solid rgba(255,255,255,0.07)", padding: "12px 16px" }}>
+              {user ? (
+                <form onSubmit={async e => {
+                  e.preventDefault()
+                  if (!homeCommentText.trim() || homeCommentPosting) return
+                  setHomeCommentPosting(true)
+                  try {
+                    const res = await api.post(`/articles/${homeCommentPopup.id}/comments`, { content: homeCommentText.trim() })
+                    setHomeComments(prev => [res.data, ...prev])
+                    setHomeStatsMap(prev => ({ ...prev, [homeCommentPopup.id]: { ...prev[homeCommentPopup.id], comments_count: (prev[homeCommentPopup.id]?.comments_count || 0) + 1 } }))
+                    setHomeCommentText("")
+                  } catch {} finally { setHomeCommentPosting(false) }
+                }} style={{ display: "flex", gap: 10, alignItems: "flex-end" }}>
+                  <textarea
+                    value={homeCommentText}
+                    onChange={e => setHomeCommentText(e.target.value)}
+                    placeholder="Напиши коментар..."
+                    rows={1}
+                    maxLength={600}
+                    style={{ flex: 1, background: "rgba(255,255,255,0.06)", border: "1.5px solid rgba(255,255,255,0.1)", borderRadius: 12, padding: "10px 14px", color: "var(--text)", fontSize: "0.9rem", fontFamily: "inherit", outline: "none", resize: "none" }}
+                  />
+                  <button type="submit" disabled={homeCommentPosting || !homeCommentText.trim()} style={{ padding: "10px 18px", borderRadius: 12, border: "none", background: "var(--oxide-red, #c46a4a)", color: "#fff", fontWeight: 700, fontSize: "0.88rem", cursor: "pointer", opacity: homeCommentPosting || !homeCommentText.trim() ? 0.5 : 1, flexShrink: 0 }}>
+                    {homeCommentPosting ? "…" : "Изпрати"}
+                  </button>
+                </form>
+              ) : (
+                <button onClick={() => navigate("/login")} style={{ width: "100%", padding: "12px", borderRadius: 12, border: "1.5px solid rgba(255,255,255,0.1)", background: "transparent", color: "var(--text)", cursor: "pointer", fontWeight: 600 }}>
+                  Влез за да коментираш
+                </button>
+              )}
+            </div>
           </div>
         </div>,
         document.body

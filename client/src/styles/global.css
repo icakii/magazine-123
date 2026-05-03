@@ -56,6 +56,8 @@
 
   --border: rgba(30, 30, 30, 0.14);
   --border-strong: rgba(30, 30, 30, 0.22);
+  --action-pill: rgba(0, 0, 0, 0.07);
+  --action-pill-div: rgba(0, 0, 0, 0.1);
 
   --nav-bg: rgba(255, 244, 230, 0.92);
   --nav-text: var(--ink);
@@ -126,6 +128,8 @@
 html[data-theme="dark"] {
   /* dark base */
   --bg: #101010;
+  --action-pill: rgba(255, 255, 255, 0.07);
+  --action-pill-div: rgba(255, 255, 255, 0.1);
   --bg-muted: #171717;
   --bg-elev: rgba(16, 16, 16, 0.92);
 

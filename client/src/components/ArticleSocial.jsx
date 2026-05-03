@@ -349,10 +349,13 @@ export function CommentConversation({ article, user, navigate, onClose, onCommen
 
 /* ── Article bottom action bar ── */
 export function ArticleActionBar({ article, st, user, navigate, onToggleLike, onToggleSave, onComment, onRead, onLikersOpen }) {
+  const pill = "var(--action-pill, rgba(0,0,0,0.07))"
+  const pillDiv = "var(--action-pill-div, rgba(0,0,0,0.1))"
+
   return (
-    <div style={{ display: "flex", gap: 6, alignItems: "center", borderTop: "1px solid rgba(255,255,255,0.07)", paddingTop: 10, marginTop: "auto" }} onClick={e => e.stopPropagation()}>
+    <div style={{ display: "flex", gap: 6, alignItems: "center", borderTop: "1px solid var(--border, rgba(0,0,0,0.08))", paddingTop: 10, marginTop: "auto" }} onClick={e => e.stopPropagation()}>
       {/* like: split button */}
-      <div style={{ display: "flex", alignItems: "center", borderRadius: 999, overflow: "hidden", background: st.user_liked ? "rgba(239,68,68,0.18)" : "rgba(255,255,255,0.06)" }}>
+      <div style={{ display: "flex", alignItems: "center", borderRadius: 999, overflow: "hidden", background: st.user_liked ? "rgba(239,68,68,0.15)" : pill }}>
         <button
           type="button"
           onClick={e => onToggleLike(e, article)}
@@ -363,7 +366,7 @@ export function ArticleActionBar({ article, st, user, navigate, onToggleLike, on
         <button
           type="button"
           onClick={e => { e.stopPropagation(); if ((st.likes || 0) > 0 && onLikersOpen) onLikersOpen(article.id) }}
-          style={{ padding: "7px 12px 7px 4px", border: "none", borderLeft: "1px solid rgba(255,255,255,0.08)", background: "transparent", color: st.user_liked ? "#ef4444" : "var(--text)", cursor: (st.likes || 0) > 0 ? "pointer" : "default", fontSize: "0.85rem", fontWeight: 600, transition: "all 0.15s" }}
+          style={{ padding: "7px 12px 7px 4px", border: "none", borderLeft: `1px solid ${pillDiv}`, background: "transparent", color: st.user_liked ? "#ef4444" : "var(--text)", cursor: (st.likes || 0) > 0 ? "pointer" : "default", fontSize: "0.85rem", fontWeight: 600, transition: "all 0.15s" }}
         >
           {st.likes || 0}
         </button>
@@ -372,7 +375,7 @@ export function ArticleActionBar({ article, st, user, navigate, onToggleLike, on
       <button
         type="button"
         onClick={e => onToggleSave(e, article)}
-        style={{ display: "flex", alignItems: "center", gap: 5, padding: "7px 14px", borderRadius: 999, border: "none", background: st.user_saved ? "rgba(99,102,241,0.18)" : "rgba(255,255,255,0.06)", color: st.user_saved ? "#818cf8" : "var(--text)", cursor: "pointer", fontSize: "0.85rem", fontWeight: 600, transition: "all 0.15s" }}
+        style={{ display: "flex", alignItems: "center", gap: 5, padding: "7px 14px", borderRadius: 999, border: "none", background: st.user_saved ? "rgba(99,102,241,0.15)" : pill, color: st.user_saved ? "#818cf8" : "var(--text)", cursor: "pointer", fontSize: "0.85rem", fontWeight: 600, transition: "all 0.15s" }}
       >
         <svg width="15" height="15" viewBox="0 0 24 24" fill={st.user_saved ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
         {st.saves || 0}
@@ -381,7 +384,7 @@ export function ArticleActionBar({ article, st, user, navigate, onToggleLike, on
       <button
         type="button"
         onClick={e => { e.stopPropagation(); onComment(article) }}
-        style={{ display: "flex", alignItems: "center", gap: 5, padding: "7px 14px", borderRadius: 999, border: "none", background: "rgba(255,255,255,0.06)", color: "var(--text)", cursor: "pointer", fontSize: "0.85rem", fontWeight: 600, transition: "all 0.15s" }}
+        style={{ display: "flex", alignItems: "center", gap: 5, padding: "7px 14px", borderRadius: 999, border: "none", background: pill, color: "var(--text)", cursor: "pointer", fontSize: "0.85rem", fontWeight: 600, transition: "all 0.15s" }}
       >
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
         {st.comments_count || 0}
@@ -391,7 +394,7 @@ export function ArticleActionBar({ article, st, user, navigate, onToggleLike, on
         <button
           type="button"
           onClick={e => { e.stopPropagation(); onRead(article) }}
-          style={{ marginLeft: "auto", padding: "7px 16px", borderRadius: 999, border: "1.5px solid rgba(255,255,255,0.12)", background: "transparent", color: "var(--text)", cursor: "pointer", fontSize: "0.82rem", fontWeight: 600 }}
+          style={{ marginLeft: "auto", padding: "7px 16px", borderRadius: 999, border: "1.5px solid var(--border, rgba(0,0,0,0.12))", background: "transparent", color: "var(--text)", cursor: "pointer", fontSize: "0.82rem", fontWeight: 600 }}
         >
           Read
         </button>

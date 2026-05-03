@@ -353,7 +353,7 @@ export function ArticleActionBar({ article, st, user, navigate, onToggleLike, on
   const pillDiv = "var(--action-pill-div, rgba(0,0,0,0.1))"
 
   return (
-    <div style={{ display: "flex", gap: 6, alignItems: "center", borderTop: "1px solid var(--border, rgba(0,0,0,0.08))", paddingTop: 10, marginTop: "auto" }} onClick={e => e.stopPropagation()}>
+    <div style={{ display: "flex", gap: 6, alignItems: "center", borderTop: "1px solid var(--border, rgba(0,0,0,0.08))", paddingTop: 10, paddingBottom: 10, marginTop: "auto" }} onClick={e => e.stopPropagation()}>
       {/* like: split button */}
       <div style={{ display: "flex", alignItems: "center", borderRadius: 999, overflow: "hidden", background: st.user_liked ? "rgba(239,68,68,0.15)" : pill }}>
         <button

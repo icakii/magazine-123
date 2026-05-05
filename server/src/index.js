@@ -953,6 +953,9 @@ app.get("/api/fix-db", async (req, res) => {
     await db.query(
       `ALTER TABLE articles ADD COLUMN IF NOT EXISTS home_featured BOOLEAN DEFAULT FALSE;`
     )
+    await db.query(
+      `ALTER TABLE event_reminders ADD COLUMN IF NOT EXISTS reminder_sent_at TIMESTAMPTZ;`
+    )
 
     await db.query(`
       CREATE TABLE IF NOT EXISTS magazine_issues (
@@ -981,6 +984,7 @@ app.get("/api/fix-db", async (req, res) => {
         user_email TEXT NOT NULL,
         article_id INTEGER NOT NULL REFERENCES articles(id) ON DELETE CASCADE,
         created_at TIMESTAMP DEFAULT NOW(),
+        reminder_sent_at TIMESTAMPTZ,
         UNIQUE(user_email, article_id)
       );
     `)

@@ -909,7 +909,7 @@ html[data-theme="dark"] .lang-toggle {
   display: grid;
   grid-template-columns: 1fr 1px 1fr;
   gap: 0;
-  padding: 4px 0;
+  padding: 4px 0 10px;
 }
 .drawer-col {
   display: flex;

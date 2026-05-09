@@ -206,6 +206,7 @@ export default function NavBar() {
                         <path d="m15.626 11.769a6 6 0 1 0 -7.252 0 9.008 9.008 0 0 0 -5.374 8.231 3 3 0 0 0 3 3h12a3 3 0 0 0 3-3 9.008 9.008 0 0 0 -5.374-8.231zm-7.626-4.769a4 4 0 1 1 4 4 4 4 0 0 1 -4-4zm10 14h-12a1 1 0 0 1 -1-1 7 7 0 0 1 14 0 1 1 0 0 1 -1 1z" />
                       </svg>
                     )}
+                    <p>{lang === "bg" ? "Профил" : "Profile"}</p>
                   </div>
                 </Link>
               )}
@@ -229,7 +230,7 @@ export default function NavBar() {
             <span className="drawer-item drawer-item--locked">MIREN ART 🔒</span>
           )}
 
-          {/* Two-column grid — no separators around it */}
+          {/* Two-column grid */}
           <div className="drawer-columns">
             <div className="drawer-col">
               <div className="drawer-col-header">{lang === "bg" ? "Съдържание" : "Content"}</div>
@@ -247,8 +248,6 @@ export default function NavBar() {
               <Link className="drawer-item" to="/opportunities" onClick={closeDrawer}>{t("opportunities")}</Link>
             </div>
           </div>
-
-          <div className="drawer-sep" />
 
           {/* Info singles */}
           <Link className="drawer-item" to="/about" onClick={closeDrawer}>{t("about")}</Link>

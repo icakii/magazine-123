@@ -904,6 +904,46 @@ html[data-theme="dark"] .lang-toggle {
   border-top: 1px solid var(--nav-border);
 }
 
+/* Drawer two-column grid */
+.drawer-columns {
+  display: grid;
+  grid-template-columns: 1fr 1px 1fr;
+  gap: 0;
+  padding: 4px 0;
+}
+.drawer-col {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  align-items: center;
+}
+.drawer-col-header {
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text);
+  opacity: 0.4;
+  padding: 6px 14px 8px;
+  text-align: center;
+}
+.drawer-col .drawer-item {
+  width: 100%;
+  text-align: center;
+  padding: 9px 10px;
+}
+.drawer-col-divider {
+  background: var(--nav-border);
+  width: 1px;
+  margin: 4px 0;
+}
+.drawer-item--admin {
+  color: #27ae60;
+  border: 1px solid rgba(39,174,96,0.3);
+  border-radius: 10px;
+  margin-top: 2px;
+}
+
 /* Mobile nav layout */
 @media (max-width: 820px) {
   .nav-inner {

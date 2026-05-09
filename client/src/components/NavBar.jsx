@@ -199,7 +199,6 @@ export default function NavBar() {
                         <path d="m15.626 11.769a6 6 0 1 0 -7.252 0 9.008 9.008 0 0 0 -5.374 8.231 3 3 0 0 0 3 3h12a3 3 0 0 0 3-3 9.008 9.008 0 0 0 -5.374-8.231zm-7.626-4.769a4 4 0 1 1 4 4 4 4 0 0 1 -4-4zm10 14h-12a1 1 0 0 1 -1-1 7 7 0 0 1 14 0 1 1 0 0 1 -1 1z" />
                       </svg>
                     )}
-                    <p>{user.display_name || user.displayName || "Profile"}</p>
                   </div>
                 </Link>
               )}
@@ -212,77 +211,58 @@ export default function NavBar() {
 
       <aside className={`drawer ${open ? "open" : ""}`} aria-hidden={!open}>
         <nav className="drawer-list">
-          <Link className="drawer-item" to="/" onClick={closeDrawer}>
-            {t("home")}
-          </Link>
 
-          <Link className="drawer-item drawer-item--store" to="/store" onClick={closeDrawer}>
-            🛒 {t("store")}
-          </Link>
-
-          <Link className="drawer-item drawer-item--write" to="/write" onClick={closeDrawer}>
-            ✍️ {t("write")}
-          </Link>
-
-          <Link className="drawer-item" to="/e-magazine" onClick={closeDrawer}>
-            {t("emag")}
-          </Link>
-          <Link className="drawer-item" to="/news" onClick={closeDrawer}>
-            {t("news")}
-          </Link>
-          <Link className="drawer-item" to="/events" onClick={closeDrawer}>
-            {t("events")}
-          </Link>
-
-          <Link className="drawer-item" to="/gallery" onClick={closeDrawer}>
-            {t("gallery")}
-          </Link>
-
-          <Link className="drawer-item" to="/subscriptions" onClick={closeDrawer}>
-            {t("subscriptions")}
-          </Link>
-
-          <Link className="drawer-item" to="/opportunities" onClick={closeDrawer}>
-            {t("opportunities")}
-          </Link>
-
-          <Link className="drawer-item" to="/games" onClick={handleProtectedClick}>
-            {t("games")}
-          </Link>
-
-          <Link className="drawer-item" to="/about" onClick={closeDrawer}>
-            {t("about")}
-          </Link>
-          <Link className="drawer-item" to="/contact" onClick={closeDrawer}>
-            {t("contact")}
-          </Link>
-          <Link className="drawer-item" to="/help" onClick={closeDrawer}>
-            {t("help")}
-          </Link>
+          {/* Top singles */}
+          <Link className="drawer-item" to="/" onClick={closeDrawer}>{t("home")}</Link>
+          <Link className="drawer-item" to="/write" onClick={closeDrawer}>{t("write")}</Link>
 
           <div className="drawer-sep" />
 
+          {/* Two-column grid */}
+          <div className="drawer-columns">
+            <div className="drawer-col">
+              <div className="drawer-col-header">Content</div>
+              <Link className="drawer-item" to="/e-magazine" onClick={closeDrawer}>{t("emag")}</Link>
+              <Link className="drawer-item" to="/news" onClick={closeDrawer}>{t("news")}</Link>
+              <Link className="drawer-item" to="/gallery" onClick={closeDrawer}>{t("gallery")}</Link>
+              <Link className="drawer-item" to="/events" onClick={closeDrawer}>{t("events")}</Link>
+              <Link className="drawer-item" to="/games" onClick={handleProtectedClick}>{t("games")}</Link>
+            </div>
+            <div className="drawer-col-divider" />
+            <div className="drawer-col">
+              <div className="drawer-col-header">Products</div>
+              <Link className="drawer-item" to="/store" onClick={closeDrawer}>{t("store")}</Link>
+              <Link className="drawer-item" to="/subscriptions" onClick={closeDrawer}>{t("subscriptions")}</Link>
+              <Link className="drawer-item" to="/opportunities" onClick={closeDrawer}>{t("opportunities")}</Link>
+            </div>
+          </div>
+
+          <div className="drawer-sep" />
+
+          {/* Info singles */}
+          <Link className="drawer-item" to="/about" onClick={closeDrawer}>{t("about")}</Link>
+          <Link className="drawer-item" to="/contact" onClick={closeDrawer}>{t("contact")}</Link>
+          <Link className="drawer-item" to="/help" onClick={closeDrawer}>{t("help")}</Link>
+
+          <div className="drawer-sep" />
+
+          {/* Lang */}
           <button className="drawer-item drawer-item-btn drawer-item-control" onClick={changeLang} type="button">
             {t("language")}: {lang.toUpperCase()}
           </button>
 
-          <div className="drawer-sep" />
+          {/* Profile */}
+          <Link className="drawer-item" to="/profile" onClick={closeDrawer}>
+            Profile
+          </Link>
 
-          {!user ? (
-            <Link className="drawer-item" to="/profile" onClick={closeDrawer}>
-              {t("profile")}
-            </Link>
-          ) : (
-                        <Link className="drawer-item" to="/profile" onClick={closeDrawer}>
-              {t("profile")}
-            </Link>
-          )}
-
+          {/* Admin */}
           {isAdmin && (
             <Link className="drawer-item drawer-item--admin" to="/admin" onClick={closeDrawer}>
-              ⚙️ Admin Panel
+              Admin Panel
             </Link>
           )}
+
         </nav>
       </aside>
 

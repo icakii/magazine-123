@@ -1258,11 +1258,31 @@ app.post("/api/articles/:id/comments", authMiddleware, async (req, res) => {
 app.get("/api/articles/:id/stats", async (req, res) => {
   try {
     const id = Number(req.params.id)
-    const [likes, comments] = await Promise.all([
+    // get email from cookie if logged in
+    let email = null
+    try {
+      const token = req.cookies?.token
+      if (token) {
+        const jwt = require("jsonwebtoken")
+        const decoded = jwt.verify(token, process.env.JWT_SECRET)
+        email = decoded?.email || null
+      }
+    } catch {}
+
+    const [likes, comments, saves, userLiked, userSaved] = await Promise.all([
       db.query(`SELECT COUNT(*) FROM article_likes WHERE article_id=$1`, [id]),
       db.query(`SELECT COUNT(*) FROM article_comments WHERE article_id=$1`, [id]),
+      db.query(`SELECT COUNT(*) FROM article_saves WHERE article_id=$1`, [id]),
+      email ? db.query(`SELECT 1 FROM article_likes WHERE article_id=$1 AND lower(user_email)=lower($2)`, [id, email]) : Promise.resolve({ rows: [] }),
+      email ? db.query(`SELECT 1 FROM article_saves WHERE article_id=$1 AND lower(user_email)=lower($2)`, [id, email]) : Promise.resolve({ rows: [] }),
     ])
-    res.json({ likes: Number(likes.rows[0].count), comments: Number(comments.rows[0].count) })
+    res.json({
+      likes: Number(likes.rows[0].count),
+      comments_count: Number(comments.rows[0].count),
+      saves: Number(saves.rows[0].count),
+      user_liked: userLiked.rows.length > 0,
+      user_saved: userSaved.rows.length > 0,
+    })
   } catch (e) { res.status(500).json({ error: e.message }) }
 })
 

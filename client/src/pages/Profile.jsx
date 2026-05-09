@@ -478,39 +478,37 @@ export default function Profile() {
             <p className="text-muted" style={{ textAlign: "center", marginTop: "2rem" }}>Нямаш поръчани списания.</p>
           )}
           {orders !== null && orders.length > 0 && (
-            <div className="list" style={{ maxWidth: 680 }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 12, maxWidth: 680 }}>
               {orders.map((o) => {
                 const addr = o.shipping_address || {}
                 const addrLine = [addr.line1, addr.city, addr.country].filter(Boolean).join(", ")
                 return (
-                  <div key={o.id} className="card" style={{ marginBottom: 12 }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
-                      <div>
+                  <div key={o.id} className="card orders-card">
+                    <div className="orders-card-row">
+                      <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ fontWeight: 700 }}>Поръчка #{o.id}</div>
                         <div className="text-muted" style={{ fontSize: "0.82rem" }}>
                           {new Date(o.created_at).toLocaleDateString("bg-BG")} · {o.quantity} бр.
                         </div>
                         {o.courier && <div className="text-muted" style={{ fontSize: "0.82rem" }}>Куриер: {o.courier} {o.shipping_type ? `(${o.shipping_type})` : ""}</div>}
-                        {addrLine && <div className="text-muted" style={{ fontSize: "0.82rem" }}>📍 {addrLine}</div>}
+                        {addrLine && <div className="text-muted" style={{ fontSize: "0.82rem", wordBreak: "break-word" }}>📍 {addrLine}</div>}
                         {o.tracking_number && (
-                          <div style={{ fontSize: "0.85rem", marginTop: 4 }}>
+                          <div style={{ fontSize: "0.85rem", marginTop: 4, wordBreak: "break-all" }}>
                             📦 Tracking: <strong>{o.tracking_number}</strong>
                           </div>
                         )}
                       </div>
-                      <div style={{ textAlign: "right" }}>
-                        <div style={{ fontWeight: 700, fontSize: "1.1rem" }}>
+                      <div className="orders-card-total">
+                        <div style={{ fontWeight: 700, fontSize: "1.05rem", whiteSpace: "nowrap" }}>
                           {o.amount_total ? `${(o.amount_total / 100).toFixed(2)} ${o.currency?.toUpperCase() || "EUR"}` : "—"}
                         </div>
-                        <span
-                          style={{
-                            display: "inline-block", marginTop: 4, padding: "2px 10px", borderRadius: 20,
-                            fontSize: "0.78rem", fontWeight: 600,
-                            background: o.status === "paid" ? "rgba(39,174,96,0.15)" : "rgba(200,200,200,0.2)",
-                            color: o.status === "paid" ? "#27ae60" : "var(--text)",
-                          }}
-                        >
-                          {o.status === "paid" ? "✅ Платена" : o.status}
+                        <span style={{
+                          display: "inline-block", marginTop: 4, padding: "2px 10px", borderRadius: 20,
+                          fontSize: "0.78rem", fontWeight: 600, whiteSpace: "nowrap",
+                          background: o.status === "paid" ? "rgba(39,174,96,0.15)" : "rgba(200,200,200,0.2)",
+                          color: o.status === "paid" ? "#27ae60" : "var(--text)",
+                        }}>
+                          {o.status === "paid" ? "✅ Платена" : (o.status || "—")}
                         </span>
                       </div>
                     </div>

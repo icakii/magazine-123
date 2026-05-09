@@ -904,6 +904,199 @@ html[data-theme="dark"] .lang-toggle {
   border-top: 1px solid var(--nav-border);
 }
 
+/* ── Drawer sections scroll ── */
+.drawer-sections-scroll {
+  max-height: 42vh;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.drawer-section { margin-bottom: 6px; }
+.drawer-section-label {
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text);
+  opacity: 0.38;
+  padding: 4px 14px 2px;
+}
+.drawer-item--sub {
+  padding: 9px 14px 9px 20px;
+  font-size: 0.92rem;
+}
+.drawer-controls-row { padding: 0 4px; }
+.drawer-item--admin {
+  color: #27ae60;
+  border: 1px solid rgba(39,174,96,0.3);
+  border-radius: 10px;
+}
+
+/* ── Desktop dropdown nav ── */
+.nav-desktop-links {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.nav-dropdown-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 7px 13px;
+  border-radius: 10px;
+  border: none;
+  background: transparent;
+  color: var(--nav-text);
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  white-space: nowrap;
+}
+.nav-dropdown-btn:hover,
+.nav-dropdown-btn--open {
+  background: rgba(196,106,74,0.1);
+  color: var(--oxide-red, #c46a4a);
+}
+
+.nav-dropdown-panel {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  min-width: 180px;
+  background: var(--nav-bg);
+  border: 1px solid var(--nav-border);
+  border-radius: 14px;
+  box-shadow: 0 12px 40px rgba(0,0,0,0.15);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  padding: 6px;
+  z-index: 6000;
+  animation: dropdownIn 0.18s cubic-bezier(0.34,1.56,0.64,1);
+}
+@keyframes dropdownIn {
+  from { opacity: 0; transform: translateY(-6px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.nav-dropdown-item {
+  display: block;
+  padding: 9px 12px;
+  border-radius: 9px;
+  font-weight: 600;
+  font-size: 0.875rem;
+  color: var(--text);
+  transition: background 0.12s, color 0.12s;
+  white-space: nowrap;
+}
+.nav-dropdown-item:hover {
+  background: rgba(196,106,74,0.1);
+  color: var(--oxide-red, #c46a4a);
+}
+
+/* ── Issue CTA button ── */
+.nav-issue-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: 10px;
+  background: var(--oxide-red, #c46a4a);
+  color: #fff !important;
+  font-family: var(--font-body);
+  font-weight: 700;
+  font-size: 0.82rem;
+  white-space: nowrap;
+  transition: transform 0.15s, box-shadow 0.15s, background 0.15s;
+  box-shadow: 0 4px 14px rgba(196,106,74,0.35);
+  text-decoration: none;
+}
+.nav-issue-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(196,106,74,0.5);
+  background: #b35c3e;
+}
+
+/* ── Admin nav button ── */
+.nav-admin-btn {
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  border: none;
+  background: #27ae60;
+  color: #fff;
+  font-weight: 900;
+  font-size: 1.2rem;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  box-shadow: 0 3px 12px rgba(39,174,96,0.4);
+  transition: transform 0.15s, box-shadow 0.15s;
+  flex-shrink: 0;
+}
+.nav-admin-btn:hover {
+  transform: translateY(-1px) scale(1.06);
+  box-shadow: 0 6px 18px rgba(39,174,96,0.55);
+}
+
+/* ── Hero corner animations ── */
+.hero-corner {
+  position: absolute;
+  width: 48px;
+  height: 48px;
+  pointer-events: none;
+  z-index: 4;
+}
+.hero-corner::before,
+.hero-corner::after {
+  content: "";
+  position: absolute;
+  background: rgba(255,255,255,0.6);
+}
+.hero-corner::before { width: 2px; height: 100%; }
+.hero-corner::after  { width: 100%; height: 2px; }
+.hero-corner--tl { top: 18px; left: 18px; animation: cornerInTL 0.6s 0.2s both cubic-bezier(0.22,1,0.36,1); }
+.hero-corner--tr { top: 18px; right: 18px; transform: scaleX(-1); animation: cornerInTL 0.6s 0.3s both cubic-bezier(0.22,1,0.36,1); }
+.hero-corner--bl { bottom: 18px; left: 18px; transform: scaleY(-1); animation: cornerInTL 0.6s 0.4s both cubic-bezier(0.22,1,0.36,1); }
+.hero-corner--br { bottom: 18px; right: 18px; transform: scale(-1); animation: cornerInTL 0.6s 0.5s both cubic-bezier(0.22,1,0.36,1); }
+@keyframes cornerInTL {
+  from { opacity: 0; clip-path: inset(0 100% 100% 0); }
+  to   { opacity: 1; clip-path: inset(0 0% 0% 0); }
+}
+
+/* ── Ensure hero-intro is position:relative for corners ── */
+.hero-intro { position: relative; }
+
+/* ── Lighter nav bg in light theme ── */
+:root {
+  --nav-bg: rgba(253, 248, 240, 0.92);
+}
+html[data-theme="dark"] {
+  --nav-bg: rgba(14, 14, 14, 0.9);
+}
+
+/* ── Profile orders mobile fix ── */
+.orders-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.orders-card-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.orders-card-total {
+  text-align: right;
+  flex-shrink: 0;
+}
+
 /* Mobile nav layout */
 @media (max-width: 820px) {
   .nav-inner {

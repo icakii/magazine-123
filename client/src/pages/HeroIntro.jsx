@@ -214,6 +214,10 @@ export default function HeroIntro() {
       </defs>
     </svg>
     <section className="hero-intro" ref={heroRef}>
+      <div className="hero-corner hero-corner--tl" aria-hidden="true" />
+      <div className="hero-corner hero-corner--tr" aria-hidden="true" />
+      <div className="hero-corner hero-corner--bl" aria-hidden="true" />
+      <div className="hero-corner hero-corner--br" aria-hidden="true" />
       <div className="hero-inner">
         <div className="hero-media">
           {heroVfxUrl ? (

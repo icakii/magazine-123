@@ -320,8 +320,57 @@ html[data-theme="light"] .miren-art {
   margin: 6px 0 8px;
 }
 
+/* ── Deadline badge ── */
+.miren-deadline-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: rgba(139, 26, 26, 0.12);
+  border: 1px solid rgba(139, 26, 26, 0.3);
+  color: #8b1a1a;
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+/* ── Prize cards ── */
+.miren-prizes {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+.miren-prize-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 24px 16px;
+  border-radius: 18px;
+  border: 1.5px solid rgba(139, 26, 26, 0.2);
+  background: rgba(139, 26, 26, 0.06);
+  text-align: center;
+  transition: transform 0.2s;
+}
+.miren-prize-card:hover { transform: translateY(-3px); }
+.miren-prize-card--gold  { border-color: rgba(184,134,11,0.35); background: rgba(184,134,11,0.07); }
+.miren-prize-card--silver { border-color: rgba(150,150,160,0.35); background: rgba(150,150,160,0.07); }
+.miren-prize-card--bronze { border-color: rgba(176,100,50,0.35); background: rgba(176,100,50,0.07); }
+.miren-prize-rank  { font-size: 2rem; }
+.miren-prize-place { font-size: 0.82rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; opacity: 0.6; }
+.miren-prize-amount {
+  font-size: clamp(1.6rem, 4vw, 2.4rem);
+  font-weight: 900;
+  color: var(--ma-text);
+}
+
 .rights {
   text-align: left;
+}
+
+@media (max-width: 560px) {
+  .miren-prizes { grid-template-columns: 1fr; gap: 10px; }
 }
 
 .rules-backdrop {

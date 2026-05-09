@@ -7,11 +7,14 @@ import "../styles/miren-art.css"
 const DISCORD_URL = "https://discord.gg/fsEZAVQB"
 const CONTACT_EMAIL = "contact@mirenmagazine.com"
 
+const DEADLINE = "24 май 2026"
+const DEADLINE_EN = "May 24, 2026"
+
 const content = {
   bg: {
-    heroSubtitle: "ВИЗУАЛНАТА ИДЕНТИЧНОСТ НА MIREN",
+    heroSubtitle: "MIREN ART — BLOOM",
     heroText:
-      "Създай artwork, който показва как изглежда MIREN през твоите очи. Това може да бъде рисунка, дигитален арт, корица, визуална концепция, motion-style проект или VFX идея с движещи се елементи.",
+      "Нарисувай каквото Bloom означава за теб. Молив, акварел, маслени бои, дигитално — изборът е твой. Само тема, без правила за стил.",
     generateCode: "Генерирай код",
     readRules: "Прочети правилата",
     aboutTitle: "Какво е MIREN ART?",
@@ -23,7 +26,7 @@ const content = {
       "Създай акаунт в mirenmagazine.com",
       "Регистрирай се за конкурса чрез MIREN ART панела",
       "Генерирай своя entry code",
-      "Качи творбата си в Discord канала или я изпрати по имейл с името си и кода",
+      "Качи творбата си в Discord канала или я изпрати по имейл с името си, Instagram handle и кода",
     ],
     helper: "Използвай този код, когато изпращаш творбата си в Discord или по имейл.",
     copy: "Копирай",
@@ -32,9 +35,9 @@ const content = {
     joinDiscord: "Влез в Discord",
     mail: "Изпрати по имейл",
     mailText:
-      "Ако не можеш да качиш творбата си в Discord, изпрати я по имейл заедно с твоето име и entry code.",
-    prizeTitle: "Награда",
-    prizeText: "Един победител ще бъде избран и наградата ще бъде изплатена по банков път.",
+      "Ако не можеш да качиш творбата си в Discord, изпрати я по имейл заедно с твоето ime, Instagram handle и entry code.",
+    prizeTitle: "Награди",
+    prizeText: "Победителите ще бъдат избрани и наградите ще бъдат изплатени по банков път.",
     evaluationTitle: "Как се избира победителят",
     evaluationText:
       "Победителят се избира от притежателя и организатора на MIREN въз основа на обща творческа преценка, визуално въздействие, оригиналност, идея и съответствие с концепцията на MIREN.",
@@ -43,11 +46,12 @@ const content = {
       "Изпратените творби могат да бъдат публикувани в сайта, в социалните мрежи и в списанието MIREN. С участието си участниците се съгласяват творбите им да бъдат използвани за редакционни, рекламни и бранд цели на MIREN.",
     footerCTA: "Създай нещо, което може да стане част от MIREN.",
     rulesTitle: "Официални правила",
+    deadline: `Deadline: ${DEADLINE}`,
   },
   en: {
-    heroSubtitle: "MIREN VISUAL IDENTITY",
+    heroSubtitle: "MIREN ART — BLOOM",
     heroText:
-      "Create artwork that shows how MIREN looks through your eyes. This can be a drawing, digital art, cover concept, visual identity piece, motion-style project or VFX idea with moving elements.",
+      "Draw what Bloom means to you. Pencil, watercolor, oil, digital — your choice. One theme, no style rules.",
     generateCode: "Generate Code",
     readRules: "Read the Rules",
     aboutTitle: "What is MIREN ART?",
@@ -59,7 +63,7 @@ const content = {
       "Create an account on mirenmagazine.com",
       "Register for the competition through the MIREN ART panel",
       "Generate your entry code",
-      "Upload your artwork in the Discord channel or send it by email with your name and code",
+      "Upload your artwork in the Discord channel or send it by email with your name, Instagram handle and code",
     ],
     helper: "Use this code when submitting your artwork in Discord or by email.",
     copy: "Copy",
@@ -68,9 +72,9 @@ const content = {
     joinDiscord: "Join Discord",
     mail: "Send by Email",
     mailText:
-      "If you can't upload your artwork in Discord, send it by email together with your name and entry code.",
-    prizeTitle: "Prize",
-    prizeText: "One winner will be selected and the prize will be paid via bank transfer.",
+      "If you can't upload your artwork in Discord, send it by email together with your name, Instagram handle and entry code.",
+    prizeTitle: "Prizes",
+    prizeText: "Winners will be selected and prizes will be paid via bank transfer.",
     evaluationTitle: "How the winner is selected",
     evaluationText:
       "The winner is selected by the owner and organizer of MIREN based on overall creative judgment, visual impact, originality, concept and alignment with the MIREN vision.",
@@ -79,18 +83,15 @@ const content = {
       "Submitted works may be published on the website, on social media and inside MIREN magazine. By participating, entrants agree that their work may be used for editorial, promotional and brand purposes by MIREN.",
     footerCTA: "Create something that could become part of MIREN.",
     rulesTitle: "Official Rules",
+    deadline: `Deadline: ${DEADLINE_EN}`,
   },
 }
 
 const artTypes = [
-  ["Рисунка", "Drawing"],
-  ["Дигитален арт", "Digital Art"],
-  ["Корица", "Cover Concept"],
-  ["Постер", "Poster"],
-  ["Визуална концепция", "Visual Concept"],
-  ["Motion Artwork", "Motion Artwork"],
-  ["VFX Concept", "VFX Concept"],
-  ["Арт с движещи се елементи", "Animated Visual Piece"],
+  ["✏️ Рисунка", "✏️ Drawing"],
+  ["💻 Дигитален арт", "💻 Digital Art"],
+  ["🎨 Акварел", "🎨 Watercolor"],
+  ["🖌️ Маслени бои", "🖌️ Oil Paint"],
 ]
 
 const reveal = {
@@ -112,12 +113,12 @@ export default function MirenArt() {
   const t = content[lang]
   const mailSubject =
     lang === "bg"
-      ? `[MIREN ART] Име: <твоето име> | Код: ${code || "<entry code>"} | Title: <заглавие на творбата>`
-      : `[MIREN ART] Name: <your name> | Code: ${code || "<entry code>"} | Title: <artwork title>`
+      ? `[MIREN ART] Име: <твоето име> | Instagram: <handle> | Код: ${code || "<entry code>"} | Title: <заглавие>`
+      : `[MIREN ART] Name: <your name> | Instagram: <handle> | Code: ${code || "<entry code>"} | Title: <title>`
   const mailBody =
     lang === "bg"
-      ? `Име: <твоето име>\nEntry code: ${code || "<entry code>"}\nTitle: <заглавие на творбата>\n\nЛинк към творбата / описание:\n<добави линк или текст>`
-      : `Name: <your name>\nEntry code: ${code || "<entry code>"}\nTitle: <artwork title>\n\nArtwork link / description:\n<add link or text>`
+      ? `Име: <твоето име>\nInstagram handle: <@handle>\nEntry code: ${code || "<entry code>"}\nTitle: <заглавие на творбата>\n\nЛинк към творбата / описание:\n<добави линк или текст>`
+      : `Name: <your name>\nInstagram handle: <@handle>\nEntry code: ${code || "<entry code>"}\nTitle: <artwork title>\n\nArtwork link / description:\n<add link or text>`
   const mailtoHref = `mailto:${CONTACT_EMAIL}?subject=${encodeURIComponent(mailSubject)}&body=${encodeURIComponent(mailBody)}`
   const gmailComposeHref = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(CONTACT_EMAIL)}&su=${encodeURIComponent(mailSubject)}&body=${encodeURIComponent(mailBody)}`
 
@@ -261,6 +262,7 @@ export default function MirenArt() {
                 <button className="btn outline" onClick={() => setOpenRules(true)} type="button">
                   {t.readRules}
                 </button>
+                <span className="miren-deadline-badge">{t.deadline}</span>
               </div>
             </div>
 
@@ -345,7 +347,7 @@ export default function MirenArt() {
               {t.mail}
             </a>
             <small>{CONTACT_EMAIL}</small>
-            <small>{lang === "bg" ? "Template: име + код + title (MIREN ART)." : "Template: name + code + title (MIREN ART)."}</small>
+            <small>{lang === "bg" ? "Template: име + Instagram handle + код + title (MIREN ART)." : "Template: name + Instagram handle + code + title (MIREN ART)."}</small>
             <small>
               {lang === "bg" ? "Ако Gmail не се отвори, използвай fallback:" : "If Gmail does not open, use fallback:"}{" "}
               <a href={mailtoHref}>{lang === "bg" ? "mailto линк" : "mailto link"}</a>
@@ -354,12 +356,29 @@ export default function MirenArt() {
         </div>
       </motion.section>
 
-      <motion.section className="miren-section split" {...reveal}>
-        <article className="miren-card">
-          <h2>{t.prizeTitle}</h2>
-          <p className="price">{lang === "bg" ? "50 евро" : "€50"}</p>
-          <p>{t.prizeText}</p>
-        </article>
+      <motion.section className="miren-section" {...reveal}>
+        <h2>{t.prizeTitle}</h2>
+        <p style={{ opacity: 0.65, marginBottom: "1.5rem", fontSize: "0.95rem" }}>{t.prizeText}</p>
+        <div className="miren-prizes">
+          <article className="miren-prize-card miren-prize-card--gold">
+            <div className="miren-prize-rank">🥇</div>
+            <div className="miren-prize-place">{lang === "bg" ? "1-во място" : "1st Place"}</div>
+            <div className="miren-prize-amount">100€</div>
+          </article>
+          <article className="miren-prize-card miren-prize-card--silver">
+            <div className="miren-prize-rank">🥈</div>
+            <div className="miren-prize-place">{lang === "bg" ? "2-ро място" : "2nd Place"}</div>
+            <div className="miren-prize-amount">50€</div>
+          </article>
+          <article className="miren-prize-card miren-prize-card--bronze">
+            <div className="miren-prize-rank">🥉</div>
+            <div className="miren-prize-place">{lang === "bg" ? "3-то място" : "3rd Place"}</div>
+            <div className="miren-prize-amount">25€</div>
+          </article>
+        </div>
+      </motion.section>
+
+      <motion.section className="miren-section" {...reveal}>
         <article className="miren-card">
           <h2>{t.evaluationTitle}</h2>
           <p>{t.evaluationText}</p>

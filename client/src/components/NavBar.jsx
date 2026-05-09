@@ -6,6 +6,13 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react"
 import { t, getLang, setLang } from "../lib/i18n"
 import { useAuth } from "../context/AuthContext"
 
+// MIREN ART open window: May 11 13:00 Sofia (UTC+3) → May 25 00:00 Sofia
+const ART_OPEN  = new Date("2025-05-11T10:00:00Z")
+const ART_CLOSE = new Date("2025-05-24T21:00:00Z")
+function isMirenArtOpen() {
+  const now = Date.now()
+  return now >= ART_OPEN.getTime() && now < ART_CLOSE.getTime()
+}
 
 export default function NavBar() {
   const navigate = useNavigate()
@@ -215,13 +222,17 @@ export default function NavBar() {
           {/* Top singles */}
           <Link className="drawer-item" to="/" onClick={closeDrawer}>{t("home")}</Link>
           <Link className="drawer-item" to="/write" onClick={closeDrawer}>{t("write")}</Link>
+          {/* MIREN ART — locked outside open window for non-admins */}
+          {(isAdmin || isMirenArtOpen()) ? (
+            <Link className="drawer-item drawer-item--art" to="/miren-art" onClick={closeDrawer}>MIREN ART</Link>
+          ) : (
+            <span className="drawer-item drawer-item--locked">MIREN ART 🔒</span>
+          )}
 
-          <div className="drawer-sep" />
-
-          {/* Two-column grid */}
+          {/* Two-column grid — no separators around it */}
           <div className="drawer-columns">
             <div className="drawer-col">
-              <div className="drawer-col-header">Content</div>
+              <div className="drawer-col-header">{lang === "bg" ? "Съдържание" : "Content"}</div>
               <Link className="drawer-item" to="/e-magazine" onClick={closeDrawer}>{t("emag")}</Link>
               <Link className="drawer-item" to="/news" onClick={closeDrawer}>{t("news")}</Link>
               <Link className="drawer-item" to="/gallery" onClick={closeDrawer}>{t("gallery")}</Link>
@@ -230,7 +241,7 @@ export default function NavBar() {
             </div>
             <div className="drawer-col-divider" />
             <div className="drawer-col">
-              <div className="drawer-col-header">Products</div>
+              <div className="drawer-col-header">{lang === "bg" ? "Продукти" : "Products"}</div>
               <Link className="drawer-item" to="/store" onClick={closeDrawer}>{t("store")}</Link>
               <Link className="drawer-item" to="/subscriptions" onClick={closeDrawer}>{t("subscriptions")}</Link>
               <Link className="drawer-item" to="/opportunities" onClick={closeDrawer}>{t("opportunities")}</Link>

@@ -956,6 +956,7 @@ app.get("/api/fix-db", async (req, res) => {
     await db.query(
       `ALTER TABLE event_reminders ADD COLUMN IF NOT EXISTS reminder_sent_at TIMESTAMPTZ;`
     )
+    await db.query(`ALTER TABLE writer_submissions ADD COLUMN IF NOT EXISTS short_text TEXT`)
 
     await db.query(`
       CREATE TABLE IF NOT EXISTS magazine_issues (
@@ -1271,12 +1272,12 @@ app.post("/api/write/submit", authMiddleware, async (req, res) => {
     const email = req.user.email
     const banned = await db.query(`SELECT is_banned FROM users WHERE lower(email)=lower($1)`, [email])
     if (banned.rows[0]?.is_banned) return res.status(403).json({ error: "You are banned." })
-    const { title, body, author_name, cover_url, end_url } = req.body || {}
+    const { title, short_text, body, author_name, cover_url, end_url } = req.body || {}
     if (!title?.trim() || !body?.trim() || !author_name?.trim()) return res.status(400).json({ error: "Title, body and author name required." })
     const { rows } = await db.query(
-      `INSERT INTO writer_submissions (title, body, author_email, author_name, cover_url, end_url)
-       VALUES ($1,$2,$3,$4,$5,$6) RETURNING id`,
-      [title.trim(), body.trim(), email, author_name.trim(), cover_url || null, end_url || null]
+      `INSERT INTO writer_submissions (title, short_text, body, author_email, author_name, cover_url, end_url)
+       VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING id`,
+      [title.trim(), (short_text || "").trim() || null, body.trim(), email, author_name.trim(), cover_url || null, end_url || null]
     )
     res.json({ ok: true, id: rows[0].id })
   } catch (e) { res.status(500).json({ error: e.message }) }
@@ -1310,6 +1311,25 @@ app.put("/api/admin/writers/:id", adminMiddleware, async (req, res) => {
       }
     }
     res.json({ ok: true })
+  } catch (e) { res.status(500).json({ error: e.message }) }
+})
+
+// Public — top liked community articles (leaderboard)
+app.get("/api/community/leaderboard", async (req, res) => {
+  try {
+    const limit = Math.min(Number(req.query.limit) || 10, 20)
+    const { rows } = await db.query(
+      `SELECT a.id, a.title, a.author, a.image_url,
+              COUNT(l.id) AS likes
+       FROM articles a
+       LEFT JOIN article_likes l ON l.article_id = a.id
+       WHERE a.category = 'community'
+       GROUP BY a.id
+       ORDER BY likes DESC, a.created_at DESC
+       LIMIT $1`,
+      [limit]
+    )
+    res.json(rows.map(r => ({ ...r, likes: Number(r.likes) })))
   } catch (e) { res.status(500).json({ error: e.message }) }
 })
 
@@ -2998,6 +3018,7 @@ async function initDB() {
       CREATE TABLE IF NOT EXISTS writer_submissions (
         id SERIAL PRIMARY KEY,
         title TEXT NOT NULL,
+        short_text TEXT,
         body TEXT NOT NULL,
         author_email TEXT NOT NULL,
         author_name TEXT NOT NULL,
@@ -3008,6 +3029,7 @@ async function initDB() {
         created_at TIMESTAMPTZ DEFAULT NOW()
       )
     `)
+    await db.query(`ALTER TABLE writer_submissions ADD COLUMN IF NOT EXISTS short_text TEXT`)
     await db.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS is_banned BOOLEAN DEFAULT FALSE`)
     await db.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS pfp_url TEXT`)
     await db.query(`ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS started_at TIMESTAMPTZ`)

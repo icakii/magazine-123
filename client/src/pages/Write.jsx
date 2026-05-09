@@ -1,4 +1,5 @@
 import { useRef, useState } from "react"
+import { createPortal } from "react-dom"
 import { api } from "../lib/api"
 import { useAuth } from "../context/AuthContext"
 import { t } from "../lib/i18n"
@@ -33,51 +34,45 @@ const S = {
   header: { marginBottom: "2.5rem" },
   title: { fontSize: "2.4rem", fontWeight: 900, color: "var(--text)", marginBottom: "0.5rem", lineHeight: 1.15 },
   subtitle: { fontSize: "1rem", color: "var(--text)", opacity: 0.6, marginBottom: "1.25rem" },
-  rulesRow: { display: "flex", alignItems: "center", gap: "1rem", flexWrap: "wrap" },
+  rulesRow: { display: "flex", alignItems: "center", gap: "0.75rem", flexWrap: "wrap" },
   rulesBtn: {
     display: "inline-flex", alignItems: "center", gap: 6,
     padding: "8px 18px", borderRadius: 999, border: "1.5px solid var(--border, rgba(0,0,0,0.15))",
     background: "transparent", color: "var(--text)", cursor: "pointer", fontSize: "0.85rem", fontWeight: 600,
     transition: "border-color 0.15s",
   },
+  lbBtn: {
+    display: "inline-flex", alignItems: "center", gap: 6,
+    padding: "8px 18px", borderRadius: 999, border: "1.5px solid rgba(196,106,74,0.4)",
+    background: "rgba(196,106,74,0.08)", color: "var(--oxide-red, #c46a4a)", cursor: "pointer",
+    fontSize: "0.85rem", fontWeight: 600, transition: "border-color 0.15s, background 0.15s",
+  },
   note: { fontSize: "0.8rem", color: "var(--text)", opacity: 0.5, fontStyle: "italic" },
   form: { display: "flex", flexDirection: "column", gap: "1.6rem" },
   field: { display: "flex", flexDirection: "column", gap: "0.5rem" },
   label: { fontSize: "0.82rem", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--text)", opacity: 0.5 },
   input: {
-    background: "transparent",
-    border: "none",
+    background: "transparent", border: "none",
     borderBottom: "2px solid var(--border, rgba(255,255,255,0.15))",
-    borderRadius: 0,
-    padding: "10px 0",
-    color: "var(--text)",
-    fontSize: "1rem",
-    fontFamily: "inherit",
-    outline: "none",
-    width: "100%",
-    transition: "border-color 0.2s",
+    borderRadius: 0, padding: "10px 0", color: "var(--text)", fontSize: "1rem",
+    fontFamily: "inherit", outline: "none", width: "100%", transition: "border-color 0.2s",
   },
   textarea: {
-    background: "rgba(255,255,255,0.04)",
-    border: "1.5px solid var(--border, rgba(255,255,255,0.1))",
-    borderRadius: 14,
-    padding: "1rem 1.1rem",
-    color: "var(--text)",
-    fontSize: "0.98rem",
-    fontFamily: "inherit",
-    lineHeight: 1.75,
-    outline: "none",
-    resize: "vertical",
-    minHeight: 260,
-    width: "100%",
-    boxSizing: "border-box",
-    transition: "border-color 0.2s",
+    background: "rgba(255,255,255,0.04)", border: "1.5px solid var(--border, rgba(255,255,255,0.1))",
+    borderRadius: 14, padding: "1rem 1.1rem", color: "var(--text)", fontSize: "0.98rem",
+    fontFamily: "inherit", lineHeight: 1.75, outline: "none", resize: "vertical",
+    minHeight: 260, width: "100%", boxSizing: "border-box", transition: "border-color 0.2s",
+  },
+  shortTextarea: {
+    background: "rgba(255,255,255,0.04)", border: "1.5px solid var(--border, rgba(255,255,255,0.1))",
+    borderRadius: 12, padding: "0.8rem 1rem", color: "var(--text)", fontSize: "0.95rem",
+    fontFamily: "inherit", lineHeight: 1.65, outline: "none", resize: "none",
+    minHeight: 72, width: "100%", boxSizing: "border-box", transition: "border-color 0.2s",
   },
   charCount: { fontSize: "0.75rem", color: "var(--text)", opacity: 0.35, textAlign: "right" },
   imgRow: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1.2rem" },
   imgBox: (hasImg) => ({
-    aspectRatio: "4/3",
-    borderRadius: 16,
+    aspectRatio: "4/3", borderRadius: 16,
     border: hasImg ? "none" : "2px dashed var(--border, rgba(255,255,255,0.15))",
     background: hasImg ? "transparent" : "rgba(255,255,255,0.03)",
     display: "flex", alignItems: "center", justifyContent: "center",
@@ -98,22 +93,22 @@ const S = {
     padding: "14px 40px", borderRadius: 999, border: "none",
     background: "linear-gradient(135deg, var(--oxide-red, #c46a4a), #a0522d)",
     color: "#fff", fontWeight: 800, fontSize: "1rem", cursor: "pointer",
-    boxShadow: "0 4px 20px rgba(196,106,74,0.35)",
-    transition: "transform 0.15s, box-shadow 0.15s",
+    boxShadow: "0 4px 20px rgba(196,106,74,0.35)", transition: "transform 0.15s, box-shadow 0.15s",
     letterSpacing: "0.02em",
   },
 }
 
+// ── Rules modal ──────────────────────────────────────────────────
 function RulesModal({ onClose }) {
   const lang = document.documentElement.lang || "bg"
   const rules = lang === "en" ? RULES_EN : RULES_BG
-  return (
+  return createPortal(
     <div
-      style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)", zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center", padding: "1rem" }}
+      style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.72)", zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center", padding: "1rem" }}
       onClick={onClose}
     >
       <div
-        style={{ background: "var(--bg, #111)", borderRadius: 20, padding: "2rem", maxWidth: 500, width: "100%", maxHeight: "78vh", display: "flex", flexDirection: "column", position: "relative" }}
+        style={{ background: "var(--card-bg, var(--bg, #1a1a1a))", borderRadius: 20, padding: "2rem", maxWidth: 500, width: "100%", maxHeight: "78vh", display: "flex", flexDirection: "column", position: "relative", boxShadow: "0 24px 60px rgba(0,0,0,0.5)" }}
         onClick={(e) => e.stopPropagation()}
       >
         <button onClick={onClose} style={{ position: "absolute", top: 14, right: 16, background: "none", border: "none", fontSize: "1.5rem", cursor: "pointer", color: "var(--text)", lineHeight: 1 }}>×</button>
@@ -126,7 +121,65 @@ function RulesModal({ onClose }) {
           style={{ marginTop: "1.5rem", padding: "12px", borderRadius: 12, border: "none", background: "var(--oxide-red, #c46a4a)", color: "#fff", fontWeight: 700, cursor: "pointer", fontSize: "0.95rem" }}
         >OK</button>
       </div>
-    </div>
+    </div>,
+    document.body
+  )
+}
+
+// ── Leaderboard modal ────────────────────────────────────────────
+function LeaderboardModal({ onClose }) {
+  const [items, setItems] = useState(null)
+  const [loading, setLoading] = useState(true)
+
+  useState(() => {
+    api.get("/community/leaderboard", { params: { limit: 10 } })
+      .then(r => setItems(r.data))
+      .catch(() => setItems([]))
+      .finally(() => setLoading(false))
+  })
+
+  const medals = ["🥇", "🥈", "🥉"]
+
+  return createPortal(
+    <div
+      style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.72)", zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center", padding: "1rem" }}
+      onClick={onClose}
+    >
+      <div
+        style={{ background: "var(--card-bg, var(--bg, #1a1a1a))", borderRadius: 20, padding: "2rem", maxWidth: 480, width: "100%", maxHeight: "80vh", display: "flex", flexDirection: "column", position: "relative", boxShadow: "0 24px 60px rgba(0,0,0,0.5)" }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <button onClick={onClose} style={{ position: "absolute", top: 14, right: 16, background: "none", border: "none", fontSize: "1.5rem", cursor: "pointer", color: "var(--text)", lineHeight: 1 }}>×</button>
+        <h3 style={{ fontWeight: 900, fontSize: "1.3rem", marginBottom: "0.25rem", color: "var(--text)" }}>Топ статии</h3>
+        <p style={{ fontSize: "0.82rem", color: "var(--text)", opacity: 0.5, marginBottom: "1.5rem" }}>Най-харесваните статии от общността</p>
+
+        <div style={{ overflowY: "auto", flex: 1, display: "flex", flexDirection: "column", gap: 10 }}>
+          {loading && <p style={{ color: "var(--text)", opacity: 0.5, textAlign: "center", padding: "2rem 0" }}>Зарежда...</p>}
+          {!loading && items?.length === 0 && (
+            <p style={{ color: "var(--text)", opacity: 0.4, textAlign: "center", padding: "2rem 0", fontSize: "0.9rem" }}>Все още няма публикувани статии.</p>
+          )}
+          {items?.map((item, i) => (
+            <div key={item.id} style={{ display: "flex", alignItems: "center", gap: 14, padding: "10px 14px", borderRadius: 12, background: "rgba(255,255,255,0.04)", border: "1px solid var(--border, rgba(255,255,255,0.08))" }}>
+              <span style={{ fontSize: i < 3 ? "1.4rem" : "0.95rem", minWidth: 28, textAlign: "center", fontWeight: 700, color: i >= 3 ? "var(--text)" : undefined, opacity: i >= 3 ? 0.4 : 1 }}>
+                {i < 3 ? medals[i] : `${i + 1}.`}
+              </span>
+              {item.image_url && (
+                <img src={item.image_url} alt="" style={{ width: 44, height: 44, borderRadius: 8, objectFit: "cover", flexShrink: 0 }} />
+              )}
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontWeight: 700, fontSize: "0.92rem", color: "var(--text)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{item.title}</div>
+                <div style={{ fontSize: "0.78rem", color: "var(--text)", opacity: 0.45, marginTop: 2 }}>{item.author}</div>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 5, flexShrink: 0 }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" style={{ color: "var(--oxide-red, #c46a4a)" }}><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+                <span style={{ fontWeight: 700, fontSize: "0.88rem", color: "var(--text)" }}>{item.likes}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>,
+    document.body
   )
 }
 
@@ -157,6 +210,7 @@ export default function Write() {
 
   const [authorName, setAuthorName] = useState(user?.display_name || user?.displayName || user?.username || "")
   const [title, setTitle] = useState("")
+  const [shortText, setShortText] = useState("")
   const [body, setBody] = useState("")
   const [coverFile, setCoverFile] = useState(null)
   const [coverPreview, setCoverPreview] = useState(null)
@@ -166,6 +220,7 @@ export default function Write() {
   const [success, setSuccess] = useState(false)
   const [error, setError] = useState("")
   const [showRules, setShowRules] = useState(false)
+  const [showLeaderboard, setShowLeaderboard] = useState(false)
 
   function handleImageChange(e, setFile, setPreview) {
     const file = e.target.files?.[0]
@@ -194,7 +249,14 @@ export default function Write() {
       let coverUrl = "", endUrl = ""
       if (coverFile) coverUrl = await uploadImage(coverFile)
       if (endFile) endUrl = await uploadImage(endFile)
-      await api.post("/write/submit", { author_name: authorName.trim(), title: title.trim(), body: body.trim(), cover_url: coverUrl, end_url: endUrl })
+      await api.post("/write/submit", {
+        author_name: authorName.trim(),
+        title: title.trim(),
+        short_text: shortText.trim(),
+        body: body.trim(),
+        cover_url: coverUrl,
+        end_url: endUrl,
+      })
       setSuccess(true)
     } catch (err) {
       setError(err?.response?.data?.error || "Грешка при изпращане. Опитай отново.")
@@ -212,7 +274,7 @@ export default function Write() {
           <p style={{ color: "var(--text)", opacity: 0.55, fontSize: "0.95rem", lineHeight: 1.65 }}>{t("write_premium_note")}</p>
           <button
             style={{ ...S.submitBtn, marginTop: "2rem" }}
-            onClick={() => { setSuccess(false); setTitle(""); setBody(""); setAuthorName(user?.displayName || ""); setCoverFile(null); setCoverPreview(null); setEndFile(null); setEndPreview(null) }}
+            onClick={() => { setSuccess(false); setTitle(""); setShortText(""); setBody(""); setAuthorName(user?.displayName || ""); setCoverFile(null); setCoverPreview(null); setEndFile(null); setEndPreview(null) }}
           >
             Напиши нова статия
           </button>
@@ -224,6 +286,7 @@ export default function Write() {
   return (
     <div className="page">
       {showRules && <RulesModal onClose={() => setShowRules(false)} />}
+      {showLeaderboard && <LeaderboardModal onClose={() => setShowLeaderboard(false)} />}
       <div style={S.page}>
 
         {/* Header */}
@@ -234,7 +297,10 @@ export default function Write() {
             <button style={S.rulesBtn} onClick={() => setShowRules(true)} type="button">
               📋 {t("write_rules_btn")}
             </button>
-            <span style={S.note}>🏆 {t("write_leaderboard_note")}</span>
+            <button style={S.lbBtn} onClick={() => setShowLeaderboard(true)} type="button">
+              🏆 Топ статии
+            </button>
+            <span style={S.note}>{t("write_leaderboard_note")}</span>
           </div>
         </div>
 
@@ -268,6 +334,22 @@ export default function Write() {
               onFocus={(e) => { e.target.style.borderBottomColor = "var(--oxide-red, #c46a4a)" }}
               onBlur={(e) => { e.target.style.borderBottomColor = "var(--border, rgba(255,255,255,0.15))" }}
             />
+          </div>
+
+          {/* Short text / excerpt */}
+          <div style={S.field}>
+            <label style={S.label}>Кратко описание <span style={{ opacity: 0.45, fontWeight: 400, textTransform: "none", letterSpacing: 0 }}>(незадължително)</span></label>
+            <textarea
+              style={S.shortTextarea}
+              value={shortText}
+              onChange={(e) => setShortText(e.target.value)}
+              placeholder="Едно-две изречения, с които да привлечеш читателите..."
+              maxLength={280}
+              rows={2}
+              onFocus={(e) => { e.target.style.borderColor = "var(--oxide-red, #c46a4a)" }}
+              onBlur={(e) => { e.target.style.borderColor = "var(--border, rgba(255,255,255,0.1))" }}
+            />
+            <span style={S.charCount}>{shortText.length} / 280</span>
           </div>
 
           {/* Body */}

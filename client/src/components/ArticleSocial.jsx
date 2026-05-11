@@ -200,10 +200,14 @@ export function CommentConversation({ article, user, navigate, onClose, onCommen
     } finally { setPosting(false) }
   }
 
-  async function deleteComment(commentId) {
+  async function deleteComment(commentId, useOwnerEndpoint) {
     if (!window.confirm("Delete this comment?")) return
     try {
-      await api.delete(`/admin/comments/${commentId}`)
+      if (useOwnerEndpoint) {
+        await api.delete(`/articles/${article.id}/comments/${commentId}`)
+      } else {
+        await api.delete(`/admin/comments/${commentId}`)
+      }
       setComments(prev => prev.filter(c => c.id !== commentId))
     } catch {}
   }
@@ -275,10 +279,10 @@ export function CommentConversation({ article, user, navigate, onClose, onCommen
                         >
                           {c.display_name || c.username || "User"}
                         </button>
-                        {isAdmin && !isOwn && (
+                        {(isAdmin || isOwn) && (
                           <button
                             type="button"
-                            onClick={() => deleteComment(c.id)}
+                            onClick={() => deleteComment(c.id, isOwn && !isAdmin)}
                             title="Delete comment"
                             style={{ marginLeft: "auto", background: "none", border: "none", padding: "2px 6px", borderRadius: 6, color: "#ef4444", cursor: "pointer", fontSize: "0.72rem", opacity: 0.7 }}
                             onMouseEnter={e => e.currentTarget.style.opacity = "1"}

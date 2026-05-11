@@ -82,10 +82,11 @@ router.post("/user/update-username", authMiddleware, async (req, res) => {
   try {
     // cooldown 14 days (free for all users)
     const userQ = await db.query(
-      "SELECT last_username_change FROM users WHERE email = $1",
+      "SELECT last_username_change, display_name FROM users WHERE email = $1",
       [req.user.email]
     )
     if (!userQ.rows[0]) return res.status(404).json({ error: "User not found" })
+    const oldUsername = userQ.rows[0].display_name
 
     const last = userQ.rows[0].last_username_change
       ? new Date(userQ.rows[0].last_username_change)
@@ -120,6 +121,11 @@ router.post("/user/update-username", authMiddleware, async (req, res) => {
       [newUsername, req.user.email]
     )
 
+    db.query(
+      `INSERT INTO user_change_log (email, change_type, old_value, new_value) VALUES ($1,'username',$2,$3)`,
+      [req.user.email, oldUsername, newUsername]
+    ).catch(() => {})
+
     return res.json({
       ok: true,
       email: upd.rows[0].email,
@@ -148,10 +154,11 @@ router.post("/user/update-instagram", authMiddleware, async (req, res) => {
 
   try {
     const userQ = await db.query(
-      "SELECT instagram_updated_at FROM users WHERE email = $1",
+      "SELECT instagram_updated_at, instagram_handle FROM users WHERE email = $1",
       [req.user.email]
     )
     if (!userQ.rows[0]) return res.status(404).json({ error: "User not found" })
+    const oldInstagram = userQ.rows[0].instagram_handle
 
     const last = userQ.rows[0].instagram_updated_at
       ? new Date(userQ.rows[0].instagram_updated_at)
@@ -176,6 +183,11 @@ router.post("/user/update-instagram", authMiddleware, async (req, res) => {
        RETURNING instagram_handle, instagram_updated_at`,
       [handle || null, req.user.email]
     )
+
+    db.query(
+      `INSERT INTO user_change_log (email, change_type, old_value, new_value) VALUES ($1,'instagram',$2,$3)`,
+      [req.user.email, oldInstagram || null, handle || null]
+    ).catch(() => {})
 
     return res.json({
       ok: true,

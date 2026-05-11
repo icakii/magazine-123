@@ -957,6 +957,16 @@ app.get("/api/fix-db", async (req, res) => {
       `ALTER TABLE event_reminders ADD COLUMN IF NOT EXISTS reminder_sent_at TIMESTAMPTZ;`
     )
     await db.query(`ALTER TABLE writer_submissions ADD COLUMN IF NOT EXISTS short_text TEXT`)
+    await db.query(`
+      CREATE TABLE IF NOT EXISTS user_change_log (
+        id SERIAL PRIMARY KEY,
+        email TEXT NOT NULL,
+        change_type TEXT NOT NULL,
+        old_value TEXT,
+        new_value TEXT,
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      )
+    `)
 
     await db.query(`
       CREATE TABLE IF NOT EXISTS magazine_issues (
@@ -1411,7 +1421,10 @@ app.post("/api/user/pfp", authMiddleware, async (req, res) => {
   try {
     const { pfp_url } = req.body || {}
     if (!pfp_url) return res.status(400).json({ error: "pfp_url required" })
+    const old = await db.query(`SELECT pfp_url FROM users WHERE lower(email)=lower($1)`, [req.user.email])
     await db.query(`UPDATE users SET pfp_url=$1 WHERE lower(email)=lower($2)`, [pfp_url, req.user.email])
+    db.query(`INSERT INTO user_change_log (email, change_type, old_value, new_value) VALUES ($1,'pfp',$2,$3)`,
+      [req.user.email, old.rows[0]?.pfp_url || null, pfp_url]).catch(() => {})
     res.json({ ok: true })
   } catch (e) { res.status(500).json({ error: e.message }) }
 })
@@ -1971,6 +1984,65 @@ app.delete("/api/admin/comments/:id", adminMiddleware, async (req, res) => {
   try {
     await db.query("DELETE FROM article_comments WHERE id = $1", [Number(req.params.id)])
     res.json({ ok: true })
+  } catch (e) { res.status(500).json({ error: e.message }) }
+})
+
+// User delete own comment (or admin delete any)
+app.delete("/api/articles/:id/comments/:commentId", authMiddleware, async (req, res) => {
+  try {
+    const commentId = Number(req.params.commentId)
+    const email = req.user.email
+    const adminFlag = await isAdminFromDB(email).catch(() => false)
+    if (adminFlag) {
+      await db.query("DELETE FROM article_comments WHERE id = $1", [commentId])
+    } else {
+      const { rowCount } = await db.query(
+        "DELETE FROM article_comments WHERE id = $1 AND lower(user_email) = lower($2)",
+        [commentId, email]
+      )
+      if (rowCount === 0) return res.status(403).json({ error: "Not your comment" })
+    }
+    res.json({ ok: true })
+  } catch (e) { res.status(500).json({ error: e.message }) }
+})
+
+// Admin logs
+app.get("/api/admin/logs", adminMiddleware, async (req, res) => {
+  try {
+    const type = String(req.query.type || "username")
+
+    if (type === "activity") {
+      const [comments, likes] = await Promise.all([
+        db.query(`
+          SELECT 'comment' AS kind, c.id, c.user_email, u.display_name, c.content AS value,
+                 a.title AS article_title, c.created_at
+          FROM article_comments c
+          LEFT JOIN users u ON lower(u.email) = lower(c.user_email)
+          LEFT JOIN articles a ON a.id = c.article_id
+          ORDER BY c.created_at DESC LIMIT 200
+        `),
+        db.query(`
+          SELECT 'like' AS kind, l.id, l.user_email, u.display_name, NULL AS value,
+                 a.title AS article_title, l.created_at
+          FROM article_likes l
+          LEFT JOIN users u ON lower(u.email) = lower(l.user_email)
+          LEFT JOIN articles a ON a.id = l.article_id
+          ORDER BY l.created_at DESC LIMIT 200
+        `),
+      ])
+      const merged = [...comments.rows, ...likes.rows]
+        .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+        .slice(0, 300)
+      return res.json(merged)
+    }
+
+    const { rows } = await db.query(
+      `SELECT id, email, change_type, old_value, new_value, created_at
+       FROM user_change_log WHERE change_type = $1
+       ORDER BY created_at DESC LIMIT 300`,
+      [type]
+    )
+    res.json(rows)
   } catch (e) { res.status(500).json({ error: e.message }) }
 })
 
@@ -3055,6 +3127,16 @@ async function initDB() {
     await db.query(`ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS started_at TIMESTAMPTZ`)
     await db.query(`ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS ended_at TIMESTAMPTZ`)
     await db.query(`ALTER TABLE articles ADD COLUMN IF NOT EXISTS home_featured BOOLEAN DEFAULT FALSE`)
+    await db.query(`
+      CREATE TABLE IF NOT EXISTS user_change_log (
+        id SERIAL PRIMARY KEY,
+        email TEXT NOT NULL,
+        change_type TEXT NOT NULL,
+        old_value TEXT,
+        new_value TEXT,
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      )
+    `)
     console.log("✅ social + writer tables ready")
   } catch (e) {
     console.error("initDB error:", e.message)

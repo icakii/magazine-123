@@ -31,6 +31,7 @@ const TABS = [
   { key: "writers", label: "✍️ Writers" },
   { key: "refunds", label: "⚠️ Refunds" },
   { key: "admins", label: "Admins" },
+  { key: "logs", label: "Logs" },
 ]
 
 const NEWS_ARTICLE_CATEGORIES = [
@@ -542,6 +543,8 @@ const [heroVfxUrl, setHeroVfxUrl] = useState("")
   const [writers, setWriters] = useState([])
   const [writerFilter, setWriterFilter] = useState("pending")
   const [expandedWriter, setExpandedWriter] = useState(null)
+  const [logs, setLogs] = useState([])
+  const [logTab, setLogTab] = useState("username")
 
   const resetMirenArtCodes = async () => {
     const ok = window.confirm(
@@ -675,6 +678,12 @@ const [heroVfxUrl, setHeroVfxUrl] = useState("")
           setUsers(Array.isArray(usersRes.data) ? usersRes.data : [])
           return
         }
+
+        if (activeTab === "logs") {
+          const res = await api.get(`/admin/logs?type=${logTab}`)
+          setLogs(Array.isArray(res.data) ? res.data : [])
+          return
+        }
       } catch (e) {
         setMsg(e?.response?.data?.error || e?.response?.data?.details || "Failed to load admin data.")
       }
@@ -682,7 +691,7 @@ const [heroVfxUrl, setHeroVfxUrl] = useState("")
 
     load()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeTab, canAccess, currentCategory])
+  }, [activeTab, canAccess, currentCategory, logTab])
 
   if (loading) return <div className="page"><Loader /></div>
 
@@ -1764,6 +1773,94 @@ isVideoUrl(heroVfxUrl) ? (
                 )
               })}
           </div>
+        </div>
+      )}
+
+      {/* LOGS */}
+      {activeTab === "logs" && (
+        <div className="admin-card">
+          <h3 className="headline">Logs</h3>
+
+          <div style={{ display: "flex", gap: 8, marginBottom: 20, flexWrap: "wrap" }}>
+            {[
+              { key: "username", label: "Usernames" },
+              { key: "instagram", label: "Instagram" },
+              { key: "pfp", label: "Profile pics" },
+              { key: "activity", label: "Comments & Likes" },
+            ].map((t) => (
+              <button
+                key={t.key}
+                type="button"
+                className={`tab ${logTab === t.key ? "tab--on" : ""}`}
+                onClick={() => { setLogTab(t.key); setLogs([]) }}
+              >
+                {t.label}
+              </button>
+            ))}
+          </div>
+
+          {logs.length === 0 ? (
+            <p className="text-muted">No logs.</p>
+          ) : logTab === "activity" ? (
+            <div className="list">
+              {logs.map((row, i) => (
+                <div key={`${row.kind}-${row.id}-${i}`} className="list-row">
+                  <div className="list-main">
+                    <div className="list-title" style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <span style={{
+                        fontSize: "0.72rem", fontWeight: 700, padding: "2px 8px", borderRadius: 999,
+                        background: row.kind === "comment" ? "rgba(99,102,241,0.15)" : "rgba(239,68,68,0.13)",
+                        color: row.kind === "comment" ? "#818cf8" : "#ef4444",
+                      }}>
+                        {row.kind === "comment" ? "comment" : "like"}
+                      </span>
+                      <span style={{ fontWeight: 600 }}>{row.display_name || row.user_email}</span>
+                    </div>
+                    <div className="list-sub text-muted">
+                      {row.article_title && <span>on "{row.article_title.slice(0, 60)}{row.article_title.length > 60 ? "…" : ""}" · </span>}
+                      {row.user_email}
+                    </div>
+                    {row.value && (
+                      <div className="list-sub" style={{ color: "var(--text)", fontSize: "0.85rem", marginTop: 2 }}>
+                        {row.value.slice(0, 200)}{row.value.length > 200 ? "…" : ""}
+                      </div>
+                    )}
+                    <div className="list-sub text-muted" style={{ fontSize: "0.75em" }}>
+                      {new Date(row.created_at).toLocaleString("bg-BG")}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="list">
+              {logs.map((row) => (
+                <div key={row.id} className="list-row">
+                  <div className="list-main">
+                    <div className="list-title">{row.email}</div>
+                    <div className="list-sub text-muted" style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+                      {logTab === "pfp" ? (
+                        <>
+                          {row.old_value && <img src={row.old_value} alt="old" style={{ width: 32, height: 32, borderRadius: "50%", objectFit: "cover", border: "1px solid rgba(0,0,0,0.1)" }} />}
+                          <span style={{ opacity: 0.5 }}>→</span>
+                          {row.new_value && <img src={row.new_value} alt="new" style={{ width: 32, height: 32, borderRadius: "50%", objectFit: "cover", border: "1px solid rgba(0,0,0,0.1)" }} />}
+                        </>
+                      ) : (
+                        <>
+                          <span style={{ opacity: 0.6 }}>{row.old_value || "—"}</span>
+                          <span style={{ opacity: 0.4 }}>→</span>
+                          <span style={{ fontWeight: 600, color: "var(--text)" }}>{row.new_value || "—"}</span>
+                        </>
+                      )}
+                    </div>
+                    <div className="list-sub text-muted" style={{ fontSize: "0.75em", marginTop: 2 }}>
+                      {new Date(row.created_at).toLocaleString("bg-BG")}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 

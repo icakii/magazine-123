@@ -604,24 +604,25 @@ app.post(
                 }
               } catch (e) { console.error("SHIPPING RATE ERROR:", e) }
 
-              await db.query(
-                `INSERT INTO magazine_orders
-                 (stripe_session_id, customer_email, full_name, shipping_address, quantity, amount_total, currency, customer_phone, courier, shipping_type)
-                 VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) ON CONFLICT (stripe_session_id) DO NOTHING`,
-                [
-                  session.id, customerEmail, fullName,
-                  JSON.stringify(shipping.address || {}),
-                  qty, session.amount_total, session.currency,
-                  customerPhone, courierName, deliveryType,
-                ]
-              ).catch((e) => console.error("MAGAZINE ORDER DB ERROR:", e))
-
               // line items (fetched once, used below)
               let lineItemsData = []
               try {
                 const li = await stripe.checkout.sessions.listLineItems(session.id, { limit: 100 })
                 lineItemsData = li.data || []
               } catch (liErr) { console.error("LINE ITEMS ERROR:", liErr) }
+
+              await db.query(
+                `INSERT INTO magazine_orders
+                 (stripe_session_id, customer_email, full_name, shipping_address, quantity, amount_total, currency, customer_phone, courier, shipping_type, line_items, order_type)
+                 VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,'magazine') ON CONFLICT (stripe_session_id) DO NOTHING`,
+                [
+                  session.id, customerEmail, fullName,
+                  JSON.stringify(shipping.address || {}),
+                  qty, session.amount_total, session.currency,
+                  customerPhone, courierName, deliveryType,
+                  JSON.stringify(lineItemsData.map(li => ({ description: li.description, quantity: li.quantity, amount: li.amount_total }))),
+                ]
+              ).catch((e) => console.error("MAGAZINE ORDER DB ERROR:", e))
 
               const shippingAddr = shipping.address || {}
               const courierDisplay = courierName === "econt" ? "Econt" : courierName === "speedy" ? "Speedy" : courierName || ""
@@ -736,7 +737,10 @@ Total: ${totalStr} ${currencyStr}
             if (session.metadata?.source === "miren_store") {
               try {
                 const li = await stripe.checkout.sessions.listLineItems(session.id, { limit: 100 })
-                for (const item of (li.data || [])) {
+                const storeLineItems = li.data || []
+
+                // Reduce stock
+                for (const item of storeLineItems) {
                   const priceId = item.price?.id
                   const qty = item.quantity || 1
                   if (priceId) {
@@ -746,7 +750,26 @@ Total: ${totalStr} ${currencyStr}
                     ).catch(e => console.error("STOCK REDUCE ERROR:", e))
                   }
                 }
-                console.log("✅ Stock reduced for store order:", session.id)
+
+                // Save to magazine_orders so users can see their orders
+                const totalQty = storeLineItems.reduce((s, item) => s + (item.quantity || 1), 0)
+                const shipping = session.shipping_details || {}
+                const customerPhone = session.customer_details?.phone || ""
+                await db.query(
+                  `INSERT INTO magazine_orders
+                   (stripe_session_id, customer_email, full_name, shipping_address, quantity, amount_total, currency, customer_phone, line_items, order_type)
+                   VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,'store') ON CONFLICT (stripe_session_id) DO NOTHING`,
+                  [
+                    session.id, customerEmail,
+                    session.customer_details?.name || "",
+                    JSON.stringify(shipping.address || {}),
+                    totalQty, session.amount_total, session.currency,
+                    customerPhone,
+                    JSON.stringify(storeLineItems.map(item => ({ description: item.description, quantity: item.quantity, amount: item.amount_total }))),
+                  ]
+                ).catch(e => console.error("STORE ORDER DB ERROR:", e))
+
+                console.log("✅ Stock reduced + store order saved:", session.id)
               } catch (stockErr) {
                 console.error("STORE STOCK REDUCE ERROR:", stockErr)
               }
@@ -957,6 +980,8 @@ app.get("/api/fix-db", async (req, res) => {
       `ALTER TABLE event_reminders ADD COLUMN IF NOT EXISTS reminder_sent_at TIMESTAMPTZ;`
     )
     await db.query(`ALTER TABLE writer_submissions ADD COLUMN IF NOT EXISTS short_text TEXT`)
+    await db.query(`ALTER TABLE magazine_orders ADD COLUMN IF NOT EXISTS line_items JSONB DEFAULT '[]'`)
+    await db.query(`ALTER TABLE magazine_orders ADD COLUMN IF NOT EXISTS order_type TEXT DEFAULT 'magazine'`)
     await db.query(`
       CREATE TABLE IF NOT EXISTS user_change_log (
         id SERIAL PRIMARY KEY,
@@ -1218,7 +1243,8 @@ app.get("/api/user/saved-articles", authMiddleware, async (req, res) => {
 app.get("/api/user/orders", authMiddleware, async (req, res) => {
   try {
     const { rows } = await db.query(
-      `SELECT id, full_name, shipping_address, quantity, amount_total, currency, status, created_at, courier, shipping_type, tracking_number
+      `SELECT id, full_name, shipping_address, quantity, amount_total, currency, status, created_at, courier, shipping_type, tracking_number,
+              COALESCE(line_items, '[]'::jsonb) as line_items, COALESCE(order_type, 'magazine') as order_type
        FROM magazine_orders WHERE lower(customer_email)=lower($1) ORDER BY created_at DESC`,
       [req.user.email]
     )

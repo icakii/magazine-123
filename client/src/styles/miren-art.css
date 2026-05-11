@@ -30,8 +30,8 @@ html[data-theme="light"] .miren-art {
 }
 
 .miren-art-hero-v2 {
-  min-height: clamp(70vh, 84vh, 96vh);
-  padding: 26px clamp(16px, 3vw, 36px) 42px;
+  min-height: clamp(60vh, 72vh, 86vh);
+  padding: 26px clamp(24px, 4vw, 72px) 42px;
   position: relative;
   isolation: isolate;
   display: flex;
@@ -104,15 +104,15 @@ html[data-theme="light"] .miren-art {
 }
 
 .miren-art-hero-content {
-  max-width: 1100px;
+  width: 100%;
   position: relative;
   z-index: 2;
 }
 
 .miren-hero-grid {
   display: grid;
-  grid-template-columns: 1.3fr 0.95fr;
-  gap: 18px;
+  grid-template-columns: 1fr minmax(280px, 420px);
+  gap: clamp(18px, 3vw, 48px);
   align-items: start;
 }
 
@@ -152,7 +152,7 @@ html[data-theme="light"] .miren-art {
 }
 
 .miren-section {
-  padding: clamp(30px, 7vw, 86px) clamp(16px, 4vw, 56px);
+  padding: clamp(30px, 5vw, 72px) clamp(24px, 4vw, 72px);
   border-top: 1px solid var(--ma-border);
 }
 

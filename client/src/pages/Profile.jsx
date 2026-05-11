@@ -475,22 +475,43 @@ export default function Profile() {
         <div>
           {orders === null && <Loader />}
           {orders !== null && orders.length === 0 && (
-            <p className="text-muted" style={{ textAlign: "center", marginTop: "2rem" }}>Нямаш поръчани списания.</p>
+            <p className="text-muted" style={{ textAlign: "center", marginTop: "2rem" }}>Нямаш поръчки.</p>
           )}
           {orders !== null && orders.length > 0 && (
             <div style={{ display: "flex", flexDirection: "column", gap: 12, maxWidth: 680 }}>
               {orders.map((o) => {
-                const addr = o.shipping_address || {}
+                const addr = typeof o.shipping_address === "string"
+                  ? (() => { try { return JSON.parse(o.shipping_address) } catch { return {} } })()
+                  : (o.shipping_address || {})
                 const addrLine = [addr.line1, addr.city, addr.country].filter(Boolean).join(", ")
+                const lineItems = Array.isArray(o.line_items) ? o.line_items : []
+                const isStore = o.order_type === "store"
                 return (
                   <div key={o.id} className="card orders-card">
                     <div className="orders-card-row">
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontWeight: 700 }}>Поръчка #{o.id}</div>
-                        <div className="text-muted" style={{ fontSize: "0.82rem" }}>
-                          {new Date(o.created_at).toLocaleDateString("bg-BG")} · {o.quantity} бр.
+                        <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 4 }}>
+                          <span style={{ fontWeight: 700 }}>Поръчка #{o.id}</span>
+                          <span style={{
+                            fontSize: "0.72rem", fontWeight: 700, padding: "2px 8px", borderRadius: 999,
+                            background: isStore ? "rgba(99,102,241,0.13)" : "rgba(196,106,74,0.13)",
+                            color: isStore ? "#818cf8" : "var(--clay, #c46a4a)",
+                          }}>
+                            {isStore ? "Магазин" : "Списание"}
+                          </span>
                         </div>
-                        {o.courier && <div className="text-muted" style={{ fontSize: "0.82rem" }}>Куриер: {o.courier} {o.shipping_type ? `(${o.shipping_type})` : ""}</div>}
+                        {lineItems.length > 0 && (
+                          <div style={{ fontSize: "0.85rem", color: "var(--text)", marginBottom: 4 }}>
+                            {lineItems.map((li, i) => (
+                              <div key={i}>{li.description}{li.quantity > 1 ? ` ×${li.quantity}` : ""}</div>
+                            ))}
+                          </div>
+                        )}
+                        <div className="text-muted" style={{ fontSize: "0.82rem" }}>
+                          {new Date(o.created_at).toLocaleDateString("bg-BG")}
+                          {!isStore && o.quantity ? ` · ${o.quantity} бр.` : ""}
+                        </div>
+                        {o.courier && <div className="text-muted" style={{ fontSize: "0.82rem" }}>Куриер: {o.courier}{o.shipping_type ? ` (${o.shipping_type})` : ""}</div>}
                         {addrLine && <div className="text-muted" style={{ fontSize: "0.82rem", wordBreak: "break-word" }}>📍 {addrLine}</div>}
                         {o.tracking_number && (
                           <div style={{ fontSize: "0.85rem", marginTop: 4, wordBreak: "break-all" }}>
@@ -505,10 +526,10 @@ export default function Profile() {
                         <span style={{
                           display: "inline-block", marginTop: 4, padding: "2px 10px", borderRadius: 20,
                           fontSize: "0.78rem", fontWeight: 600, whiteSpace: "nowrap",
-                          background: o.status === "paid" ? "rgba(39,174,96,0.15)" : "rgba(200,200,200,0.2)",
-                          color: o.status === "paid" ? "#27ae60" : "var(--text)",
+                          background: o.status === "paid" ? "rgba(39,174,96,0.15)" : o.status === "refunded" ? "rgba(239,68,68,0.12)" : "rgba(200,200,200,0.2)",
+                          color: o.status === "paid" ? "#27ae60" : o.status === "refunded" ? "#ef4444" : "var(--text)",
                         }}>
-                          {o.status === "paid" ? "✅ Платена" : (o.status || "—")}
+                          {o.status === "paid" ? "✅ Платена" : o.status === "refunded" ? "Рефундирана" : (o.status || "—")}
                         </span>
                       </div>
                     </div>

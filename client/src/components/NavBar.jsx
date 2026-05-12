@@ -6,9 +6,9 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react"
 import { t, getLang, setLang } from "../lib/i18n"
 import { useAuth } from "../context/AuthContext"
 
-// MIREN ART open window: May 11 13:00 Sofia (UTC+3) → May 25 00:00 Sofia
-const ART_OPEN  = new Date("2025-05-11T10:00:00Z")
-const ART_CLOSE = new Date("2025-05-24T21:00:00Z")
+// MIREN ART open window: May 12 2026 → May 25 2026 00:00 Sofia
+const ART_OPEN  = new Date("2026-05-12T00:00:00Z")
+const ART_CLOSE = new Date("2026-05-24T21:00:00Z")
 function isMirenArtOpen() {
   const now = Date.now()
   return now >= ART_OPEN.getTime() && now < ART_CLOSE.getTime()

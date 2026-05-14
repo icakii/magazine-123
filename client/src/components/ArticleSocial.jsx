@@ -67,14 +67,18 @@ export function ProfileMiniCard({ displayName, anchorRect, onClose }) {
             <>
               <div style={{ display: "flex", alignItems: "center", gap: 13, marginBottom: 14 }}>
                 {profile.pfp_url ? (
-                  <img src={profile.pfp_url} alt="" style={{ width: 52, height: 52, borderRadius: "50%", objectFit: "cover", border: "2px solid rgba(196,106,74,0.4)" }} />
+                  <img src={profile.pfp_url} alt="" className={profile.plan === "yearly" ? "pfp-ring-yearly" : profile.plan === "monthly" ? "pfp-ring-monthly" : ""} style={{ width: 52, height: 52, borderRadius: "50%", objectFit: "cover", flexShrink: 0 }} />
                 ) : (
-                  <div style={{ width: 52, height: 52, borderRadius: "50%", background: "var(--oxide-red, #c46a4a)", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: "1.3rem", flexShrink: 0, border: "2px solid rgba(196,106,74,0.4)" }}>
+                  <div className={profile.plan === "yearly" ? "pfp-ring-yearly" : profile.plan === "monthly" ? "pfp-ring-monthly" : ""} style={{ width: 52, height: 52, borderRadius: "50%", background: "var(--oxide-red, #c46a4a)", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: "1.3rem", flexShrink: 0 }}>
                     {(profile.display_name || "?")[0].toUpperCase()}
                   </div>
                 )}
                 <div>
-                  <div style={{ fontWeight: 800, fontSize: "1rem", color: "#fff", lineHeight: 1.2 }}>{profile.display_name}</div>
+                  <div style={{ lineHeight: 1.2 }}>
+                    <span className={profile.plan === "yearly" ? "name-yearly" : profile.plan === "monthly" ? "name-monthly" : ""} style={!profile.plan || profile.plan === "free" ? { fontWeight: 800, fontSize: "1rem", color: "#fff" } : { fontSize: "1rem" }}>
+                      {profile.display_name}
+                    </span>
+                  </div>
                   {profile.plan && profile.plan !== "free" && <div style={{ marginTop: 5 }}><PlanBadge plan={profile.plan} /></div>}
                 </div>
               </div>
@@ -262,9 +266,9 @@ export function CommentConversation({ article, user, navigate, onClose, onCommen
                     title={c.display_name}
                   >
                     {c.pfp_url ? (
-                      <img src={c.pfp_url} alt="" style={{ width: 32, height: 32, borderRadius: "50%", objectFit: "cover", display: "block" }} />
+                      <img src={c.pfp_url} alt="" className={c.plan === "yearly" ? "pfp-ring-yearly" : c.plan === "monthly" ? "pfp-ring-monthly" : ""} style={{ width: 32, height: 32, borderRadius: "50%", objectFit: "cover", display: "block" }} />
                     ) : (
-                      <div style={{ width: 32, height: 32, borderRadius: "50%", background: isOwn ? "var(--oxide-red, #c46a4a)" : "rgba(99,102,241,0.7)", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: "0.82rem" }}>
+                      <div className={c.plan === "yearly" ? "pfp-ring-yearly" : c.plan === "monthly" ? "pfp-ring-monthly" : ""} style={{ width: 32, height: 32, borderRadius: "50%", background: isOwn ? "var(--oxide-red, #c46a4a)" : "rgba(99,102,241,0.7)", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: "0.82rem" }}>
                         {(c.display_name || c.username || "?")[0].toUpperCase()}
                       </div>
                     )}

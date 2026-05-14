@@ -193,20 +193,9 @@ export default function Subscriptions() {
                       {isCurrent ? "Текущ план" : "Избери план"}
                     </button>
                   ) : isCurrent ? (
-                    <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                      <button disabled style={{ width: "100%", padding: "11px", borderRadius: 12, border: "1.5px solid var(--border, rgba(255,255,255,0.1))", background: "transparent", color: "var(--text)", opacity: 0.45, fontWeight: 600, cursor: "not-allowed", fontSize: "0.88rem" }}>
-                        Текущ план
-                      </button>
-                      <button
-                        onClick={() => cancelSubscription(false)}
-                        disabled={cancelLoading}
-                        style={{ width: "100%", padding: "9px", borderRadius: 12, border: "1.5px solid var(--border, rgba(255,255,255,0.1))", background: "transparent", color: "var(--text)", opacity: 0.5, fontWeight: 500, cursor: "pointer", fontSize: "0.78rem", transition: "opacity 0.15s" }}
-                        onMouseEnter={(e) => { e.target.style.opacity = 1; e.target.style.color = "#ef4444"; e.target.style.borderColor = "#ef4444" }}
-                        onMouseLeave={(e) => { e.target.style.opacity = 0.5; e.target.style.color = "var(--text)"; e.target.style.borderColor = "var(--border, rgba(255,255,255,0.1))" }}
-                      >
-                        {cancelLoading ? "Отменя се..." : "Отмени в края на периода"}
-                      </button>
-                    </div>
+                    <button disabled style={{ width: "100%", padding: "11px", borderRadius: 12, border: "1.5px solid var(--border, rgba(255,255,255,0.1))", background: "transparent", color: "var(--text)", opacity: 0.45, fontWeight: 600, cursor: "not-allowed", fontSize: "0.88rem" }}>
+                      Текущ план
+                    </button>
                   ) : (
                     <button
                       onClick={() => activate(plan.key)}
@@ -245,26 +234,45 @@ export default function Subscriptions() {
         })}
       </div>
 
+      {/* Standalone cancel section */}
+      {(current === "monthly" || current === "yearly") && (
+        <div style={{ marginTop: "1.5rem", padding: "16px 20px", borderRadius: 14, border: "1px solid rgba(239,68,68,0.2)", background: "rgba(239,68,68,0.04)", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+          <div>
+            <div style={{ fontWeight: 600, fontSize: "0.88rem", color: "var(--text)" }}>Отмяна на абонамент</div>
+            <div style={{ fontSize: "0.78rem", color: "var(--text)", opacity: 0.5, marginTop: 2 }}>Запазваш достъп до края на платения период.</div>
+          </div>
+          <button
+            onClick={() => cancelSubscription(false)}
+            disabled={cancelLoading}
+            style={{ padding: "9px 20px", borderRadius: 10, border: "1.5px solid rgba(239,68,68,0.45)", background: "transparent", color: "#ef4444", fontWeight: 600, fontSize: "0.85rem", cursor: "pointer", transition: "all 0.15s", whiteSpace: "nowrap" }}
+            onMouseEnter={e => { e.currentTarget.style.background = "rgba(239,68,68,0.1)"; e.currentTarget.style.borderColor = "#ef4444" }}
+            onMouseLeave={e => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.borderColor = "rgba(239,68,68,0.45)" }}
+          >
+            {cancelLoading ? "Отменя се..." : "Отмени абонамента"}
+          </button>
+        </div>
+      )}
+
       {/* Decoration preview */}
-      <div style={{ marginTop: "2.5rem", padding: "22px 24px", borderRadius: 18, border: "1.5px solid rgba(255,255,255,0.08)", background: "rgba(255,255,255,0.03)" }}>
+      <div style={{ marginTop: "2rem", padding: "22px 24px", borderRadius: 18, border: "1.5px solid rgba(255,255,255,0.08)", background: "rgba(255,255,255,0.03)" }}>
         <div style={{ fontSize: "0.72rem", fontWeight: 800, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--text)", opacity: 0.4, marginBottom: 14 }}>Как изглеждат украшенията</div>
-        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <div style={{ width: 32, height: 32, borderRadius: "50%", background: "linear-gradient(135deg,#3b82f6,#6366f1)", flexShrink: 0 }} />
+            <div className="pfp-ring-monthly" style={{ width: 36, height: 36, borderRadius: "50%", background: "rgba(59,130,246,0.25)", color: "#93c5fd", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: "1rem", flexShrink: 0 }}>I</div>
             <div>
-              <span className="name-monthly" style={{ fontSize: "0.95rem" }}>Ivanka_bg ⭐</span>
-              <div style={{ fontSize: "0.72rem", color: "var(--text)", opacity: 0.4, marginTop: 2 }}>Monthly — синьо сияние на потребителското</div>
+              <span className="name-monthly" style={{ fontSize: "0.92rem" }}>Ivanka_bg ⭐</span>
+              <div style={{ fontSize: "0.72rem", color: "var(--text)", opacity: 0.4, marginTop: 3 }}>Monthly — синя рамка на аватара + синьо фонче на името</div>
             </div>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <div style={{ width: 32, height: 32, borderRadius: "50%", background: "linear-gradient(135deg,#f59e0b,#ef4444)", flexShrink: 0 }} />
+            <div className="pfp-ring-yearly" style={{ width: 36, height: 36, borderRadius: "50%", background: "rgba(245,158,11,0.25)", color: "#fbbf24", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: "1rem", flexShrink: 0 }}>М</div>
             <div>
-              <span className="name-yearly" style={{ fontSize: "0.95rem" }}>Мария 👑</span>
-              <div style={{ fontSize: "0.72rem", color: "var(--text)", opacity: 0.4, marginTop: 2 }}>Yearly — златно сияние на потребителското</div>
+              <span className="name-yearly" style={{ fontSize: "0.92rem" }}>Мария 👑</span>
+              <div style={{ fontSize: "0.72rem", color: "var(--text)", opacity: 0.4, marginTop: 3 }}>Yearly — златна рамка на аватара + златно фонче на името</div>
             </div>
           </div>
-          <div style={{ fontSize: "0.78rem", color: "var(--text)", opacity: 0.45, marginTop: 4 }}>
-            Украшенията се виждат при коментари, в Leaderboards и при отваряне на профил.
+          <div style={{ fontSize: "0.78rem", color: "var(--text)", opacity: 0.4 }}>
+            Виждат се при коментари, в Leaderboards и при отваряне на профил.
           </div>
         </div>
       </div>

@@ -982,6 +982,8 @@ app.get("/api/fix-db", async (req, res) => {
     await db.query(`ALTER TABLE writer_submissions ADD COLUMN IF NOT EXISTS short_text TEXT`)
     await db.query(`ALTER TABLE magazine_orders ADD COLUMN IF NOT EXISTS line_items JSONB DEFAULT '[]'`)
     await db.query(`ALTER TABLE magazine_orders ADD COLUMN IF NOT EXISTS order_type TEXT DEFAULT 'magazine'`)
+    await db.query(`ALTER TABLE writer_submissions ADD COLUMN IF NOT EXISTS published_article_id INTEGER`)
+    await db.query(`ALTER TABLE writer_submissions ADD COLUMN IF NOT EXISTS published_at TIMESTAMPTZ`)
     await db.query(`
       CREATE TABLE IF NOT EXISTS user_change_log (
         id SERIAL PRIMARY KEY,
@@ -1346,27 +1348,53 @@ app.get("/api/admin/writers", adminMiddleware, async (req, res) => {
     res.json(rows)
   } catch (e) { res.status(500).json({ error: e.message }) }
 })
-// Admin — update submission status
+// Admin — update submission status / edit fields
 app.put("/api/admin/writers/:id", adminMiddleware, async (req, res) => {
   try {
-    const { status, admin_note, title, body, author_name } = req.body || {}
+    const { status, admin_note, title, body, author_name, excerpt } = req.body || {}
     await db.query(
-      `UPDATE writer_submissions SET status=$1, admin_note=$2, title=COALESCE($3,title), body=COALESCE($4,body), author_name=COALESCE($5,author_name) WHERE id=$6`,
-      [status, admin_note || null, title || null, body || null, author_name || null, Number(req.params.id)]
+      `UPDATE writer_submissions
+       SET status=COALESCE($1,status), admin_note=$2,
+           title=COALESCE($3,title), body=COALESCE($4,body),
+           author_name=COALESCE($5,author_name), short_text=COALESCE($6,short_text)
+       WHERE id=$7`,
+      [status || null, admin_note || null, title || null, body || null, author_name || null, excerpt || null, Number(req.params.id)]
     )
-    // If approved → publish as article
-    if (status === "approved") {
-      const { rows } = await db.query(`SELECT * FROM writer_submissions WHERE id=$1`, [Number(req.params.id)])
-      const s = rows[0]
-      if (s) {
-        await db.query(
-          `INSERT INTO articles (title, content, image_url, author, category, is_premium, time)
-           VALUES ($1,$2,$3,$4,'community',false,NOW()::text) ON CONFLICT DO NOTHING`,
-          [s.title, s.body, s.cover_url || "", s.author_name]
-        ).catch(() => {})
-      }
-    }
     res.json({ ok: true })
+  } catch (e) { res.status(500).json({ error: e.message }) }
+})
+
+// Admin — publish approved submission to news + home
+app.post("/api/admin/writers/:id/publish", adminMiddleware, async (req, res) => {
+  try {
+    const { rows } = await db.query(`SELECT * FROM writer_submissions WHERE id=$1`, [Number(req.params.id)])
+    const s = rows[0]
+    if (!s) return res.status(404).json({ error: "Submission not found" })
+
+    // Insert into articles as news + home_featured
+    const ins = await db.query(
+      `INSERT INTO articles (title, text, excerpt, image_url, author, category, is_premium, date, home_featured)
+       VALUES ($1,$2,$3,$4,$5,'news',false,NOW(),true)
+       RETURNING id`,
+      [s.title, s.body, s.short_text || "", s.cover_url || "", s.author_name]
+    )
+    const newId = ins.rows[0].id
+
+    // Keep only 2 home_featured news articles — unfeatured extras (oldest)
+    await db.query(`
+      UPDATE articles SET home_featured=false
+      WHERE category='news' AND home_featured=true AND id NOT IN (
+        SELECT id FROM articles WHERE category='news' AND home_featured=true
+        ORDER BY date DESC LIMIT 2
+      )
+    `)
+
+    // Mark submission as published
+    await db.query(
+      `UPDATE writer_submissions SET status='approved', published_article_id=$1, published_at=NOW() WHERE id=$2`,
+      [newId, Number(req.params.id)]
+    )
+    res.json({ ok: true, articleId: newId })
   } catch (e) { res.status(500).json({ error: e.message }) }
 })
 
@@ -1408,6 +1436,29 @@ app.put("/api/admin/users/:email/ban", adminMiddleware, async (req, res) => {
   try {
     const { banned } = req.body
     await db.query(`UPDATE users SET is_banned=$1 WHERE lower(email)=lower($2)`, [!!banned, req.params.email])
+    res.json({ ok: true })
+  } catch (e) { res.status(500).json({ error: e.message }) }
+})
+
+// Admin — delete user
+app.delete("/api/admin/users/:email", adminMiddleware, async (req, res) => {
+  try {
+    const email = decodeURIComponent(req.params.email).trim().toLowerCase()
+    if (email === req.user.email.toLowerCase()) return res.status(400).json({ error: "Cannot delete yourself" })
+    await db.query("DELETE FROM users WHERE lower(email)=lower($1)", [email])
+    res.json({ ok: true })
+  } catch (e) { res.status(500).json({ error: e.message }) }
+})
+
+// Admin — rename user display_name
+app.put("/api/admin/users/:email/rename", adminMiddleware, async (req, res) => {
+  try {
+    const email = decodeURIComponent(req.params.email).trim().toLowerCase()
+    const newName = String(req.body?.displayName || "").trim()
+    if (!newName || newName.length < 2) return res.status(400).json({ error: "Name too short" })
+    const taken = await db.query("SELECT 1 FROM users WHERE lower(display_name)=lower($1) AND lower(email)<>lower($2)", [newName, email])
+    if (taken.rows.length > 0) return res.status(409).json({ error: "Name taken" })
+    await db.query("UPDATE users SET display_name=$1 WHERE lower(email)=lower($2)", [newName, email])
     res.json({ ok: true })
   } catch (e) { res.status(500).json({ error: e.message }) }
 })
@@ -2038,9 +2089,9 @@ app.get("/api/admin/logs", adminMiddleware, async (req, res) => {
     const type = String(req.query.type || "username")
 
     if (type === "activity") {
-      const [comments, likes] = await Promise.all([
+      const [comments, likes, saves] = await Promise.all([
         db.query(`
-          SELECT 'comment' AS kind, c.id, c.user_email, u.display_name, c.content AS value,
+          SELECT 'comment' AS kind, c.id::text AS id, c.user_email, u.display_name, c.content AS value,
                  a.title AS article_title, c.created_at
           FROM article_comments c
           LEFT JOIN users u ON lower(u.email) = lower(c.user_email)
@@ -2048,15 +2099,23 @@ app.get("/api/admin/logs", adminMiddleware, async (req, res) => {
           ORDER BY c.created_at DESC LIMIT 200
         `),
         db.query(`
-          SELECT 'like' AS kind, l.id, l.user_email, u.display_name, NULL AS value,
+          SELECT 'like' AS kind, (l.user_email || '_' || l.article_id) AS id, l.user_email, u.display_name, NULL AS value,
                  a.title AS article_title, l.created_at
           FROM article_likes l
           LEFT JOIN users u ON lower(u.email) = lower(l.user_email)
           LEFT JOIN articles a ON a.id = l.article_id
           ORDER BY l.created_at DESC LIMIT 200
         `),
+        db.query(`
+          SELECT 'save' AS kind, (s.user_email || '_' || s.article_id) AS id, s.user_email, u.display_name, NULL AS value,
+                 a.title AS article_title, s.created_at
+          FROM article_saves s
+          LEFT JOIN users u ON lower(u.email) = lower(s.user_email)
+          LEFT JOIN articles a ON a.id = s.article_id
+          ORDER BY s.created_at DESC LIMIT 200
+        `),
       ])
-      const merged = [...comments.rows, ...likes.rows]
+      const merged = [...comments.rows, ...likes.rows, ...saves.rows]
         .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
         .slice(0, 300)
       return res.json(merged)
@@ -3153,6 +3212,8 @@ async function initDB() {
     await db.query(`ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS started_at TIMESTAMPTZ`)
     await db.query(`ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS ended_at TIMESTAMPTZ`)
     await db.query(`ALTER TABLE articles ADD COLUMN IF NOT EXISTS home_featured BOOLEAN DEFAULT FALSE`)
+    await db.query(`ALTER TABLE writer_submissions ADD COLUMN IF NOT EXISTS published_article_id INTEGER`)
+    await db.query(`ALTER TABLE writer_submissions ADD COLUMN IF NOT EXISTS published_at TIMESTAMPTZ`)
     await db.query(`
       CREATE TABLE IF NOT EXISTS user_change_log (
         id SERIAL PRIMARY KEY,

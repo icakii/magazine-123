@@ -28,6 +28,7 @@ const TABS = [
   { key: "orders", label: "Orders" },
   { key: "subscriptions", label: "Subscriptions" },
   { key: "newsletter", label: "Newsletter" },
+  { key: "users", label: "Users" },
   { key: "writers", label: "✍️ Writers" },
   { key: "refunds", label: "⚠️ Refunds" },
   { key: "admins", label: "Admins" },
@@ -543,6 +544,8 @@ const [heroVfxUrl, setHeroVfxUrl] = useState("")
   const [writers, setWriters] = useState([])
   const [writerFilter, setWriterFilter] = useState("pending")
   const [expandedWriter, setExpandedWriter] = useState(null)
+  const [editingWriter, setEditingWriter] = useState(null) // { id, title, body, author_name, excerpt }
+  const [userRename, setUserRename] = useState(null) // { email, newName }
   const [logs, setLogs] = useState([])
   const [logTab, setLogTab] = useState("username")
 
@@ -660,6 +663,7 @@ const [heroVfxUrl, setHeroVfxUrl] = useState("")
         if (activeTab === "users") {
           const res = await api.get("/admin/users")
           setUsers(Array.isArray(res.data) ? res.data : [])
+          setUserRename(null)
           return
         }
 
@@ -1643,6 +1647,78 @@ isVideoUrl(heroVfxUrl) ? (
         </div>
       )}
 
+      {/* USERS */}
+      {activeTab === "users" && (
+        <div className="admin-card">
+          <h3 className="headline">Потребители ({users.length})</h3>
+          {users.length === 0 ? (
+            <p className="text-muted">Няма потребители.</p>
+          ) : (
+            <div className="list">
+              {users.map((u) => (
+                <div key={u.email} className="list-row">
+                  <div className="list-main" style={{ minWidth: 0 }}>
+                    <div className="list-title" style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                      {u.pfp_url && <img src={u.pfp_url} alt="" style={{ width: 28, height: 28, borderRadius: "50%", objectFit: "cover", flexShrink: 0 }} />}
+                      <span style={{ fontWeight: 700 }}>{u.display_name || "(без потребителско)"}</span>
+                      {u.is_google && <span style={{ fontSize: "0.7rem", background: "#4285F4", color: "#fff", borderRadius: 4, padding: "1px 5px" }}>Google</span>}
+                      {u.is_banned && <span style={{ fontSize: "0.7rem", background: "#ef4444", color: "#fff", borderRadius: 4, padding: "1px 5px" }}>Banned</span>}
+                    </div>
+                    <div className="list-sub text-muted">{u.email} · {u.created_at ? new Date(u.created_at).toLocaleDateString("bg-BG") : "—"}</div>
+
+                    {userRename?.email === u.email && (
+                      <div style={{ display: "flex", gap: 8, marginTop: 8, flexWrap: "wrap", alignItems: "center" }}>
+                        <input
+                          className="input"
+                          style={{ flex: "1 1 180px", fontSize: "0.88rem", padding: "6px 10px" }}
+                          value={userRename.newName}
+                          onChange={(e) => setUserRename((p) => ({ ...p, newName: e.target.value }))}
+                          placeholder="Ново потребителско"
+                          onKeyDown={(e) => { if (e.key === "Escape") setUserRename(null) }}
+                        />
+                        <button className="btn primary" style={{ fontSize: "0.8rem" }} type="button" onClick={async () => {
+                          try {
+                            await api.put(`/admin/users/${encodeURIComponent(u.email)}/rename`, { displayName: userRename.newName })
+                            setUsers((prev) => prev.map((x) => x.email === u.email ? { ...x, display_name: userRename.newName } : x))
+                            setUserRename(null)
+                            setMsg("✅ Потребителското е сменено.")
+                          } catch (e) { setMsg(e?.response?.data?.error || "Грешка.") }
+                        }}>Запази</button>
+                        <button className="btn ghost" style={{ fontSize: "0.8rem" }} type="button" onClick={() => setUserRename(null)}>Откажи</button>
+                      </div>
+                    )}
+                  </div>
+
+                  <div style={{ display: "flex", gap: 6, flexShrink: 0, flexWrap: "wrap" }}>
+                    <button
+                      className="btn ghost" type="button"
+                      style={{ fontSize: "0.78rem" }}
+                      onClick={() => setUserRename(userRename?.email === u.email ? null : { email: u.email, newName: u.display_name || "" })}
+                    >
+                      Смени име
+                    </button>
+                    <button
+                      className="btn outline" type="button"
+                      style={{ fontSize: "0.78rem", color: "#ef4444", borderColor: "#ef4444" }}
+                      onClick={async () => {
+                        if (!window.confirm(`Изтрий акаунта на ${u.email}? Това е необратимо!`)) return
+                        try {
+                          await api.delete(`/admin/users/${encodeURIComponent(u.email)}`)
+                          setUsers((prev) => prev.filter((x) => x.email !== u.email))
+                          setMsg("🗑️ Потребителят е изтрит.")
+                        } catch (e) { setMsg(e?.response?.data?.error || "Грешка при изтриване.") }
+                      }}
+                    >
+                      Изтрий
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* WRITERS */}
       {activeTab === "writers" && (
         <div className="admin-card">
@@ -1673,99 +1749,125 @@ isVideoUrl(heroVfxUrl) ? (
               .filter((w) => w.status === writerFilter)
               .map((w) => {
                 const isExpanded = expandedWriter === w.id
+                const isEditing = editingWriter?.id === w.id
                 return (
                   <div key={w.id} className="admin-card" style={{ marginBottom: 16 }}>
+                    {/* Header row */}
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 8 }}>
                       <div style={{ flex: 1, minWidth: 200 }}>
                         <div style={{ fontWeight: 700, fontSize: "1.05rem", color: "var(--text)", marginBottom: 4 }}>
                           {w.title}
+                          {w.published_at && <span style={{ marginLeft: 8, fontSize: "0.72rem", background: "#22c55e", color: "#fff", borderRadius: 4, padding: "1px 7px", fontWeight: 600 }}>Публикувана</span>}
                         </div>
                         <div className="text-muted" style={{ fontSize: "0.85rem" }}>
                           ✍️ {w.author_name} &nbsp;·&nbsp; 👤 {w.user_email || w.user_id} &nbsp;·&nbsp; 📅 {new Date(w.created_at).toLocaleDateString("bg-BG")}
                         </div>
-                        <div className="text-muted" style={{ fontSize: "0.82rem", marginTop: 4 }}>
-                          {w.body?.slice(0, 120)}{w.body?.length > 120 ? "…" : ""}
-                        </div>
+                        {!isEditing && (
+                          <div className="text-muted" style={{ fontSize: "0.82rem", marginTop: 4 }}>
+                            {w.body?.slice(0, 120)}{w.body?.length > 120 ? "…" : ""}
+                          </div>
+                        )}
                       </div>
-                      <div style={{ display: "flex", gap: 6, flexShrink: 0, alignItems: "center" }}>
-                        <button
-                          type="button"
-                          className="btn ghost"
-                          style={{ fontSize: "0.82rem" }}
-                          onClick={() => setExpandedWriter(isExpanded ? null : w.id)}
-                        >
+                      <div style={{ display: "flex", gap: 6, flexShrink: 0, alignItems: "center", flexWrap: "wrap" }}>
+                        <button type="button" className="btn ghost" style={{ fontSize: "0.82rem" }}
+                          onClick={() => { setExpandedWriter(isExpanded ? null : w.id); setEditingWriter(null) }}>
                           {isExpanded ? "Скрий" : "Прочети"}
                         </button>
+                        <button type="button" className="btn ghost" style={{ fontSize: "0.82rem" }}
+                          onClick={() => {
+                            if (isEditing) { setEditingWriter(null) }
+                            else { setEditingWriter({ id: w.id, title: w.title || "", body: w.body || "", author_name: w.author_name || "", excerpt: w.short_text || "" }); setExpandedWriter(null) }
+                          }}>
+                          {isEditing ? "Откажи" : "Редактирай"}
+                        </button>
                         {w.status !== "approved" && (
-                          <button
-                            type="button"
-                            className="btn primary"
-                            style={{ fontSize: "0.82rem" }}
+                          <button type="button" className="btn ghost" style={{ fontSize: "0.82rem", color: "#22c55e", borderColor: "#22c55e" }}
                             onClick={async () => {
                               try {
                                 await api.put(`/admin/writers/${w.id}`, { status: "approved" })
                                 setWriters((prev) => prev.map((x) => x.id === w.id ? { ...x, status: "approved" } : x))
-                                setMsg("✅ Одобрено и публикувано в News!")
-                              } catch (e) {
-                                setMsg(e?.response?.data?.error || "Грешка при одобрение.")
-                              }
-                            }}
-                          >
+                                setMsg("✅ Одобрено.")
+                              } catch (e) { setMsg(e?.response?.data?.error || "Грешка.") }
+                            }}>
                             ✅ Одобри
                           </button>
                         )}
+                        {w.status === "approved" && !w.published_at && (
+                          <button type="button" className="btn primary" style={{ fontSize: "0.82rem" }}
+                            onClick={async () => {
+                              if (!window.confirm(`Публикувай "${w.title}" в News и Home?`)) return
+                              try {
+                                await api.post(`/admin/writers/${w.id}/publish`)
+                                setWriters((prev) => prev.map((x) => x.id === w.id ? { ...x, published_at: new Date().toISOString() } : x))
+                                setMsg("✅ Публикувано в News + Home featured!")
+                              } catch (e) { setMsg(e?.response?.data?.error || "Грешка при публикуване.") }
+                            }}>
+                            🚀 Публикувай
+                          </button>
+                        )}
                         {w.status !== "rejected" && (
-                          <button
-                            type="button"
-                            className="btn outline"
-                            style={{ fontSize: "0.82rem", color: "#c0392b", borderColor: "#c0392b" }}
+                          <button type="button" className="btn outline" style={{ fontSize: "0.82rem", color: "#c0392b", borderColor: "#c0392b" }}
                             onClick={async () => {
                               if (!window.confirm("Отхвърли тази статия?")) return
                               try {
                                 await api.put(`/admin/writers/${w.id}`, { status: "rejected" })
                                 setWriters((prev) => prev.map((x) => x.id === w.id ? { ...x, status: "rejected" } : x))
                                 setMsg("🗑️ Отхвърлено.")
-                              } catch (e) {
-                                setMsg(e?.response?.data?.error || "Грешка.")
-                              }
-                            }}
-                          >
+                              } catch (e) { setMsg(e?.response?.data?.error || "Грешка.") }
+                            }}>
                             ❌ Отхвърли
                           </button>
                         )}
                       </div>
                     </div>
 
-                    {isExpanded && (
+                    {/* Inline edit form */}
+                    {isEditing && (
+                      <div style={{ marginTop: 16, borderTop: "1px solid var(--border, rgba(0,0,0,0.1))", paddingTop: 16, display: "grid", gap: 10 }}>
+                        <label className="field" style={{ margin: 0 }}>
+                          <span>Заглавие</span>
+                          <input value={editingWriter.title} onChange={(e) => setEditingWriter((p) => ({ ...p, title: e.target.value }))} />
+                        </label>
+                        <label className="field" style={{ margin: 0 }}>
+                          <span>Автор</span>
+                          <input value={editingWriter.author_name} onChange={(e) => setEditingWriter((p) => ({ ...p, author_name: e.target.value }))} />
+                        </label>
+                        <label className="field" style={{ margin: 0 }}>
+                          <span>Excerpt (кратко описание)</span>
+                          <input value={editingWriter.excerpt} onChange={(e) => setEditingWriter((p) => ({ ...p, excerpt: e.target.value }))} />
+                        </label>
+                        <label className="field" style={{ margin: 0 }}>
+                          <span>Текст</span>
+                          <textarea rows={10} value={editingWriter.body} onChange={(e) => setEditingWriter((p) => ({ ...p, body: e.target.value }))} />
+                        </label>
+                        <button type="button" className="btn primary" style={{ alignSelf: "flex-start" }}
+                          onClick={async () => {
+                            try {
+                              await api.put(`/admin/writers/${w.id}`, {
+                                title: editingWriter.title,
+                                body: editingWriter.body,
+                                author_name: editingWriter.author_name,
+                                excerpt: editingWriter.excerpt,
+                              })
+                              setWriters((prev) => prev.map((x) => x.id === w.id ? { ...x, title: editingWriter.title, body: editingWriter.body, author_name: editingWriter.author_name, short_text: editingWriter.excerpt } : x))
+                              setEditingWriter(null)
+                              setMsg("✅ Промените са запазени.")
+                            } catch (e) { setMsg(e?.response?.data?.error || "Грешка.") }
+                          }}>
+                          Запази промените
+                        </button>
+                      </div>
+                    )}
+
+                    {/* Read expanded */}
+                    {isExpanded && !isEditing && (
                       <div style={{ marginTop: 16, borderTop: "1px solid var(--border, rgba(0,0,0,0.1))", paddingTop: 16 }}>
-                        {w.cover_url && (
-                          <img
-                            src={w.cover_url}
-                            alt="Cover"
-                            style={{ width: "100%", maxHeight: 320, objectFit: "cover", borderRadius: 10, marginBottom: 14 }}
-                          />
-                        )}
-                        <p style={{ color: "var(--text)", lineHeight: 1.75, whiteSpace: "pre-wrap", marginBottom: 14 }}>
-                          {w.body}
-                        </p>
-                        {w.end_url && (
-                          <img
-                            src={w.end_url}
-                            alt="End image"
-                            style={{ width: "100%", maxHeight: 320, objectFit: "cover", borderRadius: 10 }}
-                          />
-                        )}
+                        {w.cover_url && <img src={w.cover_url} alt="Cover" style={{ width: "100%", maxHeight: 320, objectFit: "cover", borderRadius: 10, marginBottom: 14 }} />}
+                        <p style={{ color: "var(--text)", lineHeight: 1.75, whiteSpace: "pre-wrap", marginBottom: 14 }}>{w.body}</p>
+                        {w.end_url && <img src={w.end_url} alt="End image" style={{ width: "100%", maxHeight: 320, objectFit: "cover", borderRadius: 10 }} />}
                         <div style={{ marginTop: 12, display: "flex", gap: 8, flexWrap: "wrap" }}>
-                          {w.cover_url && (
-                            <a href={w.cover_url} target="_blank" rel="noreferrer" className="btn ghost" style={{ fontSize: "0.8rem" }}>
-                              ⬇️ Cover
-                            </a>
-                          )}
-                          {w.end_url && (
-                            <a href={w.end_url} target="_blank" rel="noreferrer" className="btn ghost" style={{ fontSize: "0.8rem" }}>
-                              ⬇️ End image
-                            </a>
-                          )}
+                          {w.cover_url && <a href={w.cover_url} target="_blank" rel="noreferrer" className="btn ghost" style={{ fontSize: "0.8rem" }}>⬇️ Cover</a>}
+                          {w.end_url && <a href={w.end_url} target="_blank" rel="noreferrer" className="btn ghost" style={{ fontSize: "0.8rem" }}>⬇️ End image</a>}
                         </div>
                       </div>
                     )}
@@ -1786,7 +1888,7 @@ isVideoUrl(heroVfxUrl) ? (
               { key: "username", label: "Usernames" },
               { key: "instagram", label: "Instagram" },
               { key: "pfp", label: "Profile pics" },
-              { key: "activity", label: "Comments & Likes" },
+              { key: "activity", label: "Comments, Likes & Saves" },
             ].map((t) => (
               <button
                 key={t.key}
@@ -1809,10 +1911,10 @@ isVideoUrl(heroVfxUrl) ? (
                     <div className="list-title" style={{ display: "flex", alignItems: "center", gap: 8 }}>
                       <span style={{
                         fontSize: "0.72rem", fontWeight: 700, padding: "2px 8px", borderRadius: 999,
-                        background: row.kind === "comment" ? "rgba(99,102,241,0.15)" : "rgba(239,68,68,0.13)",
-                        color: row.kind === "comment" ? "#818cf8" : "#ef4444",
+                        background: row.kind === "comment" ? "rgba(99,102,241,0.15)" : row.kind === "like" ? "rgba(239,68,68,0.13)" : "rgba(99,102,241,0.10)",
+                        color: row.kind === "comment" ? "#818cf8" : row.kind === "like" ? "#ef4444" : "#6366f1",
                       }}>
-                        {row.kind === "comment" ? "comment" : "like"}
+                        {row.kind}
                       </span>
                       <span style={{ fontWeight: 600 }}>{row.display_name || row.user_email}</span>
                     </div>

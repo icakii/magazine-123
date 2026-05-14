@@ -1418,6 +1418,26 @@ app.get("/api/community/leaderboard", async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }) }
 })
 
+// Public — top writers by approved article count
+app.get("/api/community/writers-leaderboard", async (req, res) => {
+  try {
+    const limit = Math.min(Number(req.query.limit) || 10, 20)
+    const { rows } = await db.query(
+      `SELECT ws.author_name AS author, COUNT(*) AS article_count,
+              u.pfp_url,
+              (SELECT plan FROM subscriptions WHERE email=u.email ORDER BY id DESC LIMIT 1) AS plan
+       FROM writer_submissions ws
+       LEFT JOIN users u ON lower(u.display_name) = lower(ws.author_name)
+       WHERE ws.status = 'approved'
+       GROUP BY ws.author_name, u.pfp_url, u.email
+       ORDER BY article_count DESC, ws.author_name ASC
+       LIMIT $1`,
+      [limit]
+    )
+    res.json(rows.map(r => ({ ...r, article_count: Number(r.article_count) })))
+  } catch (e) { res.status(500).json({ error: e.message }) }
+})
+
 // Public — latest approved community articles (for home page block)
 app.get("/api/community/articles", async (req, res) => {
   try {
@@ -1472,6 +1492,22 @@ app.delete("/api/admin/users/:email/pfp", adminMiddleware, async (req, res) => {
   try {
     const email = decodeURIComponent(req.params.email).trim().toLowerCase()
     await db.query("UPDATE users SET pfp_url=NULL WHERE lower(email)=lower($1)", [email])
+    res.json({ ok: true })
+  } catch (e) { res.status(500).json({ error: e.message }) }
+})
+
+// Admin — grant subscription to a user
+app.post("/api/admin/grant-subscription", adminMiddleware, async (req, res) => {
+  try {
+    const email = String(req.body?.email || "").trim().toLowerCase()
+    const plan = String(req.body?.plan || "").toLowerCase()
+    if (!email) return res.status(400).json({ error: "email required" })
+    if (!["free", "monthly", "yearly"].includes(plan)) return res.status(400).json({ error: "plan must be free, monthly or yearly" })
+    await db.query(
+      `INSERT INTO subscriptions (email, plan) VALUES ($1, $2)
+       ON CONFLICT (email) DO UPDATE SET plan = $2`,
+      [email, plan]
+    )
     res.json({ ok: true })
   } catch (e) { res.status(500).json({ error: e.message }) }
 })
@@ -1700,9 +1736,11 @@ app.post("/api/admin/miren-art/reset-codes", adminMiddleware, async (req, res) =
 app.get("/api/admin/users", adminMiddleware, async (req, res) => {
   try {
     const { rows } = await db.query(
-      `SELECT email, display_name, created_at,
-              CASE WHEN google_sub IS NOT NULL THEN true ELSE false END AS is_google
-       FROM users ORDER BY created_at DESC`
+      `SELECT u.email, u.display_name, u.created_at,
+              CASE WHEN u.google_sub IS NOT NULL THEN true ELSE false END AS is_google,
+              u.pfp_url,
+              (SELECT plan FROM subscriptions WHERE lower(email)=lower(u.email) ORDER BY id DESC LIMIT 1) AS plan
+       FROM users u ORDER BY u.created_at DESC`
     )
     res.json(rows)
   } catch (e) {

@@ -1717,6 +1717,22 @@ isVideoUrl(heroVfxUrl) ? (
                       </button>
                     )}
                     <button
+                      className="btn ghost" type="button"
+                      style={{ fontSize: "0.78rem", color: "#a78bfa", borderColor: "#a78bfa" }}
+                      onClick={async () => {
+                        const plan = window.prompt(`Абонамент за ${u.display_name || u.email}:\n\nВъведи: free, monthly или yearly`, u.plan || "free")
+                        if (!plan) return
+                        if (!["free", "monthly", "yearly"].includes(plan.trim().toLowerCase())) { alert("Невалиден план!"); return }
+                        try {
+                          await api.post("/admin/grant-subscription", { email: u.email, plan: plan.trim().toLowerCase() })
+                          setUsers((prev) => prev.map((x) => x.email === u.email ? { ...x, plan: plan.trim().toLowerCase() } : x))
+                          setMsg(`✅ Абонамент "${plan.trim()}" даден на ${u.email}.`)
+                        } catch (e) { setMsg(e?.response?.data?.error || "Грешка.") }
+                      }}
+                    >
+                      Абонамент
+                    </button>
+                    <button
                       className="btn outline" type="button"
                       style={{ fontSize: "0.78rem", color: "#ef4444", borderColor: "#ef4444" }}
                       onClick={async () => {

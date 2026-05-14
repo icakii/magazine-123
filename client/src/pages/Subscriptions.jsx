@@ -118,7 +118,6 @@ export default function Subscriptions() {
   }
 
   if (loading) return <div className="page"><Loader /></div>
-  if (!user) return <div className="page"><p>{tt("not_logged_in", "Не си влязъл.")}</p></div>
 
   return (
     <div className="page">
@@ -197,6 +196,21 @@ export default function Subscriptions() {
                     <button disabled style={{ width: "100%", padding: "11px", borderRadius: 12, border: "1.5px solid var(--border, rgba(255,255,255,0.1))", background: "transparent", color: "var(--text)", opacity: 0.45, fontWeight: 600, cursor: "not-allowed", fontSize: "0.88rem" }}>
                       Текущ план
                     </button>
+                  ) : !user ? (
+                    <button
+                      onClick={() => window.location.href = "/login"}
+                      style={{
+                        width: "100%", padding: "12px", borderRadius: 12, border: "none",
+                        background: plan.btnGradient, color: "#fff",
+                        fontWeight: 800, fontSize: "0.9rem", cursor: "pointer",
+                        boxShadow: `0 4px 18px ${plan.glow}`,
+                        transition: "transform 0.15s, box-shadow 0.15s",
+                      }}
+                      onMouseEnter={(e) => { e.target.style.transform = "translateY(-1px)"; e.target.style.boxShadow = `0 6px 24px ${plan.glow}` }}
+                      onMouseLeave={(e) => { e.target.style.transform = ""; e.target.style.boxShadow = `0 4px 18px ${plan.glow}` }}
+                    >
+                      Влез за да се абонираш
+                    </button>
                   ) : (
                     <button
                       onClick={() => activate(plan.key)}
@@ -236,7 +250,7 @@ export default function Subscriptions() {
       </div>
 
       {/* Standalone cancel section */}
-      {(current === "monthly" || current === "yearly") && (
+      {user && (current === "monthly" || current === "yearly") && (
         <div style={{ marginTop: "1.5rem", padding: "16px 20px", borderRadius: 14, border: "1px solid rgba(239,68,68,0.2)", background: "rgba(239,68,68,0.04)", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
           <div>
             <div style={{ fontWeight: 600, fontSize: "0.88rem", color: "var(--text)" }}>Отмяна на абонамент</div>
@@ -274,9 +288,15 @@ export default function Subscriptions() {
 
       {msg && <p className="msg" style={{ marginTop: 20 }}>{msg}</p>}
 
-      {(current === "monthly" || current === "yearly") && (
+      {user && (current === "monthly" || current === "yearly") && (
         <p className="subhead" style={{ marginTop: 14, fontSize: "0.82rem" }}>
           💡 При отмяна в края на периода запазваш достъп до изтичане на абонамента.
+        </p>
+      )}
+
+      {!user && (
+        <p className="subhead" style={{ marginTop: 14, fontSize: "0.82rem" }}>
+          💡 <a href="/login" style={{ color: "var(--oxide-red, #c46a4a)" }}>Влез в профила си</a>, за да се абонираш.
         </p>
       )}
 

@@ -172,11 +172,7 @@ ReactDOM.createRoot(document.getElementById("root")).render(
             />
             <Route
               path="/subscriptions"
-              element={
-                <DevLockedRoute sectionName="Subscriptions">
-                  <Subscriptions />
-                </DevLockedRoute>
-              }
+              element={<Subscriptions />}
             />
             <Route
               path="/games"

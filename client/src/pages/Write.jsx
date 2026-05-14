@@ -132,7 +132,7 @@ function LeaderboardModal({ onClose }) {
   const [loading, setLoading] = useState(true)
 
   useState(() => {
-    api.get("/community/leaderboard", { params: { limit: 10 } })
+    api.get("/community/writers-leaderboard", { params: { limit: 10 } })
       .then(r => setItems(r.data))
       .catch(() => setItems([]))
       .finally(() => setLoading(false))
@@ -150,29 +150,29 @@ function LeaderboardModal({ onClose }) {
         onClick={(e) => e.stopPropagation()}
       >
         <button onClick={onClose} style={{ position: "absolute", top: 14, right: 16, background: "none", border: "none", fontSize: "1.5rem", cursor: "pointer", color: "var(--text)", lineHeight: 1 }}>×</button>
-        <h3 style={{ fontWeight: 900, fontSize: "1.3rem", marginBottom: "0.25rem", color: "var(--text)" }}>Топ статии</h3>
-        <p style={{ fontSize: "0.82rem", color: "var(--text)", opacity: 0.5, marginBottom: "1.5rem" }}>Най-харесваните статии от общността</p>
+        <h3 style={{ fontWeight: 900, fontSize: "1.3rem", marginBottom: "0.25rem", color: "var(--text)" }}>Топ писатели</h3>
+        <p style={{ fontSize: "0.82rem", color: "var(--text)", opacity: 0.5, marginBottom: "1.5rem" }}>Класиране по одобрени статии</p>
 
         <div style={{ overflowY: "auto", flex: 1, display: "flex", flexDirection: "column", gap: 10 }}>
           {loading && <p style={{ color: "var(--text)", opacity: 0.5, textAlign: "center", padding: "2rem 0" }}>Зарежда...</p>}
           {!loading && items?.length === 0 && (
-            <p style={{ color: "var(--text)", opacity: 0.4, textAlign: "center", padding: "2rem 0", fontSize: "0.9rem" }}>Все още няма публикувани статии.</p>
+            <p style={{ color: "var(--text)", opacity: 0.4, textAlign: "center", padding: "2rem 0", fontSize: "0.9rem" }}>Все още няма одобрени статии.</p>
           )}
           {items?.map((item, i) => (
-            <div key={item.id} style={{ display: "flex", alignItems: "center", gap: 14, padding: "10px 14px", borderRadius: 12, background: "rgba(255,255,255,0.04)", border: "1px solid var(--border, rgba(255,255,255,0.08))" }}>
+            <div key={item.author} style={{ display: "flex", alignItems: "center", gap: 14, padding: "10px 14px", borderRadius: 12, background: "rgba(255,255,255,0.04)", border: "1px solid var(--border, rgba(255,255,255,0.08))" }}>
               <span style={{ fontSize: i < 3 ? "1.4rem" : "0.95rem", minWidth: 28, textAlign: "center", fontWeight: 700, color: i >= 3 ? "var(--text)" : undefined, opacity: i >= 3 ? 0.4 : 1 }}>
                 {i < 3 ? medals[i] : `${i + 1}.`}
               </span>
-              {item.image_url && (
-                <img src={item.image_url} alt="" style={{ width: 44, height: 44, borderRadius: 8, objectFit: "cover", flexShrink: 0 }} />
-              )}
+              {item.pfp_url
+                ? <img src={item.pfp_url} alt="" style={{ width: 36, height: 36, borderRadius: "50%", objectFit: "cover", flexShrink: 0 }} />
+                : <div style={{ width: 36, height: 36, borderRadius: "50%", background: "rgba(196,106,74,0.3)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.85rem", fontWeight: 800, color: "#fff", flexShrink: 0 }}>{(item.author || "?")[0].toUpperCase()}</div>
+              }
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontWeight: 700, fontSize: "0.92rem", color: "var(--text)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{item.title}</div>
-                <div style={{ fontSize: "0.78rem", color: "var(--text)", opacity: 0.45, marginTop: 2 }}>{item.author}</div>
+                <div style={{ fontWeight: 700, fontSize: "0.92rem", color: "var(--text)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{item.author}</div>
+                <div style={{ fontSize: "0.78rem", color: "var(--text)", opacity: 0.45, marginTop: 2 }}>{item.article_count} одобрени статии</div>
               </div>
-              <div style={{ display: "flex", alignItems: "center", gap: 5, flexShrink: 0 }}>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" style={{ color: "var(--oxide-red, #c46a4a)" }}><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
-                <span style={{ fontWeight: 700, fontSize: "0.88rem", color: "var(--text)" }}>{item.likes}</span>
+              <div style={{ flexShrink: 0 }}>
+                <span style={{ fontWeight: 800, fontSize: "1rem", color: "var(--oxide-red, #c46a4a)" }}>✍️ {item.article_count}</span>
               </div>
             </div>
           ))}
@@ -298,7 +298,7 @@ export default function Write() {
               📋 {t("write_rules_btn")}
             </button>
             <button style={S.lbBtn} onClick={() => setShowLeaderboard(true)} type="button">
-              🏆 Топ статии
+              🏆 Топ писатели
             </button>
             <span style={S.note}>{t("write_leaderboard_note")}</span>
           </div>

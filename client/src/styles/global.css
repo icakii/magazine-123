@@ -933,13 +933,14 @@ html[data-theme="dark"] .lang-toggle {
   text-align: left;
   padding: 9px 14px;
 }
+/* extra breathing room facing the divider */
+.drawer-col:first-child .drawer-item { padding-right: 22px; }
+.drawer-col:last-child  .drawer-item { padding-left:  22px; }
 .drawer-col-divider {
   background: var(--nav-border);
   opacity: 0.35;
   width: 1px;
-  /* starts from the first item row, not from the header */
-  margin-top: 36px;
-  margin-bottom: 4px;
+  margin: 36px auto 4px; /* center the 1px line inside the 20px column */
 }
 
 /* Mobile top-right circular PFP button */
@@ -948,7 +949,7 @@ html[data-theme="dark"] .lang-toggle {
   height: 36px;
   border-radius: 50%;
   overflow: hidden;
-  border: 1.5px solid var(--nav-border);
+  border: 1.5px solid rgba(230, 210, 185, 0.55);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -961,11 +962,13 @@ html[data-theme="dark"] .lang-toggle {
   height: 100%;
   object-fit: cover;
 }
-.nav-pfp-circle svg {
-  width: 20px;
-  height: 20px;
-  fill: var(--text);
-  opacity: 0.7;
+.nav-pfp-initial {
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: var(--text);
+  opacity: 0.75;
+  line-height: 1;
+  pointer-events: none;
 }
 .drawer-item--admin {
   color: #27ae60;

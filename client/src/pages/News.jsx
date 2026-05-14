@@ -218,7 +218,7 @@ export default function News() {
       <h2 className="headline">News</h2>
 
       {/* toolbar */}
-      <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: "1.5rem" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: "1.5rem", position: "relative", zIndex: 10 }}>
         <div className="news-cat-toolbar" role="tablist" style={{ flex: 1, margin: 0 }}>
           {CATEGORIES.map(cat => (
             <button key={cat} type="button" role="tab" aria-selected={filter === cat} onClick={() => setFilter(cat)}

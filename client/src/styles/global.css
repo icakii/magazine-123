@@ -934,8 +934,8 @@ html[data-theme="dark"] .lang-toggle {
   padding: 9px 14px;
 }
 /* extra breathing room facing the divider */
-.drawer-col:first-child .drawer-item { padding-right: 22px; }
-.drawer-col:last-child  .drawer-item { padding-left:  22px; }
+.drawer-col:first-child .drawer-item { padding-right: 22px; white-space: nowrap; }
+.drawer-col:last-child  .drawer-item { padding-left:  22px; white-space: nowrap; }
 .drawer-col-divider {
   background: var(--nav-border);
   opacity: 0.35;

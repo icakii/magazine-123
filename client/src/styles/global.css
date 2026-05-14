@@ -909,7 +909,6 @@ html[data-theme="dark"] .lang-toggle {
   display: grid;
   grid-template-columns: 1fr 1px 1fr;
   gap: 0;
-  column-gap: 0;
   padding: 4px 0 10px;
 }
 .drawer-col {
@@ -917,7 +916,6 @@ html[data-theme="dark"] .lang-toggle {
   flex-direction: column;
   gap: 0;
   align-items: flex-start;
-  padding: 0 6px;
 }
 .drawer-col-header {
   font-size: 0.72rem;
@@ -926,14 +924,22 @@ html[data-theme="dark"] .lang-toggle {
   text-transform: uppercase;
   color: var(--text);
   opacity: 0.4;
-  padding: 6px 10px 8px;
+  padding: 6px 14px 8px;
   width: 100%;
   text-align: center;
 }
 .drawer-col .drawer-item {
   width: 100%;
   text-align: left;
-  padding: 9px 10px;
+  padding: 9px 14px;
+}
+/* left col: more padding on the right (toward divider) */
+.drawer-col:first-child .drawer-item {
+  padding-right: 22px;
+}
+/* right col: more padding on the left (toward divider) */
+.drawer-col:last-child .drawer-item {
+  padding-left: 22px;
 }
 .drawer-col-divider {
   background: var(--nav-border);

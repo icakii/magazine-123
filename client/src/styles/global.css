@@ -935,11 +935,7 @@ html[data-theme="dark"] .lang-toggle {
 }
 /* left col: more padding on the right (toward divider) */
 .drawer-col:first-child .drawer-item {
-  padding-right: 22px;
-}
-/* right col: more padding on the left (toward divider) */
-.drawer-col:last-child .drawer-item {
-  padding-left: 22px;
+  padding-right: 30px;
 }
 .drawer-col-divider {
   background: var(--nav-border);

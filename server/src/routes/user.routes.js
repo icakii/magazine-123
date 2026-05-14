@@ -126,6 +126,11 @@ router.post("/user/update-username", authMiddleware, async (req, res) => {
       [req.user.email, oldUsername, newUsername]
     ).catch(() => {})
 
+    db.query(
+      `UPDATE articles SET author=$1 WHERE lower(author)=lower($2)`,
+      [newUsername, oldUsername]
+    ).catch(() => {})
+
     return res.json({
       ok: true,
       email: upd.rows[0].email,

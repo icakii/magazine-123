@@ -1459,7 +1459,10 @@ app.put("/api/admin/users/:email/rename", adminMiddleware, async (req, res) => {
     if (!newName || newName.length < 2) return res.status(400).json({ error: "Name too short" })
     const taken = await db.query("SELECT 1 FROM users WHERE lower(display_name)=lower($1) AND lower(email)<>lower($2)", [newName, email])
     if (taken.rows.length > 0) return res.status(409).json({ error: "Name taken" })
+    const old = await db.query("SELECT display_name FROM users WHERE lower(email)=lower($1)", [email])
+    const oldName = old.rows[0]?.display_name
     await db.query("UPDATE users SET display_name=$1 WHERE lower(email)=lower($2)", [newName, email])
+    if (oldName) db.query(`UPDATE articles SET author=$1 WHERE lower(author)=lower($2)`, [newName, oldName]).catch(() => {})
     res.json({ ok: true })
   } catch (e) { res.status(500).json({ error: e.message }) }
 })

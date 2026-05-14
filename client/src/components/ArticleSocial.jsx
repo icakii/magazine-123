@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react"
 import { createPortal } from "react-dom"
 import { api } from "../lib/api"
+import { SubNamePill } from "./SubNamePill"
 
 export function PlanBadge({ plan }) {
   if (!plan || plan === "free") return null
@@ -65,22 +66,14 @@ export function ProfileMiniCard({ displayName, anchorRect, onClose }) {
             <div style={{ textAlign: "center", padding: "24px 0", color: "rgba(255,255,255,0.35)", fontSize: "0.88rem" }}>Not found</div>
           ) : (
             <>
-              <div style={{ display: "flex", alignItems: "center", gap: 13, marginBottom: 14 }}>
-                {profile.pfp_url ? (
-                  <img src={profile.pfp_url} alt="" className={profile.plan === "yearly" ? "pfp-ring-yearly" : profile.plan === "monthly" ? "pfp-ring-monthly" : ""} style={{ width: 52, height: 52, borderRadius: "50%", objectFit: "cover", flexShrink: 0 }} />
-                ) : (
-                  <div className={profile.plan === "yearly" ? "pfp-ring-yearly" : profile.plan === "monthly" ? "pfp-ring-monthly" : ""} style={{ width: 52, height: 52, borderRadius: "50%", background: "var(--oxide-red, #c46a4a)", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: "1.3rem", flexShrink: 0 }}>
-                    {(profile.display_name || "?")[0].toUpperCase()}
-                  </div>
-                )}
-                <div>
-                  <div style={{ lineHeight: 1.2 }}>
-                    <span className={profile.plan === "yearly" ? "name-yearly" : profile.plan === "monthly" ? "name-monthly" : ""} style={!profile.plan || profile.plan === "free" ? { fontWeight: 800, fontSize: "1rem", color: "#fff" } : { fontSize: "1rem" }}>
-                      {profile.display_name}
-                    </span>
-                  </div>
-                  {profile.plan && profile.plan !== "free" && <div style={{ marginTop: 5 }}><PlanBadge plan={profile.plan} /></div>}
-                </div>
+              <div style={{ marginBottom: 14 }}>
+                <SubNamePill
+                  pfp_url={profile.pfp_url}
+                  display_name={profile.display_name}
+                  plan={profile.plan}
+                  size="lg"
+                  style={{ fontSize: "0.95rem" }}
+                />
               </div>
               {profile.instagram_handle && (
                 <a
@@ -259,20 +252,6 @@ export function CommentConversation({ article, user, navigate, onClose, onCommen
               const isOwn = user && (c.display_name === user.displayName || c.username === user.displayName)
               return (
                 <div key={c.id} style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
-                  <button
-                    type="button"
-                    onClick={e => openProfile(e, c.display_name)}
-                    style={{ background: "none", border: "none", padding: 0, cursor: "pointer", flexShrink: 0, marginTop: 2 }}
-                    title={c.display_name}
-                  >
-                    {c.pfp_url ? (
-                      <img src={c.pfp_url} alt="" className={c.plan === "yearly" ? "pfp-ring-yearly" : c.plan === "monthly" ? "pfp-ring-monthly" : ""} style={{ width: 32, height: 32, borderRadius: "50%", objectFit: "cover", display: "block" }} />
-                    ) : (
-                      <div className={c.plan === "yearly" ? "pfp-ring-yearly" : c.plan === "monthly" ? "pfp-ring-monthly" : ""} style={{ width: 32, height: 32, borderRadius: "50%", background: isOwn ? "var(--oxide-red, #c46a4a)" : "rgba(99,102,241,0.7)", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: "0.82rem" }}>
-                        {(c.display_name || c.username || "?")[0].toUpperCase()}
-                      </div>
-                    )}
-                  </button>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{
                       background: isOwn
@@ -282,15 +261,13 @@ export function CommentConversation({ article, user, navigate, onClose, onCommen
                       borderRadius: "0 14px 14px 14px", padding: "9px 13px",
                     }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 3 }}>
-                        <button
-                          type="button"
+                        <SubNamePill
+                          pfp_url={c.pfp_url}
+                          display_name={c.display_name || c.username || "User"}
+                          plan={c.plan}
+                          size="sm"
                           onClick={e => openProfile(e, c.display_name)}
-                          style={{ background: "none", border: "none", padding: 0, cursor: "pointer" }}
-                        >
-                          <span className={c.plan === "yearly" ? "name-yearly" : c.plan === "monthly" ? "name-monthly" : ""} style={!c.plan || c.plan === "free" ? { fontWeight: 700, fontSize: "0.78rem", color: isOwn ? "var(--oxide-red, #c46a4a)" : "#818cf8" } : { fontSize: "0.78rem" }}>
-                            {c.display_name || c.username || "User"}
-                          </span>
-                        </button>
+                        />
                         {(isAdmin || isOwn) && (
                           <button
                             type="button"

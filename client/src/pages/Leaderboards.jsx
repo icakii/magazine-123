@@ -3,33 +3,7 @@
 import { useEffect, useMemo, useState } from "react"
 import { api } from "../lib/api"
 import Loader from "../components/Loader"
-
-function planPillStyle(plan) {
-  const p = String(plan || "free").toLowerCase()
-  if (p === "monthly") {
-    return {
-      background: "rgba(56, 128, 255, 0.14)",
-      border: "1px solid rgba(56, 128, 255, 0.28)",
-    }
-  }
-  if (p === "yearly") {
-    return {
-      background: "rgba(255, 199, 64, 0.16)",
-      border: "1px solid rgba(255, 199, 64, 0.32)",
-    }
-  }
-  return {
-    background: "var(--bg-muted)",
-    border: "1px solid var(--nav-border)",
-  }
-}
-
-function nameSuffix(plan) {
-  const p = String(plan || "free").toLowerCase()
-  if (p === "monthly") return " ⭐"
-  if (p === "yearly") return " 👑"
-  return ""
-}
+import { SubNamePill } from "../components/SubNamePill"
 
 export default function Leaderboards() {
   const [rows, setRows] = useState([])
@@ -95,8 +69,6 @@ export default function Leaderboards() {
 
       {rows.map((u, i) => {
         const plan = String(u.plan || "free").toLowerCase()
-        const pill = planPillStyle(plan)
-        const suffix = nameSuffix(plan)
 
         return (
           <div
@@ -107,25 +79,12 @@ export default function Leaderboards() {
             <div className="lb-col lb-rank">{i + 1}</div>
 
             <div className="lb-col lb-player">
-              <span
-                style={{
-                  padding: "6px 10px",
-                  borderRadius: 999,
-                  ...(plan === "free" ? pill : {}),
-                  maxWidth: "100%",
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                  whiteSpace: "nowrap",
-                  display: "inline-block",
-                }}
-                title={u.displayName || "Unknown"}
-              >
-                <span className={plan === "yearly" ? "name-yearly" : plan === "monthly" ? "name-monthly" : ""}>
-                  {u.displayName || "Unknown"}
-                  {suffix}
-                </span>
-              </span>
-
+              <SubNamePill
+                pfp_url={u.pfpUrl}
+                display_name={u.displayName || "Unknown"}
+                plan={plan}
+                size="md"
+              />
               {u.lastWinDate && (
                 <div className="text-muted" style={{ fontSize: "0.9rem", marginTop: 6 }}>
                   last win: {String(u.lastWinDate).slice(0, 10)}

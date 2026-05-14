@@ -12,6 +12,7 @@ router.get("/leaderboards", async (req, res) => {
       )
       SELECT
         u.display_name AS "displayName",
+        u.pfp_url AS "pfpUrl",
         COALESCE(s.plan, 'free') AS "plan",
         CASE
           WHEN u.wordle_last_win_date IS NULL THEN 0

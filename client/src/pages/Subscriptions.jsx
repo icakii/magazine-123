@@ -6,6 +6,7 @@ import { api } from "../lib/api"
 import { useAuth } from "../hooks/useAuth"
 import { t } from "../lib/i18n"
 import Loader from "../components/Loader"
+import { SubNamePill } from "../components/SubNamePill"
 
 function looksLikeI18nKey(s) {
   if (!s) return true
@@ -258,18 +259,12 @@ export default function Subscriptions() {
         <div style={{ fontSize: "0.72rem", fontWeight: 800, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--text)", opacity: 0.4, marginBottom: 14 }}>Как изглеждат украшенията</div>
         <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <div className="pfp-ring-monthly" style={{ width: 36, height: 36, borderRadius: "50%", background: "rgba(59,130,246,0.25)", color: "#93c5fd", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: "1rem", flexShrink: 0 }}>I</div>
-            <div>
-              <span className="name-monthly" style={{ fontSize: "0.92rem" }}>Ivanka_bg ⭐</span>
-              <div style={{ fontSize: "0.72rem", color: "var(--text)", opacity: 0.4, marginTop: 3 }}>Monthly — синя рамка на аватара + синьо фонче на името</div>
-            </div>
+            <SubNamePill display_name="Ivanka_bg" plan="monthly" size="md" />
+            <div style={{ fontSize: "0.72rem", color: "var(--text)", opacity: 0.4 }}>Monthly — синьо фонче</div>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <div className="pfp-ring-yearly" style={{ width: 36, height: 36, borderRadius: "50%", background: "rgba(245,158,11,0.25)", color: "#fbbf24", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: "1rem", flexShrink: 0 }}>М</div>
-            <div>
-              <span className="name-yearly" style={{ fontSize: "0.92rem" }}>Мария 👑</span>
-              <div style={{ fontSize: "0.72rem", color: "var(--text)", opacity: 0.4, marginTop: 3 }}>Yearly — златна рамка на аватара + златно фонче на името</div>
-            </div>
+            <SubNamePill display_name="Мария" plan="yearly" size="md" />
+            <div style={{ fontSize: "0.72rem", color: "var(--text)", opacity: 0.4 }}>Yearly — златно фонче</div>
           </div>
           <div style={{ fontSize: "0.78rem", color: "var(--text)", opacity: 0.4 }}>
             Виждат се при коментари, в Leaderboards и при отваряне на профил.

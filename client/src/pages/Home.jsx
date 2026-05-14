@@ -13,6 +13,13 @@ import Loader from "../components/Loader"
 import BackToTopButton from "../components/BackToTopButton"
 import { CommentConversation, LikersPopup, ArticleActionBar } from "../components/ArticleSocial"
 
+const ART_OPEN  = new Date("2026-05-12T00:00:00Z")
+const ART_CLOSE = new Date("2026-05-24T21:00:00Z")
+function isMirenArtOpen() {
+  const now = Date.now()
+  return now >= ART_OPEN.getTime() && now < ART_CLOSE.getTime()
+}
+
 const WEEK_DAYS = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
 const ART_TEXT = {
   bg: {
@@ -90,7 +97,7 @@ export default function Home() {
     return () => { document.body.style.overflow = "" }
   }, [selectedArticle])
 
-  const canAccessArt = isAdmin
+  const canAccessArt = isAdmin || isMirenArtOpen()
   const artCopy = ART_TEXT[artLang] || ART_TEXT.bg
 
   useEffect(() => {

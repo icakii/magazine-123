@@ -273,11 +273,11 @@ export default function Subscriptions() {
         <div style={{ fontSize: "0.72rem", fontWeight: 800, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--text)", opacity: 0.4, marginBottom: 14 }}>Как изглеждат украшенията</div>
         <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <SubNamePill display_name="Ivanka_bg" plan="monthly" size="md" />
+            <SubNamePill display_name="miren_user" plan="monthly" size="md" />
             <div style={{ fontSize: "0.72rem", color: "var(--text)", opacity: 0.4 }}>Monthly — синьо фонче</div>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <SubNamePill display_name="Мария" plan="yearly" size="md" />
+            <SubNamePill display_name="miren_vip" plan="yearly" size="md" />
             <div style={{ fontSize: "0.72rem", color: "var(--text)", opacity: 0.4 }}>Yearly — златно фонче</div>
           </div>
           <div style={{ fontSize: "0.78rem", color: "var(--text)", opacity: 0.4 }}>

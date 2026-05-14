@@ -109,10 +109,9 @@ export default function Leaderboards() {
             <div className="lb-col lb-player">
               <span
                 style={{
-                  fontWeight: 900,
                   padding: "6px 10px",
                   borderRadius: 999,
-                  ...pill,
+                  ...(plan === "free" ? pill : {}),
                   maxWidth: "100%",
                   overflow: "hidden",
                   textOverflow: "ellipsis",
@@ -121,8 +120,10 @@ export default function Leaderboards() {
                 }}
                 title={u.displayName || "Unknown"}
               >
-                {u.displayName || "Unknown"}
-                {suffix}
+                <span className={plan === "yearly" ? "name-yearly" : plan === "monthly" ? "name-monthly" : ""}>
+                  {u.displayName || "Unknown"}
+                  {suffix}
+                </span>
               </span>
 
               {u.lastWinDate && (

@@ -98,10 +98,12 @@ export default function Profile() {
   const [likedArticles, setLikedArticles] = useState(null)
   const [savedArticles, setSavedArticles] = useState(null)
   const [orders, setOrders] = useState(null)
+  const [articlesCount, setArticlesCount] = useState(null)
 
   useEffect(() => {
     if (!loading && user) {
       api.get("/subscriptions").then((res) => setSubs(res.data || [])).catch(() => setSubs([]))
+      api.get("/user/articles-count").then((res) => setArticlesCount(res.data?.count ?? 0)).catch(() => setArticlesCount(0))
       api.get("/user/me").then((res) => {
         const data = res.data || null
         setServerMe(data)
@@ -287,14 +289,28 @@ export default function Profile() {
         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
           <div style={{ fontSize: "1.55rem", fontWeight: 900, color: "var(--text)", lineHeight: 1.1 }}>{displayName}</div>
           <div style={{ fontSize: "0.86rem", color: "var(--text)", opacity: 0.5 }}>{user.email}</div>
-          <span style={{
-            display: "inline-block", padding: "4px 14px", borderRadius: 999,
-            background: planGradient, color: planColor,
-            fontSize: "0.78rem", fontWeight: 700, letterSpacing: "0.04em",
-            width: "fit-content", marginTop: 2,
-          }}>
-            {currentPlan} {planSuffix(plan)}
-          </span>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginTop: 4 }}>
+            <span style={{
+              display: "inline-block", padding: "4px 14px", borderRadius: 999,
+              background: planGradient, color: planColor,
+              fontSize: "0.78rem", fontWeight: 700, letterSpacing: "0.04em",
+              width: "fit-content",
+            }}>
+              {currentPlan} {planSuffix(plan)}
+            </span>
+            {articlesCount !== null && (
+              <span style={{
+                display: "inline-flex", alignItems: "center", gap: 5, padding: "4px 12px",
+                borderRadius: 999, fontSize: "0.78rem", fontWeight: 700,
+                background: articlesCount > 0 ? "rgba(196,106,74,0.15)" : "rgba(150,150,150,0.1)",
+                color: articlesCount > 0 ? "var(--oxide-red, #c46a4a)" : "var(--text)",
+                border: articlesCount > 0 ? "1px solid rgba(196,106,74,0.3)" : "1px solid rgba(150,150,150,0.15)",
+              }}>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                {articlesCount} {articlesCount === 1 ? "статия" : "статии"}
+              </span>
+            )}
+          </div>
         </div>
       </div>
 

@@ -1260,7 +1260,8 @@ app.get("/api/articles/:id/comments", async (req, res) => {
     const id = Number(req.params.id)
     const { rows } = await db.query(
       `SELECT c.id, c.article_id, c.user_email, c.parent_id, c.content, c.created_at,
-              u.display_name, u.pfp_url
+              u.display_name, u.pfp_url,
+              (SELECT plan FROM subscriptions WHERE email=u.email ORDER BY id DESC LIMIT 1) as plan
        FROM article_comments c
        LEFT JOIN users u ON lower(u.email) = lower(c.user_email)
        WHERE c.article_id = $1
@@ -1463,6 +1464,15 @@ app.put("/api/admin/users/:email/rename", adminMiddleware, async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }) }
 })
 
+// Admin — remove user pfp
+app.delete("/api/admin/users/:email/pfp", adminMiddleware, async (req, res) => {
+  try {
+    const email = decodeURIComponent(req.params.email).trim().toLowerCase()
+    await db.query("UPDATE users SET pfp_url=NULL WHERE lower(email)=lower($1)", [email])
+    res.json({ ok: true })
+  } catch (e) { res.status(500).json({ error: e.message }) }
+})
+
 // Who liked an article
 app.get("/api/articles/:id/likers", async (req, res) => {
   try {
@@ -1484,12 +1494,24 @@ app.get("/api/user/profile/:displayName", async (req, res) => {
   try {
     const { rows } = await db.query(
       `SELECT display_name, pfp_url, instagram_handle, is_banned,
-              (SELECT plan FROM subscriptions WHERE email=u.email ORDER BY id DESC LIMIT 1) as plan
+              (SELECT plan FROM subscriptions WHERE email=u.email ORDER BY id DESC LIMIT 1) as plan,
+              (SELECT COUNT(*) FROM articles WHERE lower(author)=lower(u.display_name)) as articles_count
        FROM users u WHERE lower(display_name)=lower($1)`,
       [req.params.displayName]
     )
     if (!rows[0]) return res.status(404).json({ error: "Not found" })
-    res.json(rows[0])
+    res.json({ ...rows[0], articles_count: Number(rows[0].articles_count || 0) })
+  } catch (e) { res.status(500).json({ error: e.message }) }
+})
+
+// Articles count for logged-in user
+app.get("/api/user/articles-count", authMiddleware, async (req, res) => {
+  try {
+    const me = await db.query(`SELECT display_name FROM users WHERE lower(email)=lower($1)`, [req.user.email])
+    const name = me.rows[0]?.display_name
+    if (!name) return res.json({ count: 0 })
+    const { rows } = await db.query(`SELECT COUNT(*) FROM articles WHERE lower(author)=lower($1)`, [name])
+    res.json({ count: Number(rows[0]?.count || 0) })
   } catch (e) { res.status(500).json({ error: e.message }) }
 })
 

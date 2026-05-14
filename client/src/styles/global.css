@@ -909,6 +909,7 @@ html[data-theme="dark"] .lang-toggle {
   display: grid;
   grid-template-columns: 1fr 1px 1fr;
   gap: 0;
+  column-gap: 10px;
   padding: 4px 0 10px;
 }
 .drawer-col {
@@ -7513,6 +7514,33 @@ html[data-theme="dark"] .maintenance-loading {
   color: #ef4444 !important;
 }
 /* ===== END SUBSCRIPTION CARDS ===== */
+
+/* ===== SUBSCRIPTION NAME DECORATIONS ===== */
+@keyframes name-shimmer {
+  0%   { background-position: 0% center; }
+  100% { background-position: 200% center; }
+}
+
+.name-monthly {
+  background: linear-gradient(90deg, #3b82f6, #818cf8, #6366f1, #3b82f6);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: name-shimmer 3s linear infinite;
+  font-weight: 700;
+}
+
+.name-yearly {
+  background: linear-gradient(90deg, #f59e0b, #fbbf24, #ef4444, #f59e0b, #fbbf24);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: name-shimmer 2.5s linear infinite;
+  font-weight: 700;
+}
+/* ===== END SUBSCRIPTION NAME DECORATIONS ===== */
 
   * {
     transition-duration: 0.01ms !important;

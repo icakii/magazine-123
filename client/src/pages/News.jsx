@@ -5,7 +5,7 @@ import { createPortal } from "react-dom"
 import { api } from "../lib/api"
 import { useAuth } from "../context/AuthContext"
 import { useNavigate } from "react-router-dom"
-import { CommentConversation, LikersPopup, ArticleActionBar } from "../components/ArticleSocial"
+import { CommentConversation, LikersPopup, ArticleActionBar, ProfileMiniCard } from "../components/ArticleSocial"
 
 const CATEGORIES = ["All", "Fashion", "Art", "Music", "Photography", "Other"]
 const SORTS = [
@@ -90,7 +90,7 @@ function SortDropdown({ sort, setSort }) {
 }
 
 /* ── Article read modal ── */
-function ArticleModal({ article, onClose, user, navigate, statsMap, onStatsUpdate, onOpenComments }) {
+function ArticleModal({ article, onClose, user, navigate, statsMap, onStatsUpdate, onOpenComments, onAuthorClick }) {
   const st = statsMap[article.id] || {}
 
   async function toggleLike() {
@@ -118,7 +118,16 @@ function ArticleModal({ article, onClose, user, navigate, statsMap, onStatsUpdat
       <div className="modal-content" style={{ maxWidth: 680, maxHeight: "88vh", overflowY: "auto" }} onClick={e => e.stopPropagation()}>
         <button className="modal-close" onClick={onClose} type="button">×</button>
         <h2 style={{ marginBottom: 4 }}>{article.title}</h2>
-        <p style={{ fontSize: "0.85rem", color: "var(--text)", opacity: 0.5, marginBottom: "1rem" }}>{new Date(article.date).toLocaleDateString()} · {article.author}</p>
+        <p style={{ fontSize: "0.85rem", color: "var(--text)", opacity: 0.5, marginBottom: "1rem" }}>
+          {new Date(article.date).toLocaleDateString()} ·{" "}
+          <button
+            type="button"
+            onClick={e => { e.stopPropagation(); if (onAuthorClick) onAuthorClick(article.author, e.currentTarget.getBoundingClientRect()) }}
+            style={{ background: "none", border: "none", padding: 0, color: "inherit", fontSize: "inherit", cursor: "pointer", textDecoration: "underline", textDecorationStyle: "dotted", textUnderlineOffset: 2 }}
+          >
+            {article.author}
+          </button>
+        </p>
         {article.imageUrl && <img src={article.imageUrl} style={{ width: "100%", borderRadius: 10, marginBottom: 16 }} alt="" />}
         <div className="modal-text" style={{ marginBottom: 24 }}>{article.text}</div>
         <div style={{ display: "flex", gap: 8, borderTop: "1px solid rgba(255,255,255,0.08)", paddingTop: 14 }}>
@@ -151,6 +160,7 @@ export default function News() {
   const [selectedArticle, setSelectedArticle] = useState(null)
   const [commentPopup, setCommentPopup] = useState(null)
   const [likersPopup, setLikersPopup] = useState(null)
+  const [authorCard, setAuthorCard] = useState(null)
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -258,7 +268,14 @@ export default function News() {
 
               <h3 style={{ margin: "0 0 4px", fontSize: "1.05rem", lineHeight: 1.3 }}>{article.title}</h3>
               <p style={{ fontSize: "0.82rem", color: "var(--text)", opacity: 0.5, margin: "0 0 8px" }}>
-                {new Date(article.date).toLocaleDateString()} · {article.author}
+                {new Date(article.date).toLocaleDateString()} ·{" "}
+                <button
+                  type="button"
+                  onClick={e => { e.stopPropagation(); setAuthorCard({ displayName: article.author, rect: e.currentTarget.getBoundingClientRect() }) }}
+                  style={{ background: "none", border: "none", padding: 0, color: "inherit", fontSize: "inherit", cursor: "pointer", textDecoration: "underline", textDecorationStyle: "dotted", textUnderlineOffset: 2 }}
+                >
+                  {article.author}
+                </button>
               </p>
               <div style={{ marginBottom: 10 }}>
                 <span className={`article-category-tag article-category-tag--${tagSlug}`}>{article.articleCategory}</span>
@@ -278,7 +295,7 @@ export default function News() {
       </div>
 
       {selectedArticle && (
-        <ArticleModal article={selectedArticle} onClose={() => setSelectedArticle(null)} user={user} navigate={navigate} statsMap={statsMap} onStatsUpdate={updateStats} onOpenComments={a => { setSelectedArticle(null); setCommentPopup(a) }} />
+        <ArticleModal article={selectedArticle} onClose={() => setSelectedArticle(null)} user={user} navigate={navigate} statsMap={statsMap} onStatsUpdate={updateStats} onOpenComments={a => { setSelectedArticle(null); setCommentPopup(a) }} onAuthorClick={(name, rect) => { setSelectedArticle(null); setAuthorCard({ displayName: name, rect }) }} />
       )}
 
       {commentPopup && (
@@ -290,6 +307,7 @@ export default function News() {
       )}
 
       {likersPopup !== null && <LikersPopup articleId={likersPopup} onClose={() => setLikersPopup(null)} />}
+      {authorCard && <ProfileMiniCard displayName={authorCard.displayName} anchorRect={authorCard.rect} onClose={() => setAuthorCard(null)} />}
     </div>
   )
 }

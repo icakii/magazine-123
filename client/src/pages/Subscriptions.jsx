@@ -22,9 +22,9 @@ const PERKS = {
   ],
   monthly: [
     { icon: "🌺", text: "Всичко от Free" },
-    { icon: "🌺", text: "Премиум статии" },
+    { icon: "⭐", text: "Месечна значка в профила" },
     { icon: "🌺", text: "Поддръжка на проекта" },
-    { icon: "🌺", text: "Ексклузивни функции" },
+    { icon: "🎮", text: "Разширен достъп до игрите" },
     { icon: "🌺", text: "Публикувай в News" },
     { icon: "🌺", text: "Топ писател награди" },
   ],
@@ -243,6 +243,30 @@ export default function Subscriptions() {
             </div>
           )
         })}
+      </div>
+
+      {/* Decoration preview */}
+      <div style={{ marginTop: "2.5rem", padding: "22px 24px", borderRadius: 18, border: "1.5px solid rgba(255,255,255,0.08)", background: "rgba(255,255,255,0.03)" }}>
+        <div style={{ fontSize: "0.72rem", fontWeight: 800, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--text)", opacity: 0.4, marginBottom: 14 }}>Как изглеждат украшенията</div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <div style={{ width: 32, height: 32, borderRadius: "50%", background: "linear-gradient(135deg,#3b82f6,#6366f1)", flexShrink: 0 }} />
+            <div>
+              <span className="name-monthly" style={{ fontSize: "0.95rem" }}>Ivanka_bg ⭐</span>
+              <div style={{ fontSize: "0.72rem", color: "var(--text)", opacity: 0.4, marginTop: 2 }}>Monthly — синьо сияние на потребителското</div>
+            </div>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <div style={{ width: 32, height: 32, borderRadius: "50%", background: "linear-gradient(135deg,#f59e0b,#ef4444)", flexShrink: 0 }} />
+            <div>
+              <span className="name-yearly" style={{ fontSize: "0.95rem" }}>Мария 👑</span>
+              <div style={{ fontSize: "0.72rem", color: "var(--text)", opacity: 0.4, marginTop: 2 }}>Yearly — златно сияние на потребителското</div>
+            </div>
+          </div>
+          <div style={{ fontSize: "0.78rem", color: "var(--text)", opacity: 0.45, marginTop: 4 }}>
+            Украшенията се виждат при коментари, в Leaderboards и при отваряне на профил.
+          </div>
+        </div>
       </div>
 
       {msg && <p className="msg" style={{ marginTop: 20 }}>{msg}</p>}

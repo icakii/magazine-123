@@ -1659,7 +1659,10 @@ isVideoUrl(heroVfxUrl) ? (
                 <div key={u.email} className="list-row">
                   <div className="list-main" style={{ minWidth: 0 }}>
                     <div className="list-title" style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-                      {u.pfp_url && <img src={u.pfp_url} alt="" style={{ width: 28, height: 28, borderRadius: "50%", objectFit: "cover", flexShrink: 0 }} />}
+                      {u.pfp_url
+                        ? <img src={u.pfp_url} alt="" style={{ width: 32, height: 32, borderRadius: "50%", objectFit: "cover", flexShrink: 0, border: "2px solid rgba(255,255,255,0.12)" }} />
+                        : <div style={{ width: 32, height: 32, borderRadius: "50%", background: "rgba(196,106,74,0.25)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.9rem", fontWeight: 700, color: "var(--text)", flexShrink: 0 }}>{(u.display_name || "?")[0].toUpperCase()}</div>
+                      }
                       <span style={{ fontWeight: 700 }}>{u.display_name || "(без потребителско)"}</span>
                       {u.is_google && <span style={{ fontSize: "0.7rem", background: "#4285F4", color: "#fff", borderRadius: 4, padding: "1px 5px" }}>Google</span>}
                       {u.is_banned && <span style={{ fontSize: "0.7rem", background: "#ef4444", color: "#fff", borderRadius: 4, padding: "1px 5px" }}>Banned</span>}
@@ -1697,11 +1700,27 @@ isVideoUrl(heroVfxUrl) ? (
                     >
                       Смени име
                     </button>
+                    {u.pfp_url && (
+                      <button
+                        className="btn ghost" type="button"
+                        style={{ fontSize: "0.78rem", color: "#f59e0b", borderColor: "#f59e0b" }}
+                        onClick={async () => {
+                          if (!window.confirm(`Махни профилната снимка на ${u.display_name || u.email}?`)) return
+                          try {
+                            await api.delete(`/admin/users/${encodeURIComponent(u.email)}/pfp`)
+                            setUsers((prev) => prev.map((x) => x.email === u.email ? { ...x, pfp_url: null } : x))
+                            setMsg("✅ Снимката е махната.")
+                          } catch (e) { setMsg(e?.response?.data?.error || "Грешка.") }
+                        }}
+                      >
+                        Махни снимка
+                      </button>
+                    )}
                     <button
                       className="btn outline" type="button"
                       style={{ fontSize: "0.78rem", color: "#ef4444", borderColor: "#ef4444" }}
                       onClick={async () => {
-                        if (!window.confirm(`Изтрий акаунта на ${u.email}? Това е необратимо!`)) return
+                        if (!window.confirm(`Изтрий акаунта на ${u.email}?\n\nТова е необратимо!`)) return
                         try {
                           await api.delete(`/admin/users/${encodeURIComponent(u.email)}`)
                           setUsers((prev) => prev.filter((x) => x.email !== u.email))

@@ -82,13 +82,19 @@ export function ProfileMiniCard({ displayName, anchorRect, onClose }) {
                 <a
                   href={`https://instagram.com/${profile.instagram_handle}`}
                   target="_blank" rel="noopener noreferrer"
-                  style={{ display: "flex", alignItems: "center", gap: 7, padding: "7px 12px", borderRadius: 10, background: "rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.7)", textDecoration: "none", fontSize: "0.82rem", fontWeight: 600 }}
+                  style={{ display: "flex", alignItems: "center", gap: 7, padding: "7px 12px", borderRadius: 10, background: "rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.7)", textDecoration: "none", fontSize: "0.82rem", fontWeight: 600, marginBottom: 6 }}
                   onMouseEnter={e => e.currentTarget.style.background = "rgba(255,255,255,0.1)"}
                   onMouseLeave={e => e.currentTarget.style.background = "rgba(255,255,255,0.06)"}
                 >
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>
                   @{profile.instagram_handle}
                 </a>
+              )}
+              {profile.articles_count > 0 && (
+                <div style={{ display: "flex", alignItems: "center", gap: 7, padding: "6px 12px", borderRadius: 10, background: "rgba(255,255,255,0.05)", fontSize: "0.8rem", color: "rgba(255,255,255,0.6)" }}>
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                  <span>Articles written: <strong style={{ color: "rgba(255,255,255,0.85)" }}>{profile.articles_count}</strong></span>
+                </div>
               )}
             </>
           )}
@@ -275,9 +281,11 @@ export function CommentConversation({ article, user, navigate, onClose, onCommen
                         <button
                           type="button"
                           onClick={e => openProfile(e, c.display_name)}
-                          style={{ background: "none", border: "none", padding: 0, fontWeight: 700, fontSize: "0.78rem", color: isOwn ? "var(--oxide-red, #c46a4a)" : "#818cf8", cursor: "pointer" }}
+                          style={{ background: "none", border: "none", padding: 0, cursor: "pointer" }}
                         >
-                          {c.display_name || c.username || "User"}
+                          <span className={c.plan === "yearly" ? "name-yearly" : c.plan === "monthly" ? "name-monthly" : ""} style={!c.plan || c.plan === "free" ? { fontWeight: 700, fontSize: "0.78rem", color: isOwn ? "var(--oxide-red, #c46a4a)" : "#818cf8" } : { fontSize: "0.78rem" }}>
+                            {c.display_name || c.username || "User"}
+                          </span>
                         </button>
                         {(isAdmin || isOwn) && (
                           <button

@@ -51,7 +51,7 @@ const PLANS = [
     key: "monthly",
     icon: "⭐",
     title: "Monthly",
-    price: "€4.99 / месец",
+    price: "€3.99 / месец",
     gradient: "linear-gradient(135deg, #3b82f6, #6366f1, #8b5cf6, #3b82f6)",
     btnGradient: "linear-gradient(135deg, #3b82f6, #6366f1)",
     glow: "rgba(99,102,241,0.4)",
@@ -60,7 +60,8 @@ const PLANS = [
     key: "yearly",
     icon: "👑",
     title: "Yearly",
-    price: "€49.99 / година",
+    price: "€38.30 / година",
+    badge: "2 месеца безплатно",
     gradient: "linear-gradient(135deg, #f59e0b, #ef4444, #f59e0b, #fbbf24)",
     btnGradient: "linear-gradient(135deg, #f59e0b, #ef4444)",
     glow: "rgba(245,158,11,0.45)",
@@ -174,6 +175,11 @@ export default function Subscriptions() {
                   <div style={{ flex: 1 }}>
                     <div style={{ fontWeight: 900, fontSize: "1.1rem", color: "var(--text)" }}>{plan.title}</div>
                     <div style={{ fontSize: "0.82rem", color: "var(--text)", opacity: 0.5, marginTop: 1 }}>{plan.price}</div>
+                    {plan.badge && (
+                      <div style={{ marginTop: 4, display: "inline-block", fontSize: "0.7rem", fontWeight: 700, padding: "2px 8px", borderRadius: 999, background: "rgba(245,158,11,0.18)", color: "#f59e0b", letterSpacing: "0.02em" }}>
+                        🎁 {plan.badge}
+                      </div>
+                    )}
                   </div>
                   {isCurrent && (
                     <span style={{ fontSize: "0.7rem", fontWeight: 700, padding: "3px 9px", borderRadius: 999, background: "rgba(39,174,96,0.15)", color: "#27ae60", whiteSpace: "nowrap" }}>✓ Активен</span>

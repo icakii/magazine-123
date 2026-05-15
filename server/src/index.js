@@ -1503,11 +1503,13 @@ app.post("/api/admin/grant-subscription", adminMiddleware, async (req, res) => {
     const plan = String(req.body?.plan || "").toLowerCase()
     if (!email) return res.status(400).json({ error: "email required" })
     if (!["free", "monthly", "yearly"].includes(plan)) return res.status(400).json({ error: "plan must be free, monthly or yearly" })
-    await db.query(
-      `INSERT INTO subscriptions (email, plan) VALUES ($1, $2)
-       ON CONFLICT (email) DO UPDATE SET plan = $2`,
-      [email, plan]
+    const upd = await db.query(
+      `UPDATE subscriptions SET plan=$1 WHERE lower(email)=lower($2)`,
+      [plan, email]
     )
+    if (upd.rowCount === 0) {
+      await db.query(`INSERT INTO subscriptions (email, plan) VALUES ($1, $2)`, [email, plan])
+    }
     res.json({ ok: true })
   } catch (e) { res.status(500).json({ error: e.message }) }
 })

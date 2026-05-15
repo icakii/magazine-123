@@ -538,6 +538,7 @@ const [heroVfxUrl, setHeroVfxUrl] = useState("")
   const [emailBody, setEmailBody] = useState("")
   const [mirenArtCodes, setMirenArtCodes] = useState([])
   const [users, setUsers] = useState([])
+  const [userSearch, setUserSearch] = useState("")
   const [subscriptions, setSubscriptions] = useState([])
   const [magazineStock, setMagazineStock] = useState(null)
   const [storeOrders, setStoreOrders] = useState([])
@@ -1651,11 +1652,22 @@ isVideoUrl(heroVfxUrl) ? (
       {activeTab === "users" && (
         <div className="admin-card">
           <h3 className="headline">Потребители ({users.length})</h3>
+          <input
+            className="input"
+            style={{ marginBottom: 16, fontSize: "0.9rem" }}
+            placeholder="Търси по име или имейл..."
+            value={userSearch}
+            onChange={(e) => setUserSearch(e.target.value)}
+          />
           {users.length === 0 ? (
             <p className="text-muted">Няма потребители.</p>
           ) : (
             <div className="list">
-              {users.map((u) => (
+              {users.filter(u => {
+                const q = userSearch.trim().toLowerCase()
+                if (!q) return true
+                return (u.email || "").toLowerCase().includes(q) || (u.display_name || "").toLowerCase().includes(q)
+              }).map((u) => (
                 <div key={u.email} className="list-row">
                   <div className="list-main" style={{ minWidth: 0 }}>
                     <div className="list-title" style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
@@ -1755,6 +1767,7 @@ isVideoUrl(heroVfxUrl) ? (
       )}
 
       {/* WRITERS */}
+
       {activeTab === "writers" && (
         <div className="admin-card">
           <h3 className="headline">Писатели — Submissions</h3>

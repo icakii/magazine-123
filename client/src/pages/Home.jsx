@@ -26,11 +26,13 @@ const ART_TEXT = {
     title: "MIREN ART",
     subtitle: "Нова арт зона за визуални проекти, колаборации и творчески формати.",
     registerLocked: "Затворено",
+    registerOpen: "Влез",
   },
   en: {
     title: "MIREN ART",
     subtitle: "A new art zone for visual projects, collaborations, and creative formats.",
     registerLocked: "Closed",
+    registerOpen: "Enter",
   },
 }
 const WEEK_DAY_LABELS = {
@@ -464,7 +466,7 @@ export default function Home() {
                       navigate("/miren-art")
                     }}
                   >
-                    🔒 {artCopy.registerLocked}
+                    {canAccessArt ? `✦ ${artCopy.registerOpen}` : `🔒 ${artCopy.registerLocked}`}
                   </button>
                 </div>
               </div>

@@ -916,7 +916,10 @@ html[data-theme="dark"] .lang-toggle {
   flex-direction: column;
   gap: 0;
   align-items: flex-start;
+  overflow: hidden;
 }
+.drawer-col:first-child { padding-right: 10px; }
+.drawer-col:last-child  { padding-left:  10px; }
 .drawer-col-header {
   font-size: 0.72rem;
   font-weight: 800;
@@ -933,9 +936,8 @@ html[data-theme="dark"] .lang-toggle {
   text-align: left;
   padding: 9px 14px;
 }
-/* extra breathing room facing the divider */
-.drawer-col:first-child .drawer-item { padding-right: 22px; white-space: nowrap; }
-.drawer-col:last-child  .drawer-item { padding-left:  22px; white-space: nowrap; }
+/* prevent text wrapping at hyphens inside column items */
+.drawer-col .drawer-item { white-space: nowrap; }
 .drawer-col-divider {
   background: var(--nav-border);
   opacity: 0.35;

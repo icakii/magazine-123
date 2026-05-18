@@ -4,11 +4,13 @@ import { useEffect, useMemo, useState } from "react"
 import { api } from "../lib/api"
 import Loader from "../components/Loader"
 import { SubNamePill } from "../components/SubNamePill"
+import { ProfileMiniCard } from "../components/ArticleSocial"
 
 export default function Leaderboards() {
   const [rows, setRows] = useState([])
   const [loading, setLoading] = useState(true)
   const [err, setErr] = useState("")
+  const [profileCard, setProfileCard] = useState(null)
 
   useEffect(() => {
     let mounted = true
@@ -18,8 +20,7 @@ export default function Leaderboards() {
       .then((res) => {
         if (!mounted) return
         const list = Array.isArray(res.data) ? res.data : []
-        const cleaned = list.filter((u) => Number(u?.streak || 0) > 0)
-        setRows(cleaned)
+        setRows(list)
       })
       .catch(() => {
         if (!mounted) return
@@ -84,6 +85,11 @@ export default function Leaderboards() {
                 display_name={u.displayName || "Unknown"}
                 plan={plan}
                 size="md"
+                onClick={(e) => {
+                  if (!u.displayName) return
+                  const rect = e.currentTarget.getBoundingClientRect()
+                  setProfileCard({ displayName: u.displayName, rect })
+                }}
               />
               {u.lastWinDate && (
                 <div className="text-muted" style={{ fontSize: "0.9rem", marginTop: 6 }}>
@@ -100,6 +106,14 @@ export default function Leaderboards() {
       })}
 
       {rows.length === 0 && !err && <p className="text-muted">No players yet.</p>}
+
+      {profileCard && (
+        <ProfileMiniCard
+          displayName={profileCard.displayName}
+          anchorRect={profileCard.rect}
+          onClose={() => setProfileCard(null)}
+        />
+      )}
     </div>
   )
 }

@@ -49,21 +49,21 @@ export function ProfileMiniCard({ displayName, anchorRect, onClose }) {
         ref={cardRef}
         style={{
           position: "absolute", top, left, width: 260,
-          background: "linear-gradient(160deg, #1a1a2e 0%, #16213e 50%, #1a1a2e 100%)",
+          background: "var(--card-bg, var(--bg, #fff))",
           borderRadius: 20, overflow: "hidden",
-          boxShadow: "0 20px 60px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.08)",
+          boxShadow: "0 20px 60px rgba(0,0,0,0.18), 0 0 0 1.5px var(--border, rgba(0,0,0,0.09))",
           animation: "profileCardIn 0.18s cubic-bezier(0.34,1.56,0.64,1)",
         }}
         onClick={e => e.stopPropagation()}
       >
-        <div style={{ position: "absolute", top: -30, right: -30, width: 140, height: 140, borderRadius: "50%", background: "radial-gradient(circle, rgba(196,106,74,0.18) 0%, transparent 70%)", pointerEvents: "none" }} />
-        <div style={{ position: "absolute", bottom: -20, left: -20, width: 100, height: 100, borderRadius: "50%", background: "radial-gradient(circle, rgba(99,102,241,0.12) 0%, transparent 70%)", pointerEvents: "none" }} />
+        <div style={{ position: "absolute", top: -30, right: -30, width: 140, height: 140, borderRadius: "50%", background: "radial-gradient(circle, rgba(196,106,74,0.10) 0%, transparent 70%)", pointerEvents: "none" }} />
+        <div style={{ position: "absolute", bottom: -20, left: -20, width: 100, height: 100, borderRadius: "50%", background: "radial-gradient(circle, rgba(99,102,241,0.07) 0%, transparent 70%)", pointerEvents: "none" }} />
 
         <div style={{ position: "relative", padding: "20px 18px 18px" }}>
           {loading ? (
-            <div style={{ textAlign: "center", padding: "24px 0", color: "rgba(255,255,255,0.35)", fontSize: "0.88rem" }}>Loading...</div>
+            <div style={{ textAlign: "center", padding: "24px 0", color: "var(--text)", opacity: 0.4, fontSize: "0.88rem" }}>Loading...</div>
           ) : !profile ? (
-            <div style={{ textAlign: "center", padding: "24px 0", color: "rgba(255,255,255,0.35)", fontSize: "0.88rem" }}>Not found</div>
+            <div style={{ textAlign: "center", padding: "24px 0", color: "var(--text)", opacity: 0.4, fontSize: "0.88rem" }}>Not found</div>
           ) : (
             <>
               <div style={{ marginBottom: 14 }}>
@@ -79,18 +79,18 @@ export function ProfileMiniCard({ displayName, anchorRect, onClose }) {
                 <a
                   href={`https://instagram.com/${profile.instagram_handle}`}
                   target="_blank" rel="noopener noreferrer"
-                  style={{ display: "flex", alignItems: "center", gap: 7, padding: "7px 12px", borderRadius: 10, background: "rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.7)", textDecoration: "none", fontSize: "0.82rem", fontWeight: 600, marginBottom: 6 }}
-                  onMouseEnter={e => e.currentTarget.style.background = "rgba(255,255,255,0.1)"}
-                  onMouseLeave={e => e.currentTarget.style.background = "rgba(255,255,255,0.06)"}
+                  style={{ display: "flex", alignItems: "center", gap: 7, padding: "7px 12px", borderRadius: 10, background: "var(--border, rgba(0,0,0,0.05))", color: "var(--text)", textDecoration: "none", fontSize: "0.82rem", fontWeight: 600, marginBottom: 6, opacity: 0.8 }}
+                  onMouseEnter={e => { e.currentTarget.style.opacity = "1"; e.currentTarget.style.background = "var(--border, rgba(0,0,0,0.09))" }}
+                  onMouseLeave={e => { e.currentTarget.style.opacity = "0.8"; e.currentTarget.style.background = "var(--border, rgba(0,0,0,0.05))" }}
                 >
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>
                   @{profile.instagram_handle}
                 </a>
               )}
               {profile.articles_count > 0 && (
-                <div style={{ display: "flex", alignItems: "center", gap: 7, padding: "6px 12px", borderRadius: 10, background: "rgba(255,255,255,0.05)", fontSize: "0.8rem", color: "rgba(255,255,255,0.6)" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 7, padding: "6px 12px", borderRadius: 10, background: "var(--border, rgba(0,0,0,0.05))", fontSize: "0.8rem", color: "var(--text)", opacity: 0.7 }}>
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-                  <span>Articles written: <strong style={{ color: "rgba(255,255,255,0.85)" }}>{profile.articles_count}</strong></span>
+                  <span>Articles written: <strong style={{ opacity: 1 }}>{profile.articles_count}</strong></span>
                 </div>
               )}
             </>

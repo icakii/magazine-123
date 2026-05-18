@@ -1467,13 +1467,6 @@ html[data-theme="dark"] .textarea {
   align-items: center;
   justify-content: center;
   animation: heroFloat 4s ease-in-out infinite;
-  transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
-  cursor: pointer;
-}
-
-.hero-media:hover {
-  animation-play-state: paused;
-  transform: translateY(-22px) scale(1.06);
 }
 
 .hero-vfx,
@@ -1484,6 +1477,12 @@ html[data-theme="dark"] .textarea {
   object-fit: contain;
   display: block;
   border-radius: 0;
+  transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.hero-media:hover .hero-cover,
+.hero-media:hover .hero-vfx {
+  transform: scale(1.07);
 }
 
 @media (max-width: 900px) {

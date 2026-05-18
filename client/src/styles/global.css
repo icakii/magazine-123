@@ -401,6 +401,9 @@ html[data-theme="dark"] .scroll-parallax__mesh {
   .scroll-parallax {
     display: none !important;
   }
+  .hero-media {
+    animation: none !important;
+  }
 }
 
 /* ========================
@@ -1447,6 +1450,12 @@ html[data-theme="dark"] .textarea {
 }
 
 /* media */
+@keyframes heroFloat {
+  0%   { transform: translateY(0px); }
+  50%  { transform: translateY(-14px); }
+  100% { transform: translateY(0px); }
+}
+
 .hero-media {
   position: relative;
   border-radius: 0;
@@ -1457,6 +1466,7 @@ html[data-theme="dark"] .textarea {
   display: flex;
   align-items: center;
   justify-content: center;
+  animation: heroFloat 5s ease-in-out infinite;
 }
 
 .hero-vfx,

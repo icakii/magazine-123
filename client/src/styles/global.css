@@ -1452,7 +1452,7 @@ html[data-theme="dark"] .textarea {
 /* media */
 @keyframes heroFloat {
   0%   { transform: translateY(0px); }
-  50%  { transform: translateY(-14px); }
+  50%  { transform: translateY(-22px); }
   100% { transform: translateY(0px); }
 }
 
@@ -1466,7 +1466,14 @@ html[data-theme="dark"] .textarea {
   display: flex;
   align-items: center;
   justify-content: center;
-  animation: heroFloat 5s ease-in-out infinite;
+  animation: heroFloat 4s ease-in-out infinite;
+  transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+  cursor: pointer;
+}
+
+.hero-media:hover {
+  animation-play-state: paused;
+  transform: translateY(-22px) scale(1.06);
 }
 
 .hero-vfx,

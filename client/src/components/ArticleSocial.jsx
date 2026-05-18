@@ -79,18 +79,18 @@ export function ProfileMiniCard({ displayName, anchorRect, onClose }) {
                 <a
                   href={`https://instagram.com/${profile.instagram_handle}`}
                   target="_blank" rel="noopener noreferrer"
-                  style={{ display: "flex", alignItems: "center", gap: 7, padding: "7px 12px", borderRadius: 10, background: "var(--border, rgba(0,0,0,0.05))", color: "var(--text)", textDecoration: "none", fontSize: "0.82rem", fontWeight: 600, marginBottom: 6, opacity: 0.8 }}
-                  onMouseEnter={e => { e.currentTarget.style.opacity = "1"; e.currentTarget.style.background = "var(--border, rgba(0,0,0,0.09))" }}
-                  onMouseLeave={e => { e.currentTarget.style.opacity = "0.8"; e.currentTarget.style.background = "var(--border, rgba(0,0,0,0.05))" }}
+                  style={{ display: "flex", alignItems: "center", gap: 7, padding: "7px 12px", borderRadius: 10, background: "rgba(196,106,74,0.1)", border: "1px solid rgba(196,106,74,0.2)", color: "var(--text)", textDecoration: "none", fontSize: "0.82rem", fontWeight: 600, marginBottom: 6 }}
+                  onMouseEnter={e => { e.currentTarget.style.background = "rgba(196,106,74,0.18)" }}
+                  onMouseLeave={e => { e.currentTarget.style.background = "rgba(196,106,74,0.1)" }}
                 >
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>
                   @{profile.instagram_handle}
                 </a>
               )}
               {profile.articles_count > 0 && (
-                <div style={{ display: "flex", alignItems: "center", gap: 7, padding: "6px 12px", borderRadius: 10, background: "var(--border, rgba(0,0,0,0.05))", fontSize: "0.8rem", color: "var(--text)", opacity: 0.7 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 7, padding: "6px 12px", borderRadius: 10, background: "rgba(0,0,0,0.05)", border: "1px solid rgba(0,0,0,0.07)", fontSize: "0.8rem", color: "var(--text)" }}>
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-                  <span>Articles written: <strong style={{ opacity: 1 }}>{profile.articles_count}</strong></span>
+                  <span>Articles written: <strong>{profile.articles_count}</strong></span>
                 </div>
               )}
             </>

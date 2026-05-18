@@ -1449,11 +1449,11 @@ html[data-theme="dark"] .textarea {
 /* media */
 .hero-media {
   position: relative;
-  border-radius: 22px;
-  overflow: hidden;
-  background: var(--bg-muted);
-  border: 1px solid var(--nav-border);
-  box-shadow: var(--shadow-lg);
+  border-radius: 0;
+  overflow: visible;
+  background: transparent;
+  border: none;
+  box-shadow: none;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1466,7 +1466,7 @@ html[data-theme="dark"] .textarea {
   max-height: 70vh;
   object-fit: contain;
   display: block;
-  border-radius: 22px;
+  border-radius: 0;
 }
 
 @media (max-width: 900px) {

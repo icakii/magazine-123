@@ -1745,6 +1745,22 @@ isVideoUrl(heroVfxUrl) ? (
                       Абонамент
                     </button>
                     <button
+                      className="btn ghost" type="button"
+                      style={{ fontSize: "0.78rem", color: "#34d399", borderColor: "#34d399" }}
+                      onClick={async () => {
+                        const val = window.prompt(`Streak за ${u.display_name || u.email}:\n\nВъведи число (напр. 5)`, "")
+                        if (val === null) return
+                        const n = parseInt(val, 10)
+                        if (isNaN(n) || n < 0) { alert("Въведи валидно число!"); return }
+                        try {
+                          await api.post("/admin/restore-streak", { email: u.email, streak: n })
+                          setMsg(`✅ Streak ${n} зададен на ${u.display_name || u.email}.`)
+                        } catch (e) { setMsg(e?.response?.data?.error || "Грешка.") }
+                      }}
+                    >
+                      Streak
+                    </button>
+                    <button
                       className="btn outline" type="button"
                       style={{ fontSize: "0.78rem", color: "#ef4444", borderColor: "#ef4444" }}
                       onClick={async () => {

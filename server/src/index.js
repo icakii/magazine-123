@@ -1514,6 +1514,27 @@ app.post("/api/admin/grant-subscription", adminMiddleware, async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }) }
 })
 
+// Admin — restore/set a user's wordle streak
+app.post("/api/admin/restore-streak", adminMiddleware, async (req, res) => {
+  try {
+    const email = String(req.body?.email || "").trim().toLowerCase()
+    const streak = parseInt(req.body?.streak, 10)
+    if (!email) return res.status(400).json({ error: "email required" })
+    if (isNaN(streak) || streak < 0) return res.status(400).json({ error: "streak must be a non-negative number" })
+    // Set streak and last_win_date to yesterday so it's active today
+    await db.query(
+      `UPDATE users
+       SET wordle_streak=$1,
+           streak=$1,
+           wordle_last_win_date=(NOW() AT TIME ZONE 'UTC')::date - 1,
+           wordle_last_play_date=(NOW() AT TIME ZONE 'UTC')::date - 1
+       WHERE lower(email)=lower($2)`,
+      [streak, email]
+    )
+    res.json({ ok: true })
+  } catch (e) { res.status(500).json({ error: e.message }) }
+})
+
 // Who liked an article
 app.get("/api/articles/:id/likers", async (req, res) => {
   try {

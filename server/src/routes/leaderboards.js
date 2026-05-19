@@ -28,7 +28,7 @@ router.get("/leaderboards", async (req, res) => {
           WHEN u.wordle_last_win_date IS NULL THEN 0
           WHEN (SELECT d FROM today) - u.wordle_last_win_date > 1 THEN 0
           ELSE COALESCE(u.wordle_streak, 0)
-        END >= 2
+        END >= 1
       ORDER BY "streak" DESC, u.display_name ASC
       LIMIT 100
     `)

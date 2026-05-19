@@ -56,7 +56,8 @@ app.set("trust proxy", 1)
 const ALLOWED_ORIGINS = [
   process.env.FRONTEND_URL,
   process.env.APP_URL,
-  "https://magazine-123.onrender.com", // ✅ ТОВА Е НОВИЯТ ТИ ДОМЕЙН
+  "https://magazine-123.onrender.com",
+  "https://mirenmagazine.com",
   "http://localhost:5173",
   "http://localhost:8080",
 ].filter(Boolean)
